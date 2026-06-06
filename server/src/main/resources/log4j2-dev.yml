@@ -5,7 +5,7 @@ Configuration:
   Properties:
     Property:
       - name: BASE_DIR
-        value: "D:/smart-weighing-shelf-system-assets/logs"
+        value: "/logs"
       - name: DATE_PATH
         value: "${date:yyyy-MM}"
 

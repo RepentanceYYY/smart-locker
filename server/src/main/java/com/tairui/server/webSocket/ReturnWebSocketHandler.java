@@ -1,17 +1,10 @@
 package com.tairui.server.webSocket;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tairui.server.device.core.CommDispatcher;
-import com.tairui.server.device.core.SerialDispatcher;
-import com.tairui.server.device.core.TcpClientDispatcher;
-import com.tairui.server.device.channel.SerialChannel;
-import com.tairui.server.device.channel.TcpClientChannel;
-import com.tairui.server.device.qianMingLock.Controller;
-import com.tairui.server.dto.CabinetFullDTO;
+import com.tairui.server.device.qianMingLock.QianMingLockDevice;
+import com.tairui.server.deviceService.QianMingLockDeviceServiceManager;
 import com.tairui.server.service.CabinetConfigService;
-import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -19,11 +12,9 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 
-
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -32,77 +23,9 @@ public class ReturnWebSocketHandler extends TextWebSocketHandler {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
-    private Controller lockController;
 
     @Autowired
-    private CabinetConfigService cabinetConfigService;
-
-    @Value("${lock.simulation.mode:true}")
-    private boolean simulationMode;
-
-    public ReturnWebSocketHandler() {
-        lockController = new Controller();
-    }
-
-    @PostConstruct
-    public void init() throws Exception {
-        lockController.setSimulationMode(simulationMode);
-
-        if (simulationMode) {
-            System.out.println("硬件控制器初始化完成，模拟模式开启");
-            return;
-        }
-
-        // 真实模式：获取第一个柜子的锁板配置
-        List<CabinetFullDTO> cabinets = cabinetConfigService.getFullConfigList();
-        if (cabinets == null || cabinets.isEmpty()) {
-            throw new Exception("没有找到柜子配置，无法初始化硬件");
-        }
-        CabinetFullDTO firstCab = cabinets.get(0);
-        String lockCommType = firstCab.getLockCommType();
-        String lockCommPort = firstCab.getLockCommPort();
-
-        if (lockCommType == null || lockCommPort == null) {
-            throw new Exception("锁板通讯配置不完整，请检查柜子配置");
-        }
-
-        CommDispatcher dispatcher = null;
-        if ("485".equalsIgnoreCase(lockCommType)) {
-            String[] parts = lockCommPort.split("@");
-            if (parts.length != 2) {
-                throw new Exception("串口配置格式错误，应为 端口@波特率，如 com1@115200");
-            }
-            String portName = parts[0];
-            int baudRate;
-            try {
-                baudRate = Integer.parseInt(parts[1]);
-            } catch (NumberFormatException e) {
-                throw new Exception("波特率格式错误: " + parts[1]);
-            }
-            SerialChannel channel = new SerialChannel(portName, baudRate);
-            dispatcher = new SerialDispatcher(channel);
-        } else if ("TCP".equalsIgnoreCase(lockCommType)) {
-            String[] parts = lockCommPort.split(":");
-            if (parts.length != 2) {
-                throw new Exception("TCP配置格式错误，应为 IP:端口，如 192.168.1.2:8456");
-            }
-            String host = parts[0];
-            int port;
-            try {
-                port = Integer.parseInt(parts[1]);
-            } catch (NumberFormatException e) {
-                throw new Exception("端口号格式错误: " + parts[1]);
-            }
-            TcpClientChannel channel = new TcpClientChannel(host, port);
-            dispatcher = new TcpClientDispatcher(channel);
-        } else {
-            throw new Exception("不支持的锁板通讯类型: " + lockCommType);
-        }
-
-        lockController.setCommDispatcher(dispatcher);
-        lockController.open();
-        System.out.println("硬件控制器初始化完成，真实模式，通讯方式: " + lockCommType + "，配置: " + lockCommPort);
-    }
+    private QianMingLockDeviceServiceManager qianMingLockDeviceServiceManager;
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
@@ -129,6 +52,13 @@ public class ReturnWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
+    /**
+     * 开锁处理器
+     *
+     * @param session
+     * @param data
+     * @throws Exception
+     */
     private void handleOpenLock(WebSocketSession session, Map<String, Object> data) throws Exception {
         Integer cabinetId = (Integer) data.get("cabinetId");
         Integer cellId = (Integer) data.get("cellId");
@@ -144,7 +74,7 @@ public class ReturnWebSocketHandler extends TextWebSocketHandler {
 
         boolean success;
         try {
-            success = lockController.openBoxSync(boxNo, 3000);
+            success = qianMingLockDeviceServiceManager.openBoxSync(cellId, 3000);
         } catch (Exception e) {
             e.printStackTrace();
             success = false;
@@ -177,15 +107,27 @@ public class ReturnWebSocketHandler extends TextWebSocketHandler {
             sendResponse(session, "closeAndCheck", 400, "格口号格式错误", null);
             return;
         }
+        boolean isOpen;
+        try {
+            QianMingLockDevice.BoxStatusData boxStatusData = qianMingLockDeviceServiceManager.queryBoxStatusSync(cellId, 500L);
+            System.out.println(boxStatusData.toString());
+            isOpen = boxStatusData.isOpen(boxNo);
+            if (isOpen == true) {
+                sendResponse(session, "closeAndCheck", 500, "关门失败，请联系管理员", null);
+                return;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            sendResponse(session, "closeAndCheck", 500, "关门失败，请联系管理员", null);
+            return;
+        }
 
+        // 是否有物品
         boolean hasGoods;
         try {
-            if (simulationMode) {
-                hasGoods = (toolName != null && !toolName.isEmpty());
-            } else {
-                Controller.BoxGoodsData goodsData = lockController.queryGoodsStatusSync(3000);
-                hasGoods = goodsData.hasGoods(boxNo);
-            }
+            QianMingLockDevice.BoxGoodsData boxGoodsData = qianMingLockDeviceServiceManager.queryGoodsStatusSync(cellId, 3000L);
+            System.out.println(boxGoodsData.toString());
+            hasGoods = boxGoodsData.hasGoods(boxNo);
         } catch (Exception e) {
             e.printStackTrace();
             hasGoods = false;
