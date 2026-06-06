@@ -1,0 +1,18 @@
+server:
+  address: 0.0.0.0
+  port: 8080
+#京东云
+spring:
+  datasource:
+    password: "Liu2025@MySQL!"
+    username: root
+    url: jdbc:mysql://mysql57:3306/smart_weighing_shelf?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+assets:
+  root-dir: "/smart-weighing-shelf-system-assets/"
+  root-access-path: "/assets/**"
+  face-full-dir: "/smart-weighing-shelf-system-assets/faces"
+  face-access-path: "/assets/faces"
+  material-full-dir: "/smart-weighing-shelf-system-assets/materials"
+  material-access-path: "/assets/materials"
+

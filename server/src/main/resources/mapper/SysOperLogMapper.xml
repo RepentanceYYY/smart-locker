@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tairui.server.mapper.SysOperLogMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.tairui.server.entity.SysOperLog">
+        <id column="id" property="id" />
+        <result column="cabinet_id" property="cabinetId" />
+        <result column="cabinet_title" property="cabinetTitle" />
+        <result column="cell_id" property="cellId" />
+        <result column="cell_number" property="cellNumber" />
+        <result column="tool_name" property="toolName" />
+        <result column="borrower_photo" property="borrowerPhoto" />
+        <result column="borrower_name" property="borrowerName" />
+        <result column="borrower_number" property="borrowerNumber" />
+        <result column="borrow_time" property="borrowTime" />
+        <result column="borrow_remark" property="borrowRemark" />
+        <result column="return_photo" property="returnPhoto" />
+        <result column="return_name" property="returnName" />
+        <result column="return_number" property="returnNumber" />
+        <result column="return_time" property="returnTime" />
+        <result column="return_remark" property="returnRemark" />
+        <result column="expected_return_time" property="expectedReturnTime" />
+    </resultMap>
+
+
+    <update id="truncateTable">
+        TRUNCATE TABLE sys_oper_log
+    </update>
+</mapper>

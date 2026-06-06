@@ -1,0 +1,27 @@
+server:
+  address: 0.0.0.0
+  port: 8080
+#本地开发
+spring:
+  datasource:
+    password: "123456"
+    username: root
+    url: jdbc:mysql://127.0.0.1:3306/grid_cabinet_db?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+#spring:
+#  datasource:
+#    password: 123456
+#    username: root
+#    url: jdbc:mysql://127.0.0.1:3306/smart_weighing_shelf?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+#    driver-class-name: com.mysql.cj.jdbc.Driver
+assets:
+  root-dir: "D:/smart-weighing-shelf-system-assets/"
+  root-access-path: "/assets/**"
+  face-full-dir: "D:/smart-weighing-shelf-system-assets/faces"
+  face-access-path: "/assets/faces"
+  material-full-dir: "D:/smart-weighing-shelf-system-assets/materials"
+  material-access-path: "/assets/materials"
+logging:
+  level:
+    com.tairui.server.mapper: debug
+

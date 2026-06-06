@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tairui.server.mapper.CellConfigMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.tairui.server.entity.CellConfig">
+        <id column="id" property="id" />
+        <result column="cabinet_id" property="cabinetId" />
+        <result column="row_num" property="rowNum" />
+        <result column="type" property="type" />
+        <result column="columns" property="columns" />
+        <result column="height" property="height" />
+        <result column="colSpan" property="colSpan" />
+        <result column="rowSpan" property="rowSpan" />
+        <result column="number" property="number" />
+        <result column="toolName" property="toolName" />
+        <result column="isEmpty" property="isEmpty" />
+        <result column="imageUrl" property="imageUrl" />
+        <result column="label" property="label" />
+        <result column="macAddress" property="macAddress" />
+        <result column="qrcodeContent" property="qrcodeContent" />
+    </resultMap>
+
+    <update id="truncateTable">
+        TRUNCATE TABLE cell_config
+    </update>
+</mapper>

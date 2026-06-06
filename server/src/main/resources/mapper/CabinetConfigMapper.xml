@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tairui.server.mapper.CabinetConfigMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.tairui.server.entity.CabinetConfig">
+        <id column="id" property="id" />
+        <result column="title" property="title" />
+        <result column="width" property="width" />
+        <result column="height" property="height" />
+        <result column="isDefault" property="isDefault" />
+        <result column="dehumidifier_comm_type" property="dehumidifierCommType" />
+        <result column="dehumidifier_comm_port" property="dehumidifierCommPort" />
+        <result column="dehumidifier_addr" property="dehumidifierAddr" />
+        <result column="humidity_max" property="humidityMax" />
+        <result column="humidity_min" property="humidityMin" />
+        <result column="temperature_max" property="temperatureMax" />
+        <result column="temperature_min" property="temperatureMin" />
+        <result column="lock_comm_type" property="lockCommType" />
+        <result column="lock_comm_port" property="lockCommPort" />
+        <result column="lock_board_addr" property="lockBoardAddr" />
+    </resultMap>
+
+    <update id="truncateTable">
+        TRUNCATE TABLE cabinet_config
+    </update>
+
+</mapper>
+

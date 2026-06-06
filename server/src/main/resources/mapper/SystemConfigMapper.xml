@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tairui.server.mapper.SystemConfigMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.tairui.server.entity.SystemConfig">
+        <id column="id" property="id" />
+        <result column="system_name" property="systemName" />
+        <result column="eng_name" property="engName" />
+        <result column="system_code" property="systemCode" />
+        <result column="location" property="location" />
+        <result column="admin_pwd" property="adminPwd" />
+        <result column="borrow_period" property="borrowPeriod" />
+        <result column="auto_return_timeout_minutes" property="autoReturnTimeoutMinutes" />
+    </resultMap>
+
+</mapper>

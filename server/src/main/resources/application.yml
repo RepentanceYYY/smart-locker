@@ -1,0 +1,20 @@
+spring:
+  profiles:
+    active: dev
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+  application:
+    name: smart-weighing-shelf-system
+    file:
+      upload:
+        borrow-photo-path: ${user.dir}/uploads
+        borrow-photo-access: /uploads/
+mybatis-plus:
+  mapper-locations: classpath:/mapper/**/*.xml
+logging:
+  config: classpath:log4j2-dev.yml
+lock:
+  simulation:
+    mode: false   # true=模拟模式, false=真实硬件模式
