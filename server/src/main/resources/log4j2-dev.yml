@@ -5,7 +5,7 @@ Configuration:
   Properties:
     Property:
       - name: BASE_DIR
-        value: "/logs"
+        value: "logs"
       - name: DATE_PATH
         value: "${date:yyyy-MM}"
 
@@ -19,7 +19,9 @@ Configuration:
         onMatch: ACCEPT
         onMismatch: DENY
       PatternLayout:
-        pattern: "[%d{HH:mm:ss.SSS}] %-5level %class{36} %L %M - %msg%xEx%n"
+        pattern: "[%d{HH:mm:ss.SSS}] %highlight{%-5level} %class{36} %L %M - %msg%xEx%n"
+        disableAnsi: false
+        alwaysWriteExceptions: true
 
     RollingFile:
       # 1. DEBUG 日志：只存放 DEBUG 级别信息

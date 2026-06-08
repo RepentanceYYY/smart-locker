@@ -2,12 +2,7 @@
   <div class="return-container">
     <!-- 通知列表 -->
     <div class="notification-container">
-      <div
-          v-for="notify in notifications"
-          :key="notify.id"
-          class="notification"
-          :class="notify.type"
-      >
+      <div v-for="notify in notifications" :key="notify.id" class="notification" :class="notify.type">
         {{ notify.text }}
       </div>
     </div>
@@ -42,21 +37,12 @@
 
           <!-- 手动输入后门 -->
           <div class="manual-input-area">
-            <input
-                type="text"
-                v-model="manualQRCode"
-                placeholder="手动输入二维码号"
-                @keyup.enter="submitManualQRCode"
-                class="manual-input"
-            />
+            <input type="text" v-model="manualQRCode" placeholder="手动输入二维码号" @keyup.enter="submitManualQRCode"
+              class="manual-input" />
             <button @click="submitManualQRCode" class="manual-submit-btn">提交</button>
           </div>
 
-          <button
-              v-if="!isWaitingForScan && scannedCellInfo"
-              class="reset-scan-btn"
-              @click="resetScanState"
-          >
+          <button v-if="!isWaitingForScan && scannedCellInfo" class="reset-scan-btn" @click="resetScanState">
             重新扫描
           </button>
         </div>
@@ -79,67 +65,44 @@
             </div>
 
             <!-- 导航按钮 -->
-            <button
-                class="nav-btn-left"
-                :class="{ disabled: currentIndex === 0 }"
-                @click="rotatePrev"
-            >
+            <button class="nav-btn-left" :class="{ disabled: currentIndex === 0 }" @click="rotatePrev">
               <span class="arrow">◀</span><span class="btn-text">上一个</span>
             </button>
-            <button
-                class="nav-btn-right"
-                :class="{ disabled: currentIndex === totalCount - 1 }"
-                @click="rotateNext"
-            >
+            <button class="nav-btn-right" :class="{ disabled: currentIndex === totalCount - 1 }" @click="rotateNext">
               <span class="btn-text">下一个</span><span class="arrow">▶</span>
             </button>
 
             <!-- 3D 圆柱轮播 -->
             <div class="carousel-cylinder">
               <div class="carousel-3d" :style="{ minHeight: carouselHeight + 'px' }">
-                <div
-                    v-for="(cab, idx) in cabinets"
-                    :key="cab.id"
-                    class="cabinet-item"
-                    :class="{ 'center-highlight': idx === currentIndex }"
-                    :style="[
+                <div v-for="(cab, idx) in cabinets" :key="cab.id" class="cabinet-item"
+                  :class="{ 'center-highlight': idx === currentIndex }" :style="[
                     getCabinetStyle(idx),
                     { width: cab.width || '280px', height: cab.height || 'auto' },
-                  ]"
-                >
+                  ]">
                   <div class="cabinet-header">{{ cab.title }}</div>
                   <div class="cabinet-body">
                     <div class="cabinet-grid" :style="getGridStyle(cab)">
                       <template v-for="(cell, cellIdx) in cab.flatCells" :key="cellIdx">
                         <!-- 普通格口 -->
-                        <div
-                            v-if="cell.type === 'cell'"
-                            class="cell-container"
-                            :style="[getCellPosition(cell), cell.cellStyle]"
-                            @click="handleCellClick(cab, cell)"
-                        >
+                        <div v-if="cell.type === 'cell'" class="cell-container"
+                          :style="[getCellPosition(cell), cell.cellStyle]" @click="handleCellClick(cab, cell)">
                           <div class="cell-inner"></div>
-                          <div
-                              class="cabinet-cell"
-                              :class="{
-                              'empty-door': cell.isEmpty,
-                              'door-open': cell.isDoorOpen,
-                            }"
-                          >
+                          <div class="cabinet-cell" :class="{
+                            'empty-door': cell.isEmpty,
+                            'door-open': cell.isDoorOpen,
+                          }">
                             <span class="cell-number">{{ cell.number }}</span>
                             <span class="tool-name">{{ truncateText(cell.toolName, 8) }}</span>
                           </div>
                         </div>
                         <!-- 图片格口 -->
-                        <div
-                            v-else-if="cell.type === 'image'"
-                            class="custom-image-cell"
-                            :style="[getCellPosition(cell), cell.cellStyle]"
-                        >
+                        <div v-else-if="cell.type === 'image'" class="custom-image-cell"
+                          :style="[getCellPosition(cell), cell.cellStyle]">
                           <img :src="cell.imageUrl" :alt="cell.label || '图标'" />
                           <span v-if="cell.label" class="image-label">{{
-                              truncateText(cell.label, 10)
-                            }}</span>
+                            truncateText(cell.label, 10)
+                          }}</span>
                         </div>
                       </template>
                     </div>
@@ -164,13 +127,7 @@
                 <div class="photo-badge">归还照片</div>
               </div>
               <div v-else class="photo-placeholder">
-                <svg
-                    class="placeholder-icon"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                >
+                <svg class="placeholder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                   <rect x="2" y="4" width="20" height="16" rx="2" ry="2" />
                   <circle cx="12" cy="12" r="3" />
                   <line x1="18" y1="8" x2="18" y2="8" stroke-width="2" />
@@ -192,11 +149,7 @@
                   <div v-if="returnRecords.length === 0" class="info-row placeholder-row">
                     <span class="row-item" colspan="4">暂无归还记录，扫描后关门即自动记录</span>
                   </div>
-                  <div
-                      v-for="record in returnRecords"
-                      :key="record.id"
-                      class="info-row return-record"
-                  >
+                  <div v-for="record in returnRecords" :key="record.id" class="info-row return-record">
                     <span class="row-item">{{ record.cabinetTitle }}</span>
                     <span class="row-item">{{ record.cellNumber }}</span>
                     <span class="row-item">{{ record.toolName }}</span>
@@ -208,11 +161,7 @@
 
             <!-- 右侧：手动触发归还完成按钮 -->
             <div class="button-area">
-              <button
-                  class="complete-btn return-btn"
-                  :disabled="isCompleteDisabled"
-                  @click="handleCompleteSession"
-              >
+              <button class="complete-btn return-btn" :disabled="isCompleteDisabled" @click="handleCompleteSession">
                 <span class="btn-icon">📦</span>
                 <span class="btn-label">归还完成</span>
               </button>
@@ -223,12 +172,8 @@
     </div>
 
     <!-- 归还汇总模态框 -->
-    <ReturnSummaryModal
-        v-model:visible="showReturnSummary"
-        :return-items="returnRecords"
-        :photo-data="photoData"
-        @submit="onReturnSubmit"
-    />
+    <ReturnSummaryModal v-model:visible="showReturnSummary" :return-items="returnRecords" :photo-data="photoData"
+      @submit="onReturnSubmit" />
 
     <!-- 无归还记录提示模态框 -->
     <Teleport to="body">
@@ -515,9 +460,9 @@ const notifications = ref<Notification[]>([])
 let nextNotificationId = 1
 
 function addNotification(
-    text: string,
-    type: 'info' | 'success' | 'warning' = 'info',
-    duration = 5000
+  text: string,
+  type: 'info' | 'success' | 'warning' = 'info',
+  duration = 5000
 ) {
   const id = nextNotificationId++
   const notification: Notification = { id, text, type }
@@ -542,6 +487,7 @@ const maxScale = ref(1.4)
 const photoData = ref('')
 const scannerBuffer = ref('')
 const scannerTimer = ref<ReturnType<typeof setTimeout> | null>(null)
+// 手动二维码
 const manualQRCode = ref('')
 
 const isWaitingForScan = ref(true)
@@ -675,6 +621,47 @@ function getGridStyle(cab: ProcessedCabinet) {
 }
 
 // ================== WebSocket 连接 ==================
+let closeAndCheckTimer: any = null // 轮询定时器
+const isWaiting = ref(false)       // 状态锁：是否正在等待后端的响应
+const isPollingActive = ref(true)  // 业务锁：轮询是否仍在继续进行
+
+const closeAndCheck = (cabId: any, cellId: any, cellNumber: any, toolName: any) => {
+  // 如果轮询已经结束，或者上一次的响应还没来，则不发送
+  if (!isPollingActive.value || isWaiting.value) return
+  // 检测柜门和物品状态
+  sendMessage('closeAndCheck', {
+    cabinetId: cabId,
+    cellId: cellId,
+    cellNumber: cellNumber,
+    toolName: toolName
+  })
+}
+// 递进式定时器
+const startCloseAndCheckPolling = (cabId: any, cellId: any, cellNumber: any, toolName: any) => {
+  isPollingActive.value = true
+  // 这里的检查依然保留，用于拦截定时器内部递归时的状态
+  if (!isPollingActive.value) return
+
+  closeAndCheckTimer = setTimeout(() => {
+    closeAndCheck(cabId, cellId, cellNumber, toolName)
+    // 只有当定时器没有被外部中断，且轮询依然处于激活状态时，才进行下一次递归
+    if (closeAndCheckTimer && isPollingActive.value) {
+      startCloseAndCheckPolling(cabId, cellId, cellNumber, toolName)
+    }
+  }, 600)
+}
+/**
+ * 停止轮询
+ */
+const stopCloseAndCheckPolling = () => {
+  isPollingActive.value = false // 标记轮询已结束
+  isWaiting.value = false       // 解锁等待状态
+  if (closeAndCheckTimer) {
+    clearTimeout(closeAndCheckTimer)         // 清除当前的定时器
+    closeAndCheckTimer = null
+  }
+}
+
 const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8080/ws/return'
 let socket: WebSocket | null = null
 const wsConnected = ref(false)
@@ -685,10 +672,10 @@ function connectWebSocket() {
     console.log('WebSocket 连接成功')
     wsConnected.value = true
   }
-  socket.onmessage = (event) => {
+  socket.onmessage = async (event) => {
     try {
       const message = JSON.parse(event.data)
-      handleWebSocketMessage(message)
+      await handleWebSocketMessage(message)
     } catch (e) {
       console.error('解析消息失败', e)
     }
@@ -705,7 +692,7 @@ function connectWebSocket() {
   }
 }
 
-function sendMessage(type: string, data: any) {
+const sendMessage = (type: string, data: any) => {
   if (!socket || socket.readyState !== WebSocket.OPEN) {
     addNotification('网络连接异常，请稍后重试', 'warning')
     return false
@@ -715,7 +702,7 @@ function sendMessage(type: string, data: any) {
 }
 
 // 处理后端返回的消息
-function handleWebSocketMessage(msg: any) {
+const handleWebSocketMessage = async (msg: any) => {
   const { type, code, data, message: msgText } = msg
   if (type === 'openLock') {
     if (code === 200) {
@@ -741,6 +728,10 @@ function handleWebSocketMessage(msg: any) {
             // 切换到对应的柜子
             const idx = cabinets.value.findIndex(c => c.id === cabinetId)
             if (idx !== -1) currentIndex.value = idx
+            // 启动轮询柜门状态和储物状态
+            await new Promise((resolve) => setTimeout(resolve, 1000))
+            console.log('sssss'+cellNumber)
+            startCloseAndCheckPolling(cab.id, cellId, cellNumber, toolName)
           } else {
             addNotification('开锁成功但未找到对应格口', 'warning')
           }
@@ -752,41 +743,87 @@ function handleWebSocketMessage(msg: any) {
       resetScanState()
     }
   } else if (type === 'closeAndCheck') {
-    if (code === 200) {
-      // 关门成功且有物品归还
-      const { cabinetId, cellId, cellNumber, toolName, returnTime } = data
-      // 更新前端状态
-      for (const cab of cabinets.value) {
-        if (cab.id === cabinetId) {
-          const cell = cab.flatCells.find(c => c.type === 'cell' && c.id === cellId && c.number === cellNumber)
-          if (cell) {
-            cell.isDoorOpen = false
-            cell.isEmpty = false
-            cell.toolName = toolName
-            // 添加到归还记录
-            returnRecords.value.unshift({
-              id: Date.now().toString(),
-              cabinetId,
-              cabinetTitle: cab.title,
-              cellId,
-              cellNumber,
-              toolName,
-              returnTime: returnTime || new Date().toLocaleString(),
-            })
-            addNotification(`✅ 工具 ${toolName} 已成功归还`, 'success')
-            // 清空当前扫描信息，回到扫描等待状态
-            scannedCellInfo.value = null
-            isWaitingForScan.value = true
+    const { cabinetId, cellId, cellNumber, toolName, returnTime } = data
+    console.log(data)
+    switch (code) {
+      case 200:
+        // 关门成功且有物品归还
+        stopCloseAndCheckPolling()
+        // 更新前端状态
+        for (const cab of cabinets.value) {
+          if (cab.id === cabinetId) {
+            const cell = cab.flatCells.find(c => c.type === 'cell' && c.id === cellId && c.number === cellNumber)
+            if (cell) {
+              cell.isDoorOpen = false
+              cell.isEmpty = false
+              cell.toolName = toolName
+              // 添加到归还记录
+              returnRecords.value.unshift({
+                id: Date.now().toString(),
+                cabinetId,
+                cabinetTitle: cab.title,
+                cellId,
+                cellNumber,
+                toolName,
+                returnTime: returnTime || new Date().toLocaleString(),
+              })
+              addNotification(`✅ 工具 ${toolName} 已成功归还`, 'success')
+              // 清空当前扫描信息，回到扫描等待状态
+              scannedCellInfo.value = null
+              isWaitingForScan.value = true
+            }
+            break
           }
-          break
         }
-      }
-    } else if (code === 204) {
-      // 无物品，视为未归还
-      addNotification('未检测到物品，请放入物品后重新关门', 'warning')
-      // 保持门开状态，不清空扫描信息，用户可再次关门尝试
-    } else {
-      addNotification(msgText || '关门失败，请联系管理员', 'warning')
+        break;
+      case 204:
+        console.log(`✅ ${cellNumber}号格口已关锁，但工具 ${toolName} 未归还`)
+        // 已关锁但没有物品
+        stopCloseAndCheckPolling()
+        // 更新前端状态
+        for (const cab of cabinets.value) {
+          if (cab.id === cabinetId) {
+            const cell = cab.flatCells.find(c => c.type === 'cell' && c.id === cellId && c.number === cellNumber)
+            if (cell) {
+              cell.isDoorOpen = false
+              cell.isEmpty = true
+              cell.toolName = toolName
+              addNotification(`✅ ${cellNumber}号格口已关锁，但工具 ${toolName} 未归还`, 'warning')
+              // 清空当前扫描信息，回到扫描等待状态
+              scannedCellInfo.value = null
+              isWaitingForScan.value = true
+            }
+            break
+          }
+        }
+        break;
+      case 400:
+        // 请求数据错误
+        stopCloseAndCheckPolling()
+        addNotification('系统出现小差，请联系管理员', 'warning')
+        break;
+      case 409:
+        // 检测到未关锁 后续不检测是否储物
+        break;
+      case 500:
+        // 锁状态查询失败，后续不检测是否储物
+        stopCloseAndCheckPolling()
+        addNotification('门锁状态检测失败，请联系管理员', 'warning')
+        break;
+
+    }
+    isWaiting.value = false
+  } else if (type === 'checkAllLockStatus') {
+    switch (code) {
+      case 200:
+        if (returnRecords.value.length === 0) {
+          startEmptyReturnCountdown()
+          return
+        }
+        showReturnSummary.value = true
+        break;
+      default:
+        addNotification('尚有柜门未关闭，请先关闭柜门完成归还', 'warning')
     }
   }
 }
@@ -807,9 +844,12 @@ function requestOpenLock(cabinetId: number, cellId: number, cellNumber: string):
   // 调用方不依赖返回值，所以直接 resolve true
   return Promise.resolve(true)
 }
-
+/**
+ * 根据二维码内容查找单元格
+ * @param content 二维码内容
+ */
 function findCellByQRCodeContent(
-    content: string
+  content: string
 ): { cabinet: ProcessedCabinet; cabinetIndex: number; cell: NormalCell; cellIndex: number } | null {
   for (let i = 0; i < cabinets.value.length; i++) {
     const cabinet = cabinets.value[i]
@@ -822,7 +862,10 @@ function findCellByQRCodeContent(
   }
   return null
 }
-
+/**
+ * 获取单元格的工具名称
+ * @param cell 
+ */
 function getToolNameForCell(cell: NormalCell): string {
   if (cell.toolName && cell.toolName.trim() !== '') {
     return cell.toolName
@@ -847,7 +890,7 @@ async function processScannedQRCode(content: string) {
   }
 
   const anyOpen = cabinets.value.some(cab =>
-      cab.flatCells.some(cell => cell.type === 'cell' && cell.isDoorOpen === true)
+    cab.flatCells.some(cell => cell.type === 'cell' && cell.isDoorOpen === true)
   )
   if (anyOpen) {
     addNotification('请先关闭当前开启的柜门', 'warning')
@@ -866,7 +909,6 @@ async function processScannedQRCode(content: string) {
     addNotification(`格口 ${cell.number} 不为空，无法归还`, 'warning')
     return
   }
-
   addNotification(`正在开启 ${cabinet.title} - ${cell.number} 门锁...`, 'info')
   await requestOpenLock(cabinet.id, cell.id, cell.number)
   // 实际开锁结果通过 WebSocket 消息返回，UI 更新在 handleWebSocketMessage 中
@@ -898,7 +940,7 @@ async function handleCellClick(cab: ProcessedCabinet, cell: NormalCell) {
 
 function resetScanState() {
   const anyOpen = cabinets.value.some(cab =>
-      cab.flatCells.some(cell => cell.type === 'cell' && cell.isDoorOpen === true)
+    cab.flatCells.some(cell => cell.type === 'cell' && cell.isDoorOpen === true)
   )
   if (anyOpen) {
     addNotification('请先关闭当前开启的柜门', 'warning')
@@ -909,7 +951,9 @@ function resetScanState() {
   scannerBuffer.value = ''
   addNotification('已重置扫描状态，请重新扫描二维码', 'info')
 }
-
+/**
+ * 提交手动二维码
+ */
 function submitManualQRCode() {
   if (!manualQRCode.value.trim()) {
     addNotification('请输入二维码内容', 'warning')
@@ -956,18 +1000,14 @@ function onGlobalKeydown(event: KeyboardEvent) {
 
 // 处理归还完成按钮点击
 function handleCompleteSession() {
-  if (returnRecords.value.length === 0) {
-    startEmptyReturnCountdown()
-    return
-  }
   const anyOpen = cabinets.value.some(cab =>
-      cab.flatCells.some(cell => cell.type === 'cell' && cell.isDoorOpen === true)
+    cab.flatCells.some(cell => cell.type === 'cell' && cell.isDoorOpen === true)
   )
   if (anyOpen) {
     addNotification('尚有柜门未关闭，请先关闭柜门完成归还', 'warning')
     return
   }
-  showReturnSummary.value = true
+  sendMessage('checkAllLockStatus',{})
 }
 
 // 空归还记录倒计时相关方法
@@ -1107,7 +1147,7 @@ function handleResize() {
 watch(currentIndex, (newIdx, oldIdx) => {
   if (newIdx !== oldIdx) {
     console.log(
-        `切换到柜子 ${newIdx + 1}，温度：${currentCabinetTemp.value}℃，湿度：${currentCabinetHumidity.value}%`
+      `切换到柜子 ${newIdx + 1}，温度：${currentCabinetTemp.value}℃，湿度：${currentCabinetHumidity.value}%`
     )
   }
 })
@@ -1135,13 +1175,16 @@ onBeforeUnmount(() => {
   clearEmptyReturnTimer()
   clearReturnSuccessTimer()
   if (scannerTimer.value) clearTimeout(scannerTimer.value)
+  stopCloseAndCheckPolling()
   if (socket) socket.close()
 })
 </script>
 
 <style lang="css" scoped>
 /* ================== 全局重置 ================== */
-html, body, #app {
+html,
+body,
+#app {
   height: 100%;
   margin: 0;
   padding: 0;
@@ -1173,20 +1216,33 @@ html, body, #app {
   z-index: 100;
   transition: all 0.3s ease;
 }
+
 .scanner-prompt.active {
   background: linear-gradient(135deg, rgba(0, 30, 40, 0.9), rgba(0, 40, 50, 0.9));
   border-bottom-color: #22d3ee;
   box-shadow: 0 4px 15px rgba(34, 211, 238, 0.2);
 }
+
 .scanner-icon {
   font-size: 24px;
   filter: drop-shadow(0 0 4px #22d3ee);
   animation: pulse 1.5s infinite;
 }
+
 @keyframes pulse {
-  0%, 100% { opacity: 0.6; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.1); }
+
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
 }
+
 .scanner-text {
   font-size: 14px;
   font-weight: 600;
@@ -1194,6 +1250,7 @@ html, body, #app {
   flex: 1;
   text-align: center;
 }
+
 .door-open-badge {
   display: inline-block;
   margin-left: 10px;
@@ -1203,6 +1260,7 @@ html, body, #app {
   font-size: 11px;
   color: white;
 }
+
 .reset-scan-btn {
   background: rgba(245, 158, 11, 0.8);
   border: none;
@@ -1213,6 +1271,7 @@ html, body, #app {
   cursor: pointer;
   transition: all 0.2s;
 }
+
 .reset-scan-btn:hover {
   background: #f59e0b;
   transform: scale(1.02);
@@ -1225,6 +1284,7 @@ html, body, #app {
   gap: 8px;
   margin-left: 16px;
 }
+
 .manual-input {
   padding: 6px 12px;
   border-radius: 24px;
@@ -1235,10 +1295,12 @@ html, body, #app {
   outline: none;
   width: 180px;
 }
+
 .manual-input:focus {
   border-color: #22d3ee;
   box-shadow: 0 0 5px rgba(34, 211, 238, 0.5);
 }
+
 .manual-submit-btn {
   background: rgba(34, 211, 238, 0.3);
   border: 1px solid #22d3ee;
@@ -1249,6 +1311,7 @@ html, body, #app {
   font-size: 12px;
   transition: all 0.2s;
 }
+
 .manual-submit-btn:hover {
   background: #22d3ee;
   color: #0a1a1f;
@@ -1267,6 +1330,7 @@ html, body, #app {
   min-width: 260px;
   pointer-events: none;
 }
+
 .notification {
   padding: 14px 24px;
   border-radius: 48px;
@@ -1282,19 +1346,30 @@ html, body, #app {
   overflow-wrap: break-word;
   max-width: 100%;
 }
-.notification.info, .notification.success {
+
+.notification.info,
+.notification.success {
   background: rgba(16, 185, 129, 0.95);
   color: white;
   border-left: 4px solid #a7f3d0;
 }
+
 .notification.warning {
   background: rgba(245, 158, 11, 0.95);
   color: white;
   border-left: 4px solid #fde68a;
 }
+
 @keyframes slideInRight {
-  from { opacity: 0; transform: translateX(100%); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .full-layout {
@@ -1318,10 +1393,12 @@ html, body, #app {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   flex-shrink: 0;
 }
+
 .title-icon {
   font-size: 28px;
   filter: drop-shadow(0 0 6px #22d3ee);
 }
+
 .page-header h1 {
   margin: 0;
   font-size: 26px;
@@ -1343,6 +1420,7 @@ html, body, #app {
   overflow: hidden;
   min-height: 0;
 }
+
 .top-section {
   flex: 1;
   position: relative;
@@ -1355,7 +1433,8 @@ html, body, #app {
 }
 
 /* 温湿度卡片 */
-.temp-card, .humidity-card {
+.temp-card,
+.humidity-card {
   position: absolute;
   top: 8px;
   display: flex;
@@ -1369,13 +1448,43 @@ html, body, #app {
   border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
-.temp-card { left: 20px; border-left: 3px solid #f87171; }
-.humidity-card { right: 20px; border-right: 3px solid #4ade80; }
-.card-icon { font-size: 18px; }
-.card-value { font-size: 18px; font-weight: 700; min-width: 45px; text-align: center; }
-.temp-card .card-value { color: #f87171; }
-.humidity-card .card-value { color: #4ade80; }
-.card-label { font-size: 11px; color: #94a3b8; background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 20px; }
+
+.temp-card {
+  left: 20px;
+  border-left: 3px solid #f87171;
+}
+
+.humidity-card {
+  right: 20px;
+  border-right: 3px solid #4ade80;
+}
+
+.card-icon {
+  font-size: 18px;
+}
+
+.card-value {
+  font-size: 18px;
+  font-weight: 700;
+  min-width: 45px;
+  text-align: center;
+}
+
+.temp-card .card-value {
+  color: #f87171;
+}
+
+.humidity-card .card-value {
+  color: #4ade80;
+}
+
+.card-label {
+  font-size: 11px;
+  color: #94a3b8;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 2px 6px;
+  border-radius: 20px;
+}
 
 /* 3D轮播 */
 .carousel-cylinder {
@@ -1390,6 +1499,7 @@ html, body, #app {
   height: 100%;
   overflow: hidden;
 }
+
 .carousel-3d {
   position: relative;
   width: 100%;
@@ -1399,6 +1509,7 @@ html, body, #app {
   transform-style: preserve-3d;
   overflow: visible;
 }
+
 .cabinet-item {
   position: absolute;
   background: #f1f4f9;
@@ -1413,10 +1524,12 @@ html, body, #app {
   will-change: transform;
   max-width: 88vw;
 }
+
 .cabinet-item.center-highlight {
   filter: drop-shadow(0 0 12px rgba(100, 220, 160, 0.6));
   border: 1px solid #6fcf97;
 }
+
 .cabinet-header {
   background: linear-gradient(135deg, #eef2f7 0%, #e3e9f0 100%);
   border-radius: 20px 20px 0 0;
@@ -1427,6 +1540,7 @@ html, body, #app {
   color: #1e5a44;
   border-bottom: 1px solid #cbd5e0;
 }
+
 .cabinet-body {
   padding: 12px;
   position: relative;
@@ -1434,6 +1548,7 @@ html, body, #app {
   display: flex;
   flex-direction: column;
 }
+
 .cabinet-grid {
   display: grid;
   gap: 8px;
@@ -1441,12 +1556,14 @@ html, body, #app {
   z-index: 2;
   min-height: 260px;
 }
+
 .indicator-upper {
   display: flex;
   justify-content: center;
   margin: 4px 0 2px;
   flex-shrink: 0;
 }
+
 .indicator-text {
   background: rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(8px);
@@ -1457,6 +1574,7 @@ html, body, #app {
   color: #c2f0e0;
   border: 1px solid rgba(34, 211, 238, 0.5);
 }
+
 .divider {
   width: 85%;
   height: 2px;
@@ -1480,8 +1598,14 @@ html, body, #app {
   box-sizing: border-box;
   height: 100%;
 }
-.cell-container:active { transform: scale(0.98); }
-.cell-container:hover { box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.7); }
+
+.cell-container:active {
+  transform: scale(0.98);
+}
+
+.cell-container:hover {
+  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+}
 
 .custom-image-cell {
   background: rgba(0, 0, 0, 0.4);
@@ -1495,12 +1619,14 @@ html, body, #app {
   overflow: hidden;
   cursor: default;
 }
+
 .custom-image-cell img {
   max-width: 75%;
   max-height: 65%;
   object-fit: contain;
   border-radius: 8px;
 }
+
 .image-label {
   margin-top: 6px;
   font-size: 9px;
@@ -1539,15 +1665,18 @@ html, body, #app {
   will-change: transform;
   box-sizing: border-box;
 }
+
 .cabinet-cell.door-open {
   transform: translateZ(6px) rotateY(-75deg);
   box-shadow: -8px 0 16px rgba(0, 0, 0, 0.3), inset -1px 0 0 rgba(255, 255, 255, 0.5);
 }
+
 .cabinet-cell.empty-door {
   background: rgba(255, 255, 245, 0.55);
   backdrop-filter: blur(4px);
   border-color: rgba(140, 180, 160, 0.6);
 }
+
 .cell-number {
   position: absolute;
   top: 3px;
@@ -1561,6 +1690,7 @@ html, body, #app {
   z-index: 2;
   white-space: nowrap;
 }
+
 .tool-name {
   font-size: 8px;
   font-weight: 600;
@@ -1576,10 +1706,14 @@ html, body, #app {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.empty-door .tool-name { display: none; }
+
+.empty-door .tool-name {
+  display: none;
+}
 
 /* 导航按钮 */
-.nav-btn-left, .nav-btn-right {
+.nav-btn-left,
+.nav-btn-right {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
@@ -1600,17 +1734,35 @@ html, body, #app {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   white-space: nowrap;
 }
-.nav-btn-left { left: 12px; }
-.nav-btn-right { right: 12px; }
-.arrow { font-size: 1.3rem; line-height: 1; }
-.btn-text { font-size: 0.85rem; font-weight: 600; }
-.nav-btn-left:hover:not(.disabled), .nav-btn-right:hover:not(.disabled) {
+
+.nav-btn-left {
+  left: 12px;
+}
+
+.nav-btn-right {
+  right: 12px;
+}
+
+.arrow {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.btn-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.nav-btn-left:hover:not(.disabled),
+.nav-btn-right:hover:not(.disabled) {
   background: rgba(14, 165, 233, 0.9);
   border-color: #7dd3fc;
   color: #0a1a1f;
   transform: translateY(-50%) scale(1.05);
 }
-.nav-btn-left.disabled, .nav-btn-right.disabled {
+
+.nav-btn-left.disabled,
+.nav-btn-right.disabled {
   opacity: 0.35;
   cursor: not-allowed;
   filter: grayscale(0.2);
@@ -1627,6 +1779,7 @@ html, body, #app {
   overflow: hidden;
   background: transparent;
 }
+
 .bottom-container {
   display: flex;
   width: 100%;
@@ -1636,6 +1789,7 @@ html, body, #app {
   align-items: stretch;
   height: 100%;
 }
+
 .photo-area {
   flex: 1;
   min-width: 0;
@@ -1643,6 +1797,7 @@ html, body, #app {
   align-items: center;
   justify-content: center;
 }
+
 .photo-card {
   position: relative;
   width: 100%;
@@ -1652,7 +1807,13 @@ html, body, #app {
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(34, 211, 238, 0.5);
 }
-.preview-image { width: 100%; height: auto; display: block; }
+
+.preview-image {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
 .photo-badge {
   position: absolute;
   bottom: 8px;
@@ -1664,6 +1825,7 @@ html, body, #app {
   font-size: 10px;
   color: #4ade80;
 }
+
 .photo-placeholder {
   display: flex;
   flex-direction: column;
@@ -1675,7 +1837,12 @@ html, body, #app {
   padding: 20px;
   border: 1px dashed rgba(34, 211, 238, 0.5);
 }
-.placeholder-icon { width: 48px; height: 48px; color: #94a3b8; }
+
+.placeholder-icon {
+  width: 48px;
+  height: 48px;
+  color: #94a3b8;
+}
 
 /* 归还信息表格区域 */
 .info-area {
@@ -1691,6 +1858,7 @@ html, body, #app {
   border: 1px solid rgba(34, 211, 238, 0.2);
   overflow: hidden;
 }
+
 .info-list {
   width: 100%;
   height: 100%;
@@ -1698,6 +1866,7 @@ html, body, #app {
   flex-direction: column;
   overflow: hidden;
 }
+
 .info-header {
   display: grid;
   grid-template-columns: 1fr 0.8fr 1.2fr 1.5fr;
@@ -1711,14 +1880,27 @@ html, body, #app {
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
+
 .info-scroll {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
 }
-.info-scroll::-webkit-scrollbar { width: 4px; }
-.info-scroll::-webkit-scrollbar-track { background: #1e293b; border-radius: 4px; }
-.info-scroll::-webkit-scrollbar-thumb { background: #22d3ee; border-radius: 4px; }
+
+.info-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.info-scroll::-webkit-scrollbar-track {
+  background: #1e293b;
+  border-radius: 4px;
+}
+
+.info-scroll::-webkit-scrollbar-thumb {
+  background: #22d3ee;
+  border-radius: 4px;
+}
+
 .info-row {
   display: grid;
   grid-template-columns: 1fr 0.8fr 1.2fr 1.5fr;
@@ -1729,13 +1911,21 @@ html, body, #app {
   transition: background 0.2s;
   flex-shrink: 0;
 }
-.info-row:hover { background: rgba(34, 211, 238, 0.1); }
-.info-row.return-record { background: rgba(0, 0, 0, 0.2); }
+
+.info-row:hover {
+  background: rgba(34, 211, 238, 0.1);
+}
+
+.info-row.return-record {
+  background: rgba(0, 0, 0, 0.2);
+}
+
 .placeholder-row {
   text-align: center;
   color: #94a3b8;
   font-style: italic;
 }
+
 .row-item {
   white-space: nowrap;
   overflow: hidden;
@@ -1751,6 +1941,7 @@ html, body, #app {
   align-items: center;
   justify-content: center;
 }
+
 .complete-btn {
   width: 100%;
   display: flex;
@@ -1771,19 +1962,32 @@ html, body, #app {
   min-height: 100px;
   min-width: 140px;
 }
+
 .complete-btn:hover:not(:disabled) {
   background: linear-gradient(135deg, #fbbf24, #f59e0b);
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
 }
-.complete-btn:active:not(:disabled) { transform: translateY(1px); }
+
+.complete-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
 .complete-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
 }
-.complete-btn .btn-icon { font-size: 38px; }
-.complete-btn .btn-label { font-size: 18px; letter-spacing: 2px; font-weight: 700; }
+
+.complete-btn .btn-icon {
+  font-size: 38px;
+}
+
+.complete-btn .btn-label {
+  font-size: 18px;
+  letter-spacing: 2px;
+  font-weight: 700;
+}
 
 /* 加载 & 空状态 */
 .loading-mask {
@@ -1802,6 +2006,7 @@ html, body, #app {
   color: #c2f0e0;
   gap: 16px;
 }
+
 .loading-spinner {
   width: 48px;
   height: 48px;
@@ -1810,7 +2015,13 @@ html, body, #app {
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .empty-state {
   text-align: center;
   color: #ffb347;
@@ -1837,9 +2048,11 @@ html, body, #app {
   z-index: 20000;
   animation: fadeIn 0.2s ease;
 }
+
 .modal-overlay.no-close {
   cursor: default;
 }
+
 .modal-container {
   background: linear-gradient(145deg, #1e2a32, #0f1a1f);
   border-radius: 32px;
@@ -1852,6 +2065,7 @@ html, body, #app {
   animation: slideUp 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
   overflow: hidden;
 }
+
 .modal-header {
   display: flex;
   justify-content: space-between;
@@ -1860,6 +2074,7 @@ html, body, #app {
   border-bottom: 1px solid rgba(34, 211, 238, 0.3);
   background: rgba(0, 0, 0, 0.3);
 }
+
 .modal-header h3 {
   margin: 0;
   font-size: 1.4rem;
@@ -1869,6 +2084,7 @@ html, body, #app {
   align-items: center;
   gap: 8px;
 }
+
 .close-btn {
   background: none;
   border: none;
@@ -1879,13 +2095,19 @@ html, body, #app {
   line-height: 1;
   padding: 0 8px;
 }
-.close-btn:hover { color: #f87171; transform: scale(1.1); }
+
+.close-btn:hover {
+  color: #f87171;
+  transform: scale(1.1);
+}
+
 .modal-body {
   flex: 1;
   overflow-y: auto;
   padding: 16px 20px;
   background: rgba(0, 0, 0, 0.2);
 }
+
 .modal-footer {
   padding: 16px 24px;
   display: flex;
@@ -1894,6 +2116,7 @@ html, body, #app {
   border-top: 1px solid rgba(34, 211, 238, 0.2);
   background: rgba(0, 0, 0, 0.3);
 }
+
 .confirm-btn {
   background: linear-gradient(135deg, #10b981, #059669);
   border: none;
@@ -1906,11 +2129,13 @@ html, body, #app {
   transition: all 0.2s;
   box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
 }
+
 .confirm-btn:hover {
   transform: translateY(-2px);
   background: linear-gradient(135deg, #0fba7a, #048a5a);
   box-shadow: 0 6px 14px rgba(16, 185, 129, 0.4);
 }
+
 .cancel-btn {
   background: rgba(100, 116, 139, 0.8);
   border: none;
@@ -1922,6 +2147,7 @@ html, body, #app {
   cursor: pointer;
   transition: all 0.2s;
 }
+
 .cancel-btn:hover {
   background: rgba(71, 85, 105, 0.9);
   transform: translateY(-2px);
@@ -1931,19 +2157,25 @@ html, body, #app {
 .info-modal .modal-container {
   border-left: 4px solid #22d3ee;
 }
-.info-header h3 { color: #22d3ee; }
+
+.info-header h3 {
+  color: #22d3ee;
+}
+
 .info-tip {
   color: #c2f0e0;
   margin-bottom: 16px;
   font-size: 1rem;
   text-align: center;
 }
+
 .countdown-text {
   text-align: center;
   font-size: 1.1rem;
   color: #facc15;
   margin-top: 16px;
 }
+
 .countdown-number {
   font-size: 1.6rem;
   font-weight: 800;
@@ -1955,69 +2187,230 @@ html, body, #app {
 .success-modal .modal-container {
   border-left: 4px solid #10b981;
 }
-.success-header h3 { color: #10b981; }
+
+.success-header h3 {
+  color: #10b981;
+}
+
 .success-tip {
   color: #a7f3d0;
   margin-bottom: 16px;
   font-size: 1rem;
   text-align: center;
 }
+
 .success-tip strong {
   color: #4ade80;
   font-size: 1.3rem;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
+
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* 响应式适配 */
 @media (max-width: 680px) {
-  .page-header { height: 50px; gap: 8px; }
-  .title-icon { font-size: 22px; }
-  .page-header h1 { font-size: 20px; }
-  .upper-area { height: calc(100vh - 350px - 50px - 50px); }
-  .info-area { width: 320px; padding: 8px; }
-  .info-header, .info-row { grid-template-columns: 1fr 0.7fr 1fr 1.3fr; gap: 8px; }
-  .header-item, .row-item { font-size: 10px; }
-  .complete-btn .btn-icon { font-size: 28px; }
-  .complete-btn .btn-label { font-size: 14px; }
-  .complete-btn { padding: 16px 12px; min-height: 80px; }
-  .temp-card, .humidity-card { padding: 3px 10px; top: 4px; }
-  .card-value { font-size: 14px; min-width: 35px; }
-  .scanner-prompt { padding: 6px 12px; margin: 0 12px; }
-  .scanner-text { font-size: 11px; }
-  .manual-input { width: 120px; font-size: 11px; padding: 4px 8px; }
-  .manual-submit-btn { padding: 3px 8px; font-size: 10px; }
+  .page-header {
+    height: 50px;
+    gap: 8px;
+  }
+
+  .title-icon {
+    font-size: 22px;
+  }
+
+  .page-header h1 {
+    font-size: 20px;
+  }
+
+  .upper-area {
+    height: calc(100vh - 350px - 50px - 50px);
+  }
+
+  .info-area {
+    width: 320px;
+    padding: 8px;
+  }
+
+  .info-header,
+  .info-row {
+    grid-template-columns: 1fr 0.7fr 1fr 1.3fr;
+    gap: 8px;
+  }
+
+  .header-item,
+  .row-item {
+    font-size: 10px;
+  }
+
+  .complete-btn .btn-icon {
+    font-size: 28px;
+  }
+
+  .complete-btn .btn-label {
+    font-size: 14px;
+  }
+
+  .complete-btn {
+    padding: 16px 12px;
+    min-height: 80px;
+  }
+
+  .temp-card,
+  .humidity-card {
+    padding: 3px 10px;
+    top: 4px;
+  }
+
+  .card-value {
+    font-size: 14px;
+    min-width: 35px;
+  }
+
+  .scanner-prompt {
+    padding: 6px 12px;
+    margin: 0 12px;
+  }
+
+  .scanner-text {
+    font-size: 11px;
+  }
+
+  .manual-input {
+    width: 120px;
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+
+  .manual-submit-btn {
+    padding: 3px 8px;
+    font-size: 10px;
+  }
 }
+
 @media (max-width: 480px) {
-  .page-header h1 { font-size: 18px; }
-  .title-icon { font-size: 20px; }
-  .cabinet-item { width: 260px !important; }
-  .bottom-container { gap: 8px; }
-  .info-area { width: 260px; padding: 6px; }
-  .info-header, .info-row { grid-template-columns: 1fr 0.6fr 0.9fr 1.2fr; gap: 6px; }
-  .header-item, .row-item { font-size: 9px; }
-  .info-row { padding: 6px 4px; }
-  .complete-btn .btn-icon { font-size: 24px; }
-  .complete-btn .btn-label { font-size: 12px; }
-  .complete-btn { padding: 12px 8px; min-height: 70px; gap: 6px; }
-  .placeholder-icon { width: 24px; height: 24px; }
-  .photo-placeholder span { font-size: 9px; }
-  .temp-card, .humidity-card { padding: 2px 8px; gap: 4px; }
-  .card-icon { font-size: 12px; }
-  .card-value { font-size: 12px; min-width: 30px; }
-  .card-label { font-size: 8px; }
-  .scanner-prompt { padding: 4px 8px; }
-  .scanner-icon { font-size: 18px; }
-  .scanner-text { font-size: 10px; }
-  .reset-scan-btn { font-size: 10px; padding: 2px 8px; }
-  .manual-input { width: 100px; font-size: 10px; padding: 3px 6px; }
-  .manual-submit-btn { padding: 2px 6px; font-size: 9px; }
+  .page-header h1 {
+    font-size: 18px;
+  }
+
+  .title-icon {
+    font-size: 20px;
+  }
+
+  .cabinet-item {
+    width: 260px !important;
+  }
+
+  .bottom-container {
+    gap: 8px;
+  }
+
+  .info-area {
+    width: 260px;
+    padding: 6px;
+  }
+
+  .info-header,
+  .info-row {
+    grid-template-columns: 1fr 0.6fr 0.9fr 1.2fr;
+    gap: 6px;
+  }
+
+  .header-item,
+  .row-item {
+    font-size: 9px;
+  }
+
+  .info-row {
+    padding: 6px 4px;
+  }
+
+  .complete-btn .btn-icon {
+    font-size: 24px;
+  }
+
+  .complete-btn .btn-label {
+    font-size: 12px;
+  }
+
+  .complete-btn {
+    padding: 12px 8px;
+    min-height: 70px;
+    gap: 6px;
+  }
+
+  .placeholder-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .photo-placeholder span {
+    font-size: 9px;
+  }
+
+  .temp-card,
+  .humidity-card {
+    padding: 2px 8px;
+    gap: 4px;
+  }
+
+  .card-icon {
+    font-size: 12px;
+  }
+
+  .card-value {
+    font-size: 12px;
+    min-width: 30px;
+  }
+
+  .card-label {
+    font-size: 8px;
+  }
+
+  .scanner-prompt {
+    padding: 4px 8px;
+  }
+
+  .scanner-icon {
+    font-size: 18px;
+  }
+
+  .scanner-text {
+    font-size: 10px;
+  }
+
+  .reset-scan-btn {
+    font-size: 10px;
+    padding: 2px 8px;
+  }
+
+  .manual-input {
+    width: 100px;
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+
+  .manual-submit-btn {
+    padding: 2px 6px;
+    font-size: 9px;
+  }
 }
 </style>

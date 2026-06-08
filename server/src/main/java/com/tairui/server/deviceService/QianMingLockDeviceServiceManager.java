@@ -11,6 +11,7 @@ import com.tairui.server.entity.CabinetConfig;
 import com.tairui.server.entity.CellConfig;
 import com.tairui.server.mapper.CabinetConfigMapper;
 import com.tairui.server.mapper.CellConfigMapper;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * 千鸣锁设备服务管理
  */
 @Service
+@Log4j2
 public class QianMingLockDeviceServiceManager {
     @Autowired
     private CellConfigMapper cellConfigMapper;
@@ -46,7 +48,7 @@ public class QianMingLockDeviceServiceManager {
     public void init() {
         List<CabinetConfig> cabinetConfigs = cabinetConfigMapper.selectList(null);
         if (cabinetConfigs.isEmpty()) {
-            System.out.println("暂无柜子配置数据，跳过初始化");
+            log.warn("暂无柜子配置数据，跳过初始化");
             return;
         }
         for (CabinetConfig cabinetConfig : cabinetConfigs) {
@@ -60,7 +62,7 @@ public class QianMingLockDeviceServiceManager {
                 }
 
                 if (qianmingLockDeviceServiceMap.containsKey(commPort)) {
-                    System.out.println(cabinetConfig.getTitle() + " 的通信地址 " + commPort + " 已被其他柜子初始化，共享同一连接。");
+                    log.info("{} 的通信地址 {} 已被其他柜子初始化，共享同一连接。", cabinetConfig.getTitle(), commPort);
                     continue;
                 }
 
@@ -68,7 +70,7 @@ public class QianMingLockDeviceServiceManager {
                 this.createDeviceServiceByCabinetConfig(cabinetConfig);
 
             } catch (Exception e) {
-                System.out.println("初始化柜子 [" + cabinetConfig.getTitle() + "] 失败: " + e.getMessage());
+                log.error("初始化柜子 [{}] 失败: {}", cabinetConfig.getTitle(), e.getMessage());
             }
         }
     }
@@ -148,15 +150,15 @@ public class QianMingLockDeviceServiceManager {
         dispatcher.setDeviceBase(qianMingLockDeviceService);
         qianMingLockDeviceService.setSimulationMode(simulationMode);
 
-        System.out.println("硬件控制器初始化完成，真实模式，通讯方式: " + cabinetConfig.getLockCommType() + "，地址: " + commPort);
+        log.info("硬件控制器初始化完成，真实模式，通讯方式: {}，地址: {}", cabinetConfig.getLockCommType(), commPort);
         try {
             qianMingLockDeviceService.open();
-            System.out.println(cabinetConfig.getTitle() + "使用的 " + commPort + " 打开连接成功");
+            log.info("{}使用的 {} 打开连接成功", cabinetConfig.getTitle(), commPort);
 
             qianmingLockDeviceServiceMap.put(commPort, qianMingLockDeviceService);
 
         } catch (IOException e) {
-            System.out.println(cabinetConfig.getTitle() + "使用的 " + commPort + " 打开连接失败，原因:" + e.getMessage());
+            log.error("{}使用的 {} 打开连接失败，原因:{}", cabinetConfig.getTitle(), commPort, e.getMessage());
         }
         return qianMingLockDeviceService;
     }
@@ -217,6 +219,34 @@ public class QianMingLockDeviceServiceManager {
             throw new RuntimeException("格口状态查询失败，cellId=" + cellConfigId, e);
         }
     }
+    public boolean querySingleBoxStatusSync(int cellConfigId, long timeout){
+        CellConfig cellConfig = cellConfigMapper.selectById(cellConfigId);
+        if (cellConfig == null) {
+            throw new RuntimeException("格口配置不存在: " + cellConfigId);
+        }
+
+        QianMingLockDeviceService deviceService = this.getDeviceServiceByCellConfig(cellConfig);
+
+        try {
+            deviceService.open();
+        } catch (IOException e) {
+            throw new RuntimeException("格口打开失败：设备连接失败，原因：" + e.getMessage(), e);
+        }
+
+        int mac;
+        try {
+            mac = Integer.parseInt(cellConfig.getMacAddress());
+        } catch (Exception e) {
+            throw new RuntimeException("格口打开失败：MAC地址格式不正确：" + cellConfig.getMacAddress(), e);
+        }
+        try {
+            QianMingLockDevice.BoxStatusData boxStatusData = deviceService.queryBoxStatusSync(mac, timeout);
+            return boxStatusData.isOpen(mac);
+        } catch (Exception e) {
+            log.error("门锁状态获取失败");
+            return  true;
+        }
+    }
 
     /**
      * 查询指定格口号所在板子所有的格口号的储物状态
@@ -227,6 +257,67 @@ public class QianMingLockDeviceServiceManager {
             return ctx.getDevice().queryGoodsStatusSync(ctx.getMac(), timeout);
         } catch (Exception e) {
             throw new RuntimeException("格口状态查询失败，cellId=" + cellConfigId, e);
+        }
+    }
+
+    public boolean querySingleGoodsStatusSync(int cellConfigId, long timeout){
+        CellConfig cellConfig = cellConfigMapper.selectById(cellConfigId);
+        if (cellConfig == null) {
+            throw new RuntimeException("格口配置不存在: " + cellConfigId);
+        }
+
+        QianMingLockDeviceService deviceService = this.getDeviceServiceByCellConfig(cellConfig);
+
+        int mac;
+        try {
+            mac = Integer.parseInt(cellConfig.getMacAddress());
+        } catch (Exception e) {
+            throw new RuntimeException("格口储物状态获取失败：MAC地址格式不正确：" + cellConfig.getMacAddress(), e);
+        }
+        try {
+            QianMingLockDevice.BoxGoodsData boxGoodsData = deviceService.queryGoodsStatusSync(mac, timeout);
+            boolean res = boxGoodsData.hasGoods(mac);
+            return res;
+        } catch (Exception e) {
+            log.error("格口储物状态获取失败，给有物");
+            return  true;
+        }
+    }
+
+
+    /**
+     * 校验指定柜子及锁板（mac）下的所有格口是否全部处于关闭状态
+     * * @param cabinetConfigId 柜子配置ID
+     *
+     * @param mac 锁板地址/板号
+     * @return true 表示全关，false 表示至少有一个门是开着的或查询失败
+     */
+    public Boolean isAllClosed(Integer cabinetConfigId, Integer mac) {
+        if (cabinetConfigId == null || mac == null) {
+            throw new RuntimeException("参数不能为空");
+        }
+
+        try {
+            // 通过柜子ID获取设备连接服务
+            QianMingLockDeviceService deviceService = this.getDeviceServiceByCabinetId(cabinetConfigId);
+
+            // 确保设备连接处于打开状态（参考 prepareDeviceContext 中的健壮性设计）
+            deviceService.open();
+
+            // 调用硬件接口查询该锁板(mac)的所有格口锁状态（设置 3000ms 超时时间）
+            long timeout = 3000L;
+            QianMingLockDevice.BoxStatusData boxStatusData = deviceService.queryBoxStatusSync(mac, timeout);
+
+            if (boxStatusData == null) {
+                log.warn("柜子ID [{}] MAC [{}] 状态查询返回空数据", cabinetConfigId, mac);
+                return false;
+            }
+            log.info(boxStatusData.toString());
+            return boxStatusData.isAllClosed();
+
+        } catch (Exception e) {
+            log.error("检查全关状态失败，cabinetConfigId={}, mac={}, 原因: {}", cabinetConfigId, mac, e.getMessage());
+            return false;
         }
     }
 

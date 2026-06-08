@@ -176,22 +176,6 @@ public class QianMingLockDevice extends DeviceCore {
     }
 
     /**
-     * 查询所有箱门锁状态
-     *
-     * @param timeout
-     * @return
-     * @throws Exception
-     */
-    public BoxStatusData queryBoxStatusSync(long timeout) throws Exception {
-        if (simulationMode) {
-            return simulateBoxStatus();
-        }
-        byte[] frame = buildFrame(FUNC_QUERY_STATUS, new byte[0]);
-        System.out.println("查询所有箱门锁状态:" + HexUtils.bytesToHexString(frame));
-        return writeSync(frame, 3, timeout, (readBytes, writeBytes) -> parseBoxStatusResponse(readBytes));
-    }
-
-    /**
      * 查询指定格口号所在板子所有格口的箱门锁状态
      *
      * @param boxNo   格口号
@@ -204,7 +188,7 @@ public class QianMingLockDevice extends DeviceCore {
             return simulateBoxStatus();
         }
         byte[] frame = buildFrame(FUNC_QUERY_STATUS, intToTwoBytes(boxNo));
-        System.out.println("查询所有箱门锁状态:" + HexUtils.bytesToHexString(frame));
+        System.out.println("[查询所有箱门锁状态 send]:" + HexUtils.bytesToHexString(frame));
         return writeSync(frame, 3, timeout, (readBytes, writeBytes) -> parseBoxStatusResponse(readBytes));
     }
 
@@ -329,6 +313,7 @@ public class QianMingLockDevice extends DeviceCore {
     }
 
     protected BoxStatusData parseBoxStatusResponse(byte[] response) {
+        System.out.println("[查询所有门锁状态 receive]:" + HexUtils.bytesToHexString(response));
         if (response == null || response.length < 6) return null;
         if (response[0] != HEAD || response[1] != RESP_QUERY_STATUS) return null;
         int startBox = twoBytesToInt(response[2], response[3]);
@@ -432,13 +417,41 @@ public class QianMingLockDevice extends DeviceCore {
             this.stateBits = stateBits;
         }
 
+        /**
+         * 判断格口是否打开
+         *
+         * @param boxNo 格口号
+         * @return
+         */
         public boolean isOpen(int boxNo) {
             if (boxNo < startBox || boxNo > endBox) return false;
             int offset = boxNo - startBox;
+
+            // 因为是小端序，整个 byte 数组可以直接看作一个连续的低位到高位的比特流
             int byteIdx = offset / 8;
-            int bitIdx = offset % 8;
+            int bitIdx = offset % 8;  // offset=1 时，bitIdx=1
+
             if (byteIdx >= stateBits.length) return false;
+
+            // 【核心修正】
+            // 偏置小的格口在字节的右边（低 Bit 位）
+            // 比如 offset=1 (第2个格口) 时，我们取右数第二位 (bitIdx=1)
             return ((stateBits[byteIdx] >> bitIdx) & 0x01) == 1;
+        }
+
+        /**
+         * 判断是否全部格口都是关闭状态（推荐优化写法）
+         */
+        public boolean isAllClosed() {
+            if (stateBits == null || stateBits.length == 0) return true;
+
+            // 直接复用定义好的 isOpen 方法
+            for (int i = startBox; i <= endBox; i++) {
+                if (isOpen(i)) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         @Override
@@ -463,6 +476,7 @@ public class QianMingLockDevice extends DeviceCore {
 
         /**
          * 格口是否有物品
+         *
          * @param boxNo 格口号
          * @return
          */
