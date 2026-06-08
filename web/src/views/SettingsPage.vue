@@ -6,7 +6,6 @@
         <span>返回首页</span>
       </button>
       <h1 class="settings-title">📊 系统概览</h1>
-      <!-- 倒计时显示 - 直接使用 countdown 实例的 secondsLeft -->
       <div class="countdown-display" v-if="countdown && countdown.secondsLeft.value > 0 && systemConfigStore.loaded">
         <span class="countdown-icon">⏱️</span>
         <span class="countdown-time">{{ formatCountdownTime(countdown.secondsLeft.value) }}</span>
@@ -16,7 +15,7 @@
     </div>
 
     <div class="settings-content">
-      <!-- 日志查询模块 -->
+      <!-- ========== 日志查询模块 ========== -->
       <div class="info-card log-card" @click="handleUserOperation">
         <div class="card-header">
           <div class="header-left">
@@ -25,7 +24,6 @@
           </div>
           <button class="detail-btn" @click.stop="viewDetail('log')">查看详情 →</button>
         </div>
-
         <div class="stats-row">
           <div class="stat-item">
             <div class="stat-value">{{ logStats.total }}</div>
@@ -36,7 +34,6 @@
             <div class="stat-label">未归还数量</div>
           </div>
         </div>
-
         <div class="section-title">📌 未归还记录</div>
         <div class="unreturned-scroll-wrapper">
           <div class="unreturned-table">
@@ -71,7 +68,7 @@
         </div>
       </div>
 
-      <!-- 硬件设置模块 -->
+      <!-- ========== 硬件设置模块 ========== -->
       <div class="info-card hardware-card" @click="handleUserOperation">
         <div class="card-header">
           <div class="header-left">
@@ -80,7 +77,6 @@
           </div>
           <button class="detail-btn" @click.stop="viewDetail('hardware')">查看详情 →</button>
         </div>
-
         <div v-if="hardwareLoading" class="loading-placeholder">
           <span class="loading-spinner"></span>
           <span>加载硬件配置中...</span>
@@ -113,7 +109,70 @@
         </template>
       </div>
 
-      <!-- 系统配置模块 -->
+      <!-- ========== 温湿度日志查询模块 ========== -->
+      <div class="info-card temp-card" @click="handleUserOperation">
+        <div class="card-header">
+          <div class="header-left">
+            <span class="card-icon">🌡️</span>
+            <h3>温湿度日志</h3>
+          </div>
+          <button class="detail-btn" @click.stop="viewDetail('tempHumidity')">查看详情 →</button>
+        </div>
+        <div v-if="tempHumidityLoading" class="loading-placeholder">
+          <span class="loading-spinner"></span>
+          <span>加载温湿度记录中...</span>
+        </div>
+        <div v-else-if="tempHumidityError" class="error-placeholder">
+          <span>⚠️ 加载失败：{{ tempHumidityError }}</span>
+          <button class="retry-btn" @click.stop="fetchTempHumidityLogs">重试</button>
+        </div>
+        <div v-else>
+          <div class="section-title">📊 最近记录</div>
+          <div class="temp-table-wrapper">
+            <div v-if="recentTempLogs.length === 0" class="empty-tip">
+              暂无温湿度记录
+            </div>
+            <div v-else>
+              <!-- 表头：4列 -->
+              <div class="table-header temp-header">
+                <span>柜子名称</span>
+                <span>温度 (°C)</span>
+                <span>湿度 (%)</span>
+                <span>记录时间</span>
+              </div>
+              <!-- 数据行：顺序与表头一致 -->
+              <div
+                  v-for="(log, idx) in recentTempLogs"
+                  :key="log.id || idx"
+                  class="table-row temp-row"
+              >
+                <span class="cell cabinet-name">{{ log.cabinetTitle || '-' }}</span>
+                <span
+                    class="cell temp-value"
+                    :class="{ warning: log.temperature > 40 || log.temperature < 0 }"
+                >
+          {{ formatTemperature(log.temperature) }}
+        </span>
+                <span
+                    class="cell humidity-value"
+                    :class="{ warning: log.humidity > 80 || log.humidity < 20 }"
+                >
+          {{ formatHumidity(log.humidity) }}
+        </span>
+                <span class="cell time">{{ formatDateTime(log.recordTime) }}</span>
+              </div>
+            </div>
+          </div>
+          <div
+              class="config-footer-tip"
+              v-if="systemConfigStore.config.tempHumidityLogInterval"
+          >
+            <span>📌 记录间隔：{{ systemConfigStore.config.tempHumidityLogInterval }} 分钟</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== 系统配置模块 ========== -->
       <div class="info-card system-card" @click="handleUserOperation">
         <div class="card-header">
           <div class="header-left">
@@ -122,7 +181,6 @@
           </div>
           <button class="reset-btn" @click.stop="openResetModal">恢复出厂设置</button>
         </div>
-
         <div v-if="systemConfigStore.loading" class="loading-placeholder">
           <span class="loading-spinner"></span>
           <span>加载系统配置中...</span>
@@ -146,7 +204,7 @@
       </div>
     </div>
 
-    <!-- 编辑配置模态框 -->
+    <!-- ========== 编辑配置模态框 ========== -->
     <div v-if="editModalVisible" class="modal-mask" @click.self="closeEditModal">
       <div class="modal-container">
         <div class="modal-header">
@@ -155,7 +213,7 @@
         </div>
         <div class="modal-body">
           <input
-              v-if="editField !== 'adminPwd' && editField !== 'borrowPeriod' && editField !== 'autoReturnTimeoutMinutes'"
+              v-if="editField !== 'adminPwd' && editField !== 'borrowPeriod' && editField !== 'autoReturnTimeoutMinutes' && editField !== 'tempHumidityLogInterval'"
               v-model="editTempValue"
               type="text"
               class="modal-input"
@@ -195,6 +253,16 @@
               {{ option.label }}
             </option>
           </select>
+          <select
+              v-else-if="editField === 'tempHumidityLogInterval'"
+              v-model="editTempValue"
+              class="modal-select"
+              @change="confirmEdit"
+          >
+            <option v-for="option in humidityIntervalOptions" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </option>
+          </select>
         </div>
         <div class="modal-footer">
           <button class="modal-btn cancel" @click="closeEditModal">取消</button>
@@ -203,7 +271,7 @@
       </div>
     </div>
 
-    <!-- 恢复出厂设置确认模态框 -->
+    <!-- ========== 恢复出厂设置确认模态框 ========== -->
     <div v-if="resetModalVisible" class="modal-mask" @click.self="closeResetModal">
       <div class="modal-container reset-modal">
         <div class="modal-header warning-header">
@@ -246,19 +314,47 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, nextTick, watch, onUnmounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSystemConfigStore } from '@/stores/systemConfig'
 import { fetchLogOverview, type UnreturnedItem } from '@/api/log'
 import { fetchCabinetList } from '@/api/cabinet'
 import type { SystemConfig } from '@/api/system'
-import { useCountdown, COUNTDOWN_CONFIG } from '@/composables/useCountdown'
+import { useCountdown } from '@/composables/useCountdown'
+
+// ---------- 温湿度日志类型定义 ----------
+interface TempHumidityLog {
+  id: number
+  recordTime: string
+  temperature: number
+  humidity: number
+}
+
+// ---------- 模拟获取温湿度日志 API（实际使用时替换为真实接口） ----------
+async function fetchTempHumidityLogsFromApi(): Promise<TempHumidityLog[]> {
+  // TODO: 替换为真实的 API 请求，例如：
+  // const response = await fetch('/api/temp-humidity/logs?limit=10')
+  // if (!response.ok) throw new Error('Failed to fetch')
+  // return response.json()
+
+  // 模拟数据（生产环境请删除）
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const mockLogs: TempHumidityLog[] = Array.from({ length: 12 }, (_, i) => ({
+        id: i,
+        recordTime: new Date(Date.now() - i * 3600000).toISOString(),
+        temperature: +(15 + Math.random() * 25).toFixed(1),
+        humidity: +(30 + Math.random() * 50).toFixed(0)
+      }))
+      resolve(mockLogs)
+    }, 500)
+  })
+}
 
 const router = useRouter()
 const systemConfigStore = useSystemConfigStore()
 
 // ==================== 倒计时功能 ====================
-// 使用统一配置，不传入任何自定义参数
 const countdown = useCountdown({
   onTimeout: () => {
     console.log('倒计时结束，返回首页')
@@ -266,12 +362,10 @@ const countdown = useCountdown({
   }
 })
 
-// 用户操作处理（重置倒计时）
 function handleUserOperation() {
   countdown.handleOperation()
 }
 
-// 格式化倒计时显示时间 (mm:ss 或 ss秒)
 function formatCountdownTime(seconds: number): string {
   if (seconds >= 60) {
     const minutes = Math.floor(seconds / 60)
@@ -297,6 +391,18 @@ function handleImageError(e: Event) {
   }
 }
 
+// 温度格式化
+function formatTemperature(value: number | undefined | null): string {
+  if (value === undefined || value === null || isNaN(value)) return '--'
+  return value.toFixed(1)
+}
+
+// 湿度格式化（取整数）
+function formatHumidity(value: number | undefined | null): string {
+  if (value === undefined || value === null || isNaN(value)) return '--'
+  return Math.round(value).toString()
+}
+
 async function fetchLogData() {
   try {
     const data = await fetchLogOverview()
@@ -320,7 +426,9 @@ interface CellItem {
   type: string
   isEmpty?: boolean
 }
-interface CabinetRow { cells: CellItem[] }
+interface CabinetRow {
+  cells: CellItem[]
+}
 interface CabinetFromAPI {
   id: number
   title: string
@@ -378,6 +486,43 @@ async function fetchHardwareData() {
   }
 }
 
+// ==================== 温湿度日志数据 ====================
+const tempHumidityLoading = ref(false)
+const tempHumidityError = ref('')
+const recentTempLogs = ref<TempHumidityLog[]>([])
+const tempHumidityStats = ref({ total: 0, latestTemp: '--', latestHumidity: '--' })
+
+async function fetchTempHumidityLogs() {
+  tempHumidityLoading.value = true
+  tempHumidityError.value = ''
+  try {
+    const logs = await fetchTempHumidityLogsFromApi()
+    // 按时间倒序，取最近5条展示
+    const sorted = [...logs].sort((a, b) => new Date(b.recordTime).getTime() - new Date(a.recordTime).getTime())
+    recentTempLogs.value = sorted.slice(0, 5)
+    tempHumidityStats.value.total = logs.length
+    if (sorted.length > 0) {
+      tempHumidityStats.value.latestTemp = sorted[0].temperature.toFixed(1)
+      tempHumidityStats.value.latestHumidity = sorted[0].humidity.toFixed(0)
+    } else {
+      tempHumidityStats.value.latestTemp = '--'
+      tempHumidityStats.value.latestHumidity = '--'
+    }
+  } catch (error) {
+    console.error('获取温湿度日志失败:', error)
+    tempHumidityError.value = '加载温湿度记录失败，请稍后重试'
+    showMessage('温湿度数据加载失败')
+  } finally {
+    tempHumidityLoading.value = false
+  }
+}
+
+function formatDateTime(isoString: string): string {
+  if (!isoString) return '-'
+  const date = new Date(isoString)
+  return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+}
+
 // ==================== 系统配置（使用 Pinia Store） ====================
 const configFields = [
   { key: 'systemName', label: '系统名称' },
@@ -386,7 +531,8 @@ const configFields = [
   { key: 'location', label: '所属位置' },
   { key: 'adminPwd', label: '管理密码' },
   { key: 'borrowPeriod', label: '使用周期' },
-  { key: 'autoReturnTimeoutMinutes', label: '长时间不操作返回主页' }
+  { key: 'autoReturnTimeoutMinutes', label: '长时间不操作返回主页' },
+  { key: 'tempHumidityLogInterval', label: '温湿度记录间隔（分钟）' }
 ]
 
 const borrowPeriodOptions = ['1天', '3天', '5天', '7天', '15天', '30天']
@@ -396,17 +542,24 @@ const timeoutOptions = [
   { label: '5分钟', value: 5 },
   { label: '10分钟', value: 10 }
 ]
+const humidityIntervalOptions = [
+  { label: '1分钟', value: 1 },
+  { label: '2分钟', value: 2 },
+  { label: '5分钟', value: 5 },
+  { label: '10分钟', value: 10 },
+  { label: '30分钟', value: 30 },
+  { label: '60分钟', value: 60 }
+]
 
 function formatDisplayValue(key: keyof SystemConfig): string {
   const val = systemConfigStore.config[key]
   if (key === 'adminPwd') {
     return val ? '●'.repeat(Math.min(val.length, 8)) : '未设置'
   }
-  if (key === 'autoReturnTimeoutMinutes') {
+  if (key === 'autoReturnTimeoutMinutes' || key === 'tempHumidityLogInterval') {
     return `${val} 分钟`
   }
   if (key === 'borrowPeriod') {
-    // 确保显示带"天"的格式
     return val && !val.includes('天') ? `${val}天` : (val as string)
   }
   return val as string
@@ -424,9 +577,7 @@ function togglePasswordVisibility() {
 }
 
 function openEditModal(field: keyof SystemConfig, label: string) {
-  // 用户操作，重置倒计时
   handleUserOperation()
-
   editField.value = field
   editLabel.value = label
   passwordVisible.value = false
@@ -434,7 +585,6 @@ function openEditModal(field: keyof SystemConfig, label: string) {
   if (field === 'adminPwd') {
     editTempValue.value = ''
   } else if (field === 'borrowPeriod') {
-    // 获取存储的值，确保格式正确
     let period = systemConfigStore.config.borrowPeriod
     if (period && !period.includes('天')) {
       period = `${period}天`
@@ -442,6 +592,8 @@ function openEditModal(field: keyof SystemConfig, label: string) {
     editTempValue.value = period || '1天'
   } else if (field === 'autoReturnTimeoutMinutes') {
     editTempValue.value = systemConfigStore.config.autoReturnTimeoutMinutes
+  } else if (field === 'tempHumidityLogInterval') {
+    editTempValue.value = systemConfigStore.config.tempHumidityLogInterval
   } else {
     editTempValue.value = String(systemConfigStore.config[field])
   }
@@ -452,80 +604,88 @@ async function confirmEdit() {
   if (!editField.value) return
   const field = editField.value
 
-  // 字段校验
-  if (field === 'systemName') {
-    let newVal = (editTempValue.value as string).trim()
-    if (newVal === '') {
-      showMessage('系统名称不能为空')
-      return
+  try {
+    if (field === 'systemName') {
+      let newVal = (editTempValue.value as string).trim()
+      if (newVal === '') {
+        showMessage('系统名称不能为空')
+        return
+      }
+      if (newVal.length > 10) {
+        showMessage('系统名称长度不能超过10个字符')
+        return
+      }
+      await systemConfigStore.updateConfigField('systemName', newVal)
+    } else if (field === 'systemCode') {
+      let newVal = (editTempValue.value as string).trim()
+      if (newVal === '') {
+        showMessage('系统编号不能为空')
+        return
+      }
+      if (newVal.length > 10) {
+        showMessage('系统编号长度不能超过10个字符')
+        return
+      }
+      await systemConfigStore.updateConfigField('systemCode', newVal)
+    } else if (field === 'adminPwd') {
+      const newPwd = (editTempValue.value as string).trim()
+      if (newPwd === '') {
+        showMessage('密码不能为空')
+        return
+      }
+      if (/[\u4e00-\u9fa5]/.test(newPwd)) {
+        showMessage('密码不能包含中文字符')
+        return
+      }
+      await systemConfigStore.updateConfigField('adminPwd', newPwd)
+    } else if (field === 'borrowPeriod') {
+      const newPeriod = editTempValue.value as string
+      if (!borrowPeriodOptions.includes(newPeriod)) {
+        showMessage('请选择有效的使用周期')
+        return
+      }
+      const periodValue = newPeriod.replace('天', '')
+      await systemConfigStore.updateConfigField('borrowPeriod', periodValue)
+    } else if (field === 'autoReturnTimeoutMinutes') {
+      const newTimeout = editTempValue.value as number
+      if (!timeoutOptions.some(opt => opt.value === newTimeout)) {
+        showMessage('请选择有效的超时时间')
+        return
+      }
+      await systemConfigStore.updateConfigField('autoReturnTimeoutMinutes', newTimeout)
+      // 倒计时配置变化后，重启倒计时（如果有需要）
+      countdown.restart?.()
+    } else if (field === 'tempHumidityLogInterval') {
+      const newInterval = Number(editTempValue.value)
+      if (!humidityIntervalOptions.some(opt => opt.value === newInterval)) {
+        showMessage('请选择有效的温湿度记录间隔')
+        return
+      }
+      await systemConfigStore.updateConfigField('tempHumidityLogInterval', newInterval)
+      // 间隔变化后刷新温湿度日志显示
+      fetchTempHumidityLogs()
+    } else if (field === 'engName') {
+      const newVal = (editTempValue.value as string).trim()
+      if (newVal === '') {
+        showMessage('英文名称不能为空')
+        return
+      }
+      await systemConfigStore.updateConfigField('engName', newVal)
+    } else if (field === 'location') {
+      const newVal = (editTempValue.value as string).trim()
+      if (newVal === '') {
+        showMessage('所属位置不能为空')
+        return
+      }
+      await systemConfigStore.updateConfigField('location', newVal)
     }
-    if (newVal.length > 10) {
-      showMessage('系统名称长度不能超过10个字符')
-      return
-    }
-    await systemConfigStore.updateConfigField('systemName', newVal)
-  }
-  else if (field === 'systemCode') {
-    let newVal = (editTempValue.value as string).trim()
-    if (newVal === '') {
-      showMessage('系统编号不能为空')
-      return
-    }
-    if (newVal.length > 10) {
-      showMessage('系统编号长度不能超过10个字符')
-      return
-    }
-    await systemConfigStore.updateConfigField('systemCode', newVal)
-  }
-  else if (field === 'adminPwd') {
-    const newPwd = (editTempValue.value as string).trim()
-    if (newPwd === '') {
-      showMessage('密码不能为空')
-      return
-    }
-    if (/[\u4e00-\u9fa5]/.test(newPwd)) {
-      showMessage('密码不能包含中文字符')
-      return
-    }
-    await systemConfigStore.updateConfigField('adminPwd', newPwd)
-  }
-  else if (field === 'borrowPeriod') {
-    const newPeriod = editTempValue.value as string
-    if (!borrowPeriodOptions.includes(newPeriod)) {
-      showMessage('请选择有效的使用周期')
-      return
-    }
-    // 存储时去掉"天"，只存数字
-    const periodValue = newPeriod.replace('天', '')
-    await systemConfigStore.updateConfigField('borrowPeriod', periodValue)
-  }
-  else if (field === 'autoReturnTimeoutMinutes') {
-    const newTimeout = editTempValue.value as number
-    if (!timeoutOptions.some(opt => opt.value === newTimeout)) {
-      showMessage('请选择有效的超时时间')
-      return
-    }
-    await systemConfigStore.updateConfigField('autoReturnTimeoutMinutes', newTimeout)
-  }
-  else if (field === 'engName') {
-    const newVal = (editTempValue.value as string).trim()
-    if (newVal === '') {
-      showMessage('英文名称不能为空')
-      return
-    }
-    await systemConfigStore.updateConfigField('engName', newVal)
-  }
-  else if (field === 'location') {
-    const newVal = (editTempValue.value as string).trim()
-    if (newVal === '') {
-      showMessage('所属位置不能为空')
-      return
-    }
-    await systemConfigStore.updateConfigField('location', newVal)
-  }
 
-  showMessage(`${editLabel.value} 已更新`)
-  closeEditModal()
+    showMessage(`${editLabel.value} 已更新`)
+    closeEditModal()
+  } catch (error: any) {
+    console.error('更新配置失败:', error)
+    showMessage(error?.message || '更新失败，请稍后重试')
+  }
 }
 
 function closeEditModal() {
@@ -536,23 +696,17 @@ function closeEditModal() {
   passwordVisible.value = false
 }
 
-// ==================== 恢复出厂设置模态框 ====================
+// ==================== 恢复出厂设置 ====================
 const resetModalVisible = ref(false)
 const resetInputValue = ref('')
 const resetErrorMsg = ref('')
 const isResetting = ref(false)
 
 function openResetModal() {
-  // 用户操作，重置倒计时
   handleUserOperation()
-
   resetInputValue.value = ''
   resetErrorMsg.value = ''
   resetModalVisible.value = true
-  nextTick(() => {
-    const input = document.querySelector('.reset-modal .modal-input') as HTMLInputElement
-    if (input) input.focus()
-  })
 }
 
 function closeResetModal() {
@@ -568,10 +722,6 @@ async function confirmReset() {
   if (inputText !== '确定') {
     resetErrorMsg.value = '输入错误，请输入"确定"以确认重置'
     resetInputValue.value = ''
-    nextTick(() => {
-      const input = document.querySelector('.reset-modal .modal-input') as HTMLInputElement
-      if (input) input.focus()
-    })
     return
   }
 
@@ -588,16 +738,13 @@ async function confirmReset() {
     console.error('恢复出厂设置失败:', error)
     resetErrorMsg.value = error?.message || '恢复出厂设置失败，请检查网络或联系管理员'
     isResetting.value = false
-    nextTick(() => {
-      const input = document.querySelector('.reset-modal .modal-input') as HTMLInputElement
-      if (input) input.focus()
-    })
   }
 }
 
 // ==================== 图片预览 ====================
 const previewVisible = ref(false)
 const previewUrl = ref('')
+
 function previewImage(url: string) {
   if (url) {
     previewUrl.value = url
@@ -605,20 +752,25 @@ function previewImage(url: string) {
   }
 }
 
-// ==================== 其他功能 ====================
+// ==================== 页面跳转 ====================
 function viewDetail(module: string) {
-  // 用户操作，重置倒计时
   handleUserOperation()
-
-  if (module === 'log') router.push('/log-detail')
-  else if (module === 'hardware') router.push('/hardware-detail')
-  else showMessage('详情页开发中')
+  if (module === 'log') {
+    router.push('/log-detail')
+  } else if (module === 'hardware') {
+    router.push('/hardware-detail')
+  } else if (module === 'tempHumidity') {
+    router.push('/temp-humidity-detail')
+  } else {
+    showMessage('详情页开发中')
+  }
 }
 
-// Toast 提示
+// ==================== Toast 提示 ====================
 const showToast = ref(false)
 const toastText = ref('')
 let toastTimer: ReturnType<typeof setTimeout> | null = null
+
 function showMessage(text: string) {
   if (toastTimer) clearTimeout(toastTimer)
   toastText.value = text
@@ -632,12 +784,11 @@ function goBack() {
   router.push('/')
 }
 
-// 生命周期
+// ==================== 生命周期 ====================
 onMounted(() => {
   fetchLogData()
   fetchHardwareData()
-  // 系统配置已经由 App.vue 初始化，这里不需要再加载
-  // 但确保如果还没加载完成，可以等待一下（通常已经完成）
+  fetchTempHumidityLogs()
   if (!systemConfigStore.loaded && !systemConfigStore.loading) {
     systemConfigStore.loadConfig()
   }
@@ -645,7 +796,6 @@ onMounted(() => {
 </script>
 
 <style lang="css" scoped>
-/* 样式与之前相同，保持不变 */
 /* 整体容器 */
 .settings-container {
   min-height: 100vh;
@@ -690,7 +840,7 @@ onMounted(() => {
 }
 .placeholder { width: 80px; }
 
-/* 倒计时显示样式 */
+/* 倒计时显示 */
 .countdown-display {
   display: flex;
   align-items: center;
@@ -706,33 +856,17 @@ onMounted(() => {
   white-space: nowrap;
   animation: pulse 1s ease-in-out infinite;
 }
-
-.countdown-icon {
-  font-size: 16px;
-}
-
+.countdown-icon { font-size: 16px; }
 .countdown-time {
   font-size: 18px;
   font-weight: 700;
   font-family: monospace;
   letter-spacing: 1px;
 }
-
-.countdown-text {
-  font-size: 12px;
-  opacity: 0.8;
-}
-
+.countdown-text { font-size: 12px; opacity: 0.8; }
 @keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-    border-color: rgba(34, 211, 238, 0.5);
-  }
-  50% {
-    opacity: 0.8;
-    border-color: rgba(34, 211, 238, 0.8);
-    box-shadow: 0 0 8px rgba(34, 211, 238, 0.3);
-  }
+  0%, 100% { opacity: 1; border-color: rgba(34, 211, 238, 0.5); }
+  50% { opacity: 0.8; border-color: rgba(34, 211, 238, 0.8); box-shadow: 0 0 8px rgba(34, 211, 238, 0.3); }
 }
 
 .settings-content {
@@ -840,7 +974,8 @@ onMounted(() => {
   padding-left: 4px;
   border-left: 3px solid #22d3ee;
 }
-.unreturned-scroll-wrapper {
+.unreturned-scroll-wrapper,
+.temp-table-wrapper {
   max-height: 360px;
   overflow-y: auto;
   border-radius: 16px;
@@ -1017,14 +1152,8 @@ onMounted(() => {
   white-space: nowrap;
 }
 @keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
+  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 .preview-modal {
   position: fixed;
@@ -1246,20 +1375,63 @@ onMounted(() => {
   color: #5b6e8c;
   font-size: 14px;
 }
+
+/* 温湿度日志专用样式 */
+.temp-header,
+.temp-row {
+  display: grid;
+  grid-template-columns: 1.5fr 0.8fr 0.8fr 1.5fr;  /* 柜名 | 温度 | 湿度 | 时间 */
+  gap: 12px;
+  padding: 10px 16px;
+  align-items: center;
+}
+.temp-header {
+  background: rgba(34, 211, 238, 0.1);
+  color: #22d3ee;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 12px;
+  margin-bottom: 6px;
+  position: sticky;
+  top: 0;
+  backdrop-filter: blur(4px);
+}
+.temp-row {
+  background: rgba(0, 0, 0, 0.3);
+  margin-bottom: 6px;
+  border-radius: 12px;
+  transition: all 0.2s;
+}
+.temp-row:hover {
+  background: rgba(34, 211, 238, 0.1);
+  transform: translateX(4px);
+}
+.temp-value.warning,
+.humidity-value.warning {
+  color: #f87171;
+  font-weight: bold;
+}
+
+/* 滚动条 */
 .settings-container::-webkit-scrollbar,
-.unreturned-scroll-wrapper::-webkit-scrollbar {
+.unreturned-scroll-wrapper::-webkit-scrollbar,
+.temp-table-wrapper::-webkit-scrollbar {
   width: 5px;
 }
 .settings-container::-webkit-scrollbar-track,
-.unreturned-scroll-wrapper::-webkit-scrollbar-track {
+.unreturned-scroll-wrapper::-webkit-scrollbar-track,
+.temp-table-wrapper::-webkit-scrollbar-track {
   background: rgba(0, 0, 0, 0.3);
   border-radius: 4px;
 }
 .settings-container::-webkit-scrollbar-thumb,
-.unreturned-scroll-wrapper::-webkit-scrollbar-thumb {
+.unreturned-scroll-wrapper::-webkit-scrollbar-thumb,
+.temp-table-wrapper::-webkit-scrollbar-thumb {
   background: #22d3ee;
   border-radius: 4px;
 }
+
+/* 响应式 */
 @media (max-width: 900px) {
   .table-header, .table-row {
     grid-template-columns: 1fr 0.5fr 1fr 0.7fr 1.2fr;
@@ -1270,13 +1442,9 @@ onMounted(() => {
   .borrow-photo { width: 32px; height: 32px; }
   .config-grid { grid-template-columns: 1fr; }
   .config-value { min-width: 80px; font-size: 12px; }
-  .countdown-display {
-    padding: 6px 12px;
-    font-size: 12px;
-  }
-  .countdown-time {
-    font-size: 14px;
-  }
+  .countdown-display { padding: 6px 12px; font-size: 12px; }
+  .countdown-time { font-size: 14px; }
+  .temp-header, .temp-row { grid-template-columns: 1.5fr 0.8fr 0.8fr; gap: 8px; }
 }
 @media (max-width: 700px) {
   .settings-container { padding: 15px; }
@@ -1292,12 +1460,9 @@ onMounted(() => {
   .cabinet, .tool { font-size: 10px; }
   .config-item { flex-wrap: wrap; gap: 8px; }
   .config-label { min-width: 100px; }
-  .countdown-display {
-    padding: 4px 10px;
-  }
-  .countdown-text {
-    display: none;
-  }
+  .countdown-display { padding: 4px 10px; }
+  .countdown-text { display: none; }
+  .temp-header, .temp-row { grid-template-columns: 1.2fr 0.7fr 0.7fr; gap: 6px; }
 }
 @media (max-width: 480px) {
   .settings-header {
@@ -1306,8 +1471,6 @@ onMounted(() => {
   }
   .placeholder { display: none; }
   .back-btn { align-self: flex-start; }
-  .countdown-display {
-    align-self: flex-end;
-  }
+  .countdown-display { align-self: flex-end; }
 }
 </style>

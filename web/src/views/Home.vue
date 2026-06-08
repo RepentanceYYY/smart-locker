@@ -104,6 +104,11 @@
               <span class="btn-icon">🔄</span>
               <span class="btn-label">归还</span>
             </button>
+            <!-- 新增盘点按钮 -->
+            <button class="big-action-btn inventory-btn" @click="handleInventory">
+              <span class="btn-icon">📋</span>
+              <span class="btn-label">盘点</span>
+            </button>
             <button class="big-action-btn settings-btn" @click="handleSettings">
               <span class="btn-icon">⚙️</span>
               <span class="btn-label">设置</span>
@@ -620,6 +625,16 @@ function handleBorrow() {
 function handleReturn() {
   isBorrowMode.value = false
   showCameraModal.value = true
+}
+
+// 新增盘点功能
+function handleInventory() {
+  // 可根据实际需求替换为：打开相机并设置盘点模式、跳转到盘点页面、或直接调用盘点接口
+  // 示例：弹出提示框，未来可接入 CameraModal 并传递盘点标识
+  alert('盘点功能开发中，敬请期待！')
+  // 若要使用相机并传递盘点模式，可参考以下代码（需扩展 CameraModal 支持盘点类型）：
+  // isInventoryMode.value = true
+  // showCameraModal.value = true
 }
 
 // 密码弹窗相关方法
@@ -1198,6 +1213,20 @@ body,
   background: linear-gradient(135deg, #f59e0b, #d97706);
   transform: translateY(-3px);
   box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
+}
+
+/* 新增盘点按钮样式 */
+.inventory-btn {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.9), rgba(109, 40, 217, 0.9));
+  border: 1px solid rgba(167, 139, 250, 0.6);
+  color: white;
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+}
+
+.inventory-btn:hover {
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
 }
 
 .settings-btn {

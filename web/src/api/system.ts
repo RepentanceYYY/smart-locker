@@ -9,6 +9,7 @@ export interface SystemConfig {
     adminPwd: string
     borrowPeriod: string
     autoReturnTimeoutMinutes: number
+    tempHumidityLogInterval:number
 }
 
 export async function fetchSystemConfig(): Promise<SystemConfig> {

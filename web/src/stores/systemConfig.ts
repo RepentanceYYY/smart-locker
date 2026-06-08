@@ -12,7 +12,8 @@ export const useSystemConfigStore = defineStore('systemConfig', () => {
         location: '',
         adminPwd: '',
         borrowPeriod: '',
-        autoReturnTimeoutMinutes: 5
+        autoReturnTimeoutMinutes: 5,
+        tempHumidityLogInterval: 5
     })
 
     const loaded = ref(false)
@@ -26,6 +27,7 @@ export const useSystemConfigStore = defineStore('systemConfig', () => {
     const adminPwd = computed(() => config.value.adminPwd)
     const borrowPeriod = computed(() => config.value.borrowPeriod)
     const autoReturnTimeoutMinutes = computed(() => config.value.autoReturnTimeoutMinutes)
+    const tempHumidityLogInterval = computed(() => config.value.tempHumidityLogInterval)
 
     // 初始化加载配置（只调用一次）
     async function loadConfig() {
@@ -97,6 +99,7 @@ export const useSystemConfigStore = defineStore('systemConfig', () => {
         adminPwd,
         borrowPeriod,
         autoReturnTimeoutMinutes,
+        tempHumidityLogInterval,
         // 方法
         loadConfig,
         updateConfig,

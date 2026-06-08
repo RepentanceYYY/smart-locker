@@ -77,6 +77,7 @@ public class SystemConfigServiceImpl extends ServiceImpl<SystemConfigMapper, Sys
         config.setAdminPwd("admin");
         config.setBorrowPeriod("7");
         config.setAutoReturnTimeoutMinutes(5);
+        config.setTempHumidityLogInterval(5);
         return config;
     }
 

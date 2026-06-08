@@ -73,4 +73,11 @@ public class SystemConfig implements Serializable {
      */
     @TableField("auto_return_timeout_minutes")
     private Integer autoReturnTimeoutMinutes;
+
+    /**
+     * 长温湿度记录间隔（分钟）
+     */
+    @TableField("temp_humidity_log_interval")
+    private Integer tempHumidityLogInterval;
+
 }

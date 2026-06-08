@@ -18,4 +18,6 @@ public class SystemConfigDTO {
     private String borrowPeriod;
 
     private Integer autoReturnTimeoutMinutes;
+
+    private Integer tempHumidityLogInterval;
 }
