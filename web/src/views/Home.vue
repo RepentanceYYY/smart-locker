@@ -56,8 +56,8 @@
             <div class="carousel-cylinder">
               <div class="carousel-3d" :style="{ minHeight: carouselHeight + 'px' }">
                 <div v-for="(cab, idx) in cabinets" :key="cab.id" class="cabinet-item"
-                     :class="{ 'center-highlight': idx === currentIndex }"
-                     :style="[getCabinetStyle(idx), { width: cab.width || '280px', height: cab.height || 'auto' }]">
+                  :class="{ 'center-highlight': idx === currentIndex }"
+                  :style="[getCabinetStyle(idx), { width: cab.width || '280px', height: cab.height || 'auto' }]">
                   <div class="cabinet-header">
                     {{ cab.title }}
                   </div>
@@ -65,8 +65,8 @@
                     <div class="cabinet-grid" :style="getGridStyle(cab)">
                       <template v-for="(cell, cellIdx) in cab.flatCells" :key="cellIdx">
                         <div v-if="cell.type === 'cell'" class="cell-container"
-                             :style="[getCellPosition(cell), cell.cellStyle]" :class="{ 'empty-door': cell.isEmpty }"
-                             @click="showCellDetail(cell)">
+                          :style="[getCellPosition(cell), cell.cellStyle]" :class="{ 'empty-door': cell.isEmpty }"
+                          @click="showCellDetail(cell)">
                           <div class="cell-inner"></div>
                           <div class="cabinet-cell" :class="{ 'empty-door': cell.isEmpty }">
                             <div class="hinge"></div>
@@ -76,7 +76,7 @@
                           </div>
                         </div>
                         <div v-else-if="cell.type === 'image'" class="custom-image-cell"
-                             :style="[getCellPosition(cell), cell.cellStyle]">
+                          :style="[getCellPosition(cell), cell.cellStyle]">
                           <img :src="cell.imageUrl" :alt="cell.label || '图标'" />
                           <span v-if="cell.label" class="image-label">{{ truncateText(cell.label, 10) }}</span>
                         </div>
@@ -96,20 +96,20 @@
         <!-- 下部区域：固定高度 -->
         <div class="bottom-section">
           <div class="big-buttons-container">
-            <button class="big-action-btn borrow-btn" @click="handleBorrow">
+            <button :disabled="isAllowClickButton" class="big-action-btn borrow-btn" @click="handleBorrow">
               <span class="btn-icon">📦</span>
               <span class="btn-label">领用</span>
             </button>
-            <button class="big-action-btn return-btn" @click="handleReturn">
+            <button :disabled="isAllowClickButton" class="big-action-btn return-btn" @click="handleReturn">
               <span class="btn-icon">🔄</span>
               <span class="btn-label">归还</span>
             </button>
             <!-- 新增盘点按钮 -->
-            <button class="big-action-btn inventory-btn" @click="handleInventory">
+            <button :disabled="isAllowClickButton" class="big-action-btn inventory-btn" @click="handleInventory">
               <span class="btn-icon">📋</span>
               <span class="btn-label">盘点</span>
             </button>
-            <button class="big-action-btn settings-btn" @click="handleSettings">
+            <button :disabled="isAllowClickButton" class="big-action-btn settings-btn" @click="handleSettings">
               <span class="btn-icon">⚙️</span>
               <span class="btn-label">设置</span>
             </button>
@@ -160,11 +160,14 @@
     <!-- 相机弹窗 -->
     <CameraModal v-model:visible="showCameraModal" :isBorrow="isBorrowMode" @confirm="handlePhotoConfirm" />
 
+    <InventoryDialog :visible="showInventoryDialog" :inventoryResult="inventoryDialogResult" @close="closeInventoryDialog"
+      @cancel="closeInventoryDialog" @confirm="closeInventoryDialog" />
+
     <!-- 密码弹窗（设置验证） -->
     <div v-if="showPasswordDialog" class="dialog-overlay" @click="closePasswordDialog">
       <div class="dialog-content password-dialog" @click.stop>
         <div class="dialog-header">
-          <h3>🔐 管理员验证</h3>
+          <h3>🔐 管理员验证<span v-if="passwordDialogType === 'inventory'"> - 盘点</span></h3>
           <button class="dialog-close" @click="closePasswordDialog">✕</button>
         </div>
         <div class="dialog-body">
@@ -176,7 +179,7 @@
           </div>
           <div class="password-input-group">
             <input type="password" v-model="passwordInput" placeholder="请输入管理员密码" class="password-input"
-                   @keyup.enter="verifyPassword" @input="onPasswordInput" autofocus />
+              @keyup.enter="verifyPassword" @input="onPasswordInput" autofocus />
             <div v-if="passwordError" class="password-error">
               ❌ {{ passwordError }}
             </div>
@@ -184,7 +187,12 @@
         </div>
         <div class="dialog-footer password-footer">
           <button class="dialog-action-btn cancel-btn" @click="closePasswordDialog">取消</button>
-          <button class="dialog-action-btn confirm-btn" @click="verifyPassword">验证</button>
+          <button class="dialog-action-btn confirm-btn" :class="{
+            'settings-confirm-btn': passwordDialogType === 'settings',
+            'inventory-confirm-btn': passwordDialogType === 'inventory'
+          }" @click="verifyPassword">
+            验证
+          </button>
         </div>
       </div>
     </div>
@@ -196,12 +204,16 @@ import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchCabinetList } from '@/api/cabinet'
 import CameraModal from './CameraModal.vue'
+import InventoryDialog from './InventoryDialog.vue'
 import { useSystemConfigStore } from '@/stores/systemConfig'
 import { useCountdown } from '@/composables/useCountdown'
 
 const router = useRouter()
 const systemConfigStore = useSystemConfigStore()
-
+const passwordDialogType = ref<'inventory' | 'settings'>('settings')//操作区分验证按钮颜色
+const isAllowClickButton = ref(false)//是否允许点击领用/归还/盘点/设置按钮  
+const showInventoryDialog = ref(false)//盘点弹窗
+const inventoryDialogResult = ref<any>(null)//盘点结果数据
 // 相机相关
 const showCameraModal = ref(false)
 const isBorrowMode = ref(true)
@@ -302,7 +314,6 @@ function expandHeight(height: string, count: number): string[] {
   }
   return parts
 }
-
 function flattenCells(cab: CabinetConfig) {
   const flatCells: any[] = []
   const rowHeights: string[] = []
@@ -618,27 +629,42 @@ function handleDialogAction() {
 
 // ================== 三大按钮 ==================
 function handleBorrow() {
+  if (isAllowClickButton.value) {
+    addNotification('盘点中，稍后再试', 'warning')
+    return
+  }
   isBorrowMode.value = true
   showCameraModal.value = true
 }
 
 function handleReturn() {
+  if (isAllowClickButton.value) {
+    addNotification('盘点中，稍后再试', 'warning')
+    return
+  }
   isBorrowMode.value = false
   showCameraModal.value = true
 }
 
 // 新增盘点功能
 function handleInventory() {
+  if (isAllowClickButton.value) {
+    addNotification('盘点中，稍后再试', 'warning')
+    return
+  }
   // 可根据实际需求替换为：打开相机并设置盘点模式、跳转到盘点页面、或直接调用盘点接口
   // 示例：弹出提示框，未来可接入 CameraModal 并传递盘点标识
-  alert('盘点功能开发中，敬请期待！')
+  // alert('盘点功能开发中，敬请期待！')
   // 若要使用相机并传递盘点模式，可参考以下代码（需扩展 CameraModal 支持盘点类型）：
   // isInventoryMode.value = true
   // showCameraModal.value = true
+  passwordDialogType.value = 'inventory'
+  openPasswordDialog('inventory')
 }
 
 // 密码弹窗相关方法
-function openPasswordDialog() {
+function openPasswordDialog(type: 'inventory' | 'settings') {
+  passwordDialogType.value = type
   passwordInput.value = ''
   passwordError.value = ''
   showPasswordDialog.value = true
@@ -660,12 +686,108 @@ function onPasswordInput() {
     }
   }
 }
+//websocket
+const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8080/ws/inventory'
+let socket: WebSocket | null = null
+const wsConnected = ref(false)
+let allowReconnect = true
+
+function connectWebSocket() {
+  socket = new WebSocket(wsUrl)
+  socket.onopen = () => {
+    console.log('WebSocket 连接成功')
+    wsConnected.value = true
+  }
+  socket.onmessage = async (event) => {
+    try {
+      const message = JSON.parse(event.data)
+      await handleWebSocketMessage(message)
+    } catch (e) {
+      console.error('解析消息失败', e)
+    }
+  }
+  socket.onerror = (error) => {
+    console.error('WebSocket 错误', error)
+    addNotification('与服务器连接异常，请刷新页面重试', 'warning')
+  }
+  socket.onclose = () => {
+    console.log('WebSocket 连接关闭')
+    wsConnected.value = false
+    // 尝试重连
+    if (allowReconnect) {
+      setTimeout(() => connectWebSocket(), 3000)
+    }
+  }
+}
+// 发送消息
+function sendMessage(type: string, data: any) {
+  if (!socket || socket.readyState !== WebSocket.OPEN) {
+    addNotification('网络连接异常，请稍后重试', 'warning')
+    return false
+  }
+  socket.send(JSON.stringify({ type, data }))
+  return true
+}
+// 盘点发送的消息
+async function handleWebSocketMessage(msg: any) {
+  const { type } = msg || {}
+  if (type === 'inventory') {
+    handleInventoryReply(msg)
+  }
+}
+// 处理盘点结果的消息
+function handleInventoryReply(msg: any) {
+  const { code, data, message: msgText } = msg || {}
+  if (code === 200) {
+    const payload = {
+      ...data,
+      inventoryTime: new Date().toISOString(),
+    }
+    inventoryDialogResult.value = payload
+    isAllowClickButton.value = true
+    showInventoryDialog.value = true
+    return
+  }
+  isAllowClickButton.value = false
+  addNotification(msgText || '盘点失败，请重试', 'warning')
+}
+
+function closeInventoryDialog() {
+  showInventoryDialog.value = false
+  inventoryDialogResult.value = null
+  isAllowClickButton.value = false
+}
+// ================== 通知列表 ==================
+const notifications = ref<Notification[]>([])
+let nextNotificationId = 1
+
+function addNotification(text: string, type: 'info' | 'success' | 'warning' = 'info', duration = 5000) {
+  const id = nextNotificationId++
+  const notification: Notification = { id, text, type }
+  notifications.value.push(notification)
+  setTimeout(() => {
+    notifications.value = notifications.value.filter(n => n.id !== id)
+  }, duration)
+}
 
 function verifyPassword() {
   if (passwordInput.value === systemConfigStore.adminPwd) {
     cleanupPasswordCountdown()
     showPasswordDialog.value = false
-    router.push('/settings')
+    if (passwordDialogType.value === 'inventory') {
+      if (isAllowClickButton.value) {
+        addNotification('盘点中，稍后再试', 'warning')
+        return
+      }
+      isAllowClickButton.value = true
+      addNotification('验证成功，正在盘点中...', 'info')
+      const ok = sendMessage('inventory', {})
+      if (!ok) {
+        isAllowClickButton.value = false
+      }
+    } else if (passwordDialogType.value === 'settings') {
+      router.push('/settings')
+    }
   } else {
     passwordError.value = '密码错误，请重试'
     handlePasswordOperation()
@@ -673,7 +795,12 @@ function verifyPassword() {
 }
 
 function handleSettings() {
-  openPasswordDialog()
+  if (isAllowClickButton.value) {
+    addNotification('盘点中，稍后再试', 'warning')
+    return
+  }
+  passwordDialogType.value = 'settings'
+  openPasswordDialog('settings')
 }
 
 function handlePhotoConfirm(imageData: string) {
@@ -721,6 +848,7 @@ onMounted(async () => {
   await nextTick()
   updateLayout()
   updateCurrentTime()
+  connectWebSocket()
   window.addEventListener('resize', handleResize)
   startTempHumiditySimulation()
   timeInterval = setInterval(updateCurrentTime, 1000)
@@ -732,10 +860,23 @@ onBeforeUnmount(() => {
   stopTempHumiditySimulation()
   cleanupPasswordCountdown()
   if (timeInterval) clearInterval(timeInterval)
+  allowReconnect = false
+  if (socket) {
+    socket.close()
+    socket = null
+  }
 })
 </script>
 
 <style lang="css" scoped>
+.confirm-btn.settings-confirm-btn {
+  background: linear-gradient(135deg, #22d3ee, #3b82f6) !important;
+}
+
+.confirm-btn.inventory-confirm-btn {
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9) !important;
+}
+
 /* 全局无滚动条 */
 html,
 body,
@@ -797,6 +938,7 @@ body,
   0% {
     left: -100%;
   }
+
   100% {
     left: 200%;
   }
@@ -863,6 +1005,7 @@ body,
     opacity: 0.6;
     transform: scale(0.9);
   }
+
   100% {
     opacity: 1;
     transform: scale(1.2);
@@ -1449,6 +1592,7 @@ body,
     opacity: 0;
     transform: translateY(30px) scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -1575,9 +1719,12 @@ body,
 }
 
 @keyframes pulseWarning {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.6;
   }
@@ -1665,56 +1812,71 @@ body,
     height: 56px;
     padding: 0 16px;
   }
+
   .logo-icon {
     font-size: 24px;
   }
+
   .title-text {
     font-size: 16px;
   }
+
   .title-sub {
     display: none;
   }
+
   .time-wrapper {
     padding: 4px 12px;
     gap: 6px;
   }
+
   .header-time {
     font-size: 16px;
     min-width: 55px;
   }
+
   .time-icon {
     font-size: 12px;
   }
+
   .temp-card,
   .humidity-card {
     padding: 3px 10px;
     top: 8px;
   }
+
   .card-icon {
     font-size: 14px;
   }
+
   .card-value {
     font-size: 14px;
     min-width: 35px;
   }
+
   .card-label {
     font-size: 9px;
     padding: 1px 4px;
   }
+
   .nav-btn-left,
   .nav-btn-right {
     padding: 8px 16px;
   }
+
   .btn-icon {
     font-size: 24px;
   }
+
   .btn-label {
     font-size: 14px;
   }
+
   .big-action-btn {
     padding: 12px 6px;
     min-height: 60px;
   }
+
   .dialog-content {
     width: 90%;
   }
@@ -1724,53 +1886,67 @@ body,
   .app-header {
     padding: 0 12px;
   }
+
   .header-time {
     font-size: 14px;
     min-width: 48px;
   }
+
   .title-text {
     font-size: 14px;
     letter-spacing: 1px;
   }
+
   .logo-icon {
     font-size: 20px;
   }
+
   .time-wrapper {
     padding: 2px 10px;
   }
+
   .cabinet-item {
     width: 260px !important;
   }
+
   .nav-btn-left,
   .nav-btn-right {
     padding: 6px 12px;
   }
+
   .btn-icon {
     font-size: 20px;
   }
+
   .btn-label {
     font-size: 12px;
   }
+
   .big-action-btn {
     padding: 10px 4px;
     min-height: 55px;
   }
+
   .big-buttons-container {
     gap: 10px;
   }
+
   .temp-card,
   .humidity-card {
     padding: 2px 8px;
     gap: 4px;
     top: 6px;
   }
+
   .card-icon {
     font-size: 12px;
   }
+
   .card-value {
     font-size: 12px;
     min-width: 30px;
   }
+
   .card-label {
     font-size: 8px;
   }

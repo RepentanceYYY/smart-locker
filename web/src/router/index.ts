@@ -17,6 +17,11 @@ const routes: Array<RouteRecordRaw> = [
     name: 'Return',
     component: () => import('@/views/Return.vue')
   },
+  {
+    path: '/inventory',
+    name: 'InventoryDialog',
+    component: () => import('@/views/InventoryDialog.vue')
+  },
     {
         path: '/settings',
         name: 'Settings',
