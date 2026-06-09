@@ -11,14 +11,17 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 public class WebSocketConfig implements WebSocketConfigurer {
 
     private final ReturnWebSocketHandler returnWebSocketHandler;
+    private final BorrowWebSocketHandler borrowWebSocketHandler;
 
-    public WebSocketConfig(ReturnWebSocketHandler returnWebSocketHandler) {
+    public WebSocketConfig(ReturnWebSocketHandler returnWebSocketHandler,BorrowWebSocketHandler borrowWebSocketHandler) {
         this.returnWebSocketHandler = returnWebSocketHandler;
+        this.borrowWebSocketHandler = borrowWebSocketHandler;
     }
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(returnWebSocketHandler, "/ws/return")
+                .addHandler(borrowWebSocketHandler,"/ws/borrow")
                 .setAllowedOrigins("*");
     }
 }

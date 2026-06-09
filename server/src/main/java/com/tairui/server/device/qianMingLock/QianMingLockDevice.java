@@ -433,7 +433,6 @@ public class QianMingLockDevice extends DeviceCore {
 
             if (byteIdx >= stateBits.length) return false;
 
-            // 【核心修正】
             // 偏置小的格口在字节的右边（低 Bit 位）
             // 比如 offset=1 (第2个格口) 时，我们取右数第二位 (bitIdx=1)
             return ((stateBits[byteIdx] >> bitIdx) & 0x01) == 1;
@@ -448,6 +447,25 @@ public class QianMingLockDevice extends DeviceCore {
             // 直接复用定义好的 isOpen 方法
             for (int i = startBox; i <= endBox; i++) {
                 if (isOpen(i)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        /**
+         * 判断指定格口是否全部关闭
+         *
+         * @param boxNos 需要判断的格口号列表
+         * @return true = 全部关闭 / false = 有任意打开
+         */
+        public boolean isAllClosed(List<Integer> boxNos) {
+            if (boxNos == null || boxNos.isEmpty()) {
+                return true;
+            }
+
+            for (Integer boxNo : boxNos) {
+                if (boxNo != null && isOpen(boxNo)) {
                     return false;
                 }
             }

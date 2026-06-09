@@ -86,7 +86,7 @@
                       <template v-for="(cell, cellIdx) in cab.flatCells" :key="cellIdx">
                         <!-- 普通格口 -->
                         <div v-if="cell.type === 'cell'" class="cell-container"
-                          :style="[getCellPosition(cell), cell.cellStyle]" @click="handleCellClick(cab, cell)">
+                          :style="[getCellPosition(cell), cell.cellStyle]">
                           <div class="cell-inner"></div>
                           <div class="cabinet-cell" :class="{
                             'empty-door': cell.isEmpty,
@@ -730,7 +730,6 @@ const handleWebSocketMessage = async (msg: any) => {
             if (idx !== -1) currentIndex.value = idx
             // 启动轮询柜门状态和储物状态
             await new Promise((resolve) => setTimeout(resolve, 1000))
-            console.log('sssss'+cellNumber)
             startCloseAndCheckPolling(cab.id, cellId, cellNumber, toolName)
           } else {
             addNotification('开锁成功但未找到对应格口', 'warning')
@@ -833,15 +832,12 @@ function isCellDoorOpen(cell: any): boolean {
   return cell.isDoorOpen === true
 }
 
-// 替换原有的 callOpenLockAPI 为 WebSocket 发送
 function requestOpenLock(cabinetId: number, cellId: number, cellNumber: string): Promise<boolean> {
   if (!wsConnected.value) {
     addNotification('服务器未连接，请稍后重试', 'warning')
     return Promise.resolve(false)
   }
   sendMessage('openLock', { cabinetId, cellId, cellNumber })
-  // 由于结果异步返回，这里简单返回一个 pending promise 占位，实际 UI 更新在 handleWebSocketMessage 中
-  // 调用方不依赖返回值，所以直接 resolve true
   return Promise.resolve(true)
 }
 /**
@@ -881,8 +877,11 @@ function getToolNameForCell(cell: NormalCell): string {
   }
   return '未知工具'
 }
-
-async function processScannedQRCode(content: string) {
+/**
+ * 处理扫描的二维码
+ * @param content 
+ */
+const processScannedQRCode = async (content: string) => {
   const trimmedContent = content.trim()
   if (!trimmedContent) {
     addNotification('扫描内容为空', 'warning')
@@ -911,7 +910,6 @@ async function processScannedQRCode(content: string) {
   }
   addNotification(`正在开启 ${cabinet.title} - ${cell.number} 门锁...`, 'info')
   await requestOpenLock(cabinet.id, cell.id, cell.number)
-  // 实际开锁结果通过 WebSocket 消息返回，UI 更新在 handleWebSocketMessage 中
 }
 
 async function handleCellClick(cab: ProcessedCabinet, cell: NormalCell) {
@@ -1007,7 +1005,7 @@ function handleCompleteSession() {
     addNotification('尚有柜门未关闭，请先关闭柜门完成归还', 'warning')
     return
   }
-  sendMessage('checkAllLockStatus',{})
+  sendMessage('checkAllLockStatus', {})
 }
 
 // 空归还记录倒计时相关方法

@@ -219,7 +219,8 @@ public class QianMingLockDeviceServiceManager {
             throw new RuntimeException("格口状态查询失败，cellId=" + cellConfigId, e);
         }
     }
-    public boolean querySingleBoxStatusSync(int cellConfigId, long timeout){
+
+    public boolean querySingleBoxStatusSync(int cellConfigId, long timeout) {
         CellConfig cellConfig = cellConfigMapper.selectById(cellConfigId);
         if (cellConfig == null) {
             throw new RuntimeException("格口配置不存在: " + cellConfigId);
@@ -244,7 +245,7 @@ public class QianMingLockDeviceServiceManager {
             return boxStatusData.isOpen(mac);
         } catch (Exception e) {
             log.error("门锁状态获取失败");
-            return  true;
+            return true;
         }
     }
 
@@ -260,7 +261,7 @@ public class QianMingLockDeviceServiceManager {
         }
     }
 
-    public boolean querySingleGoodsStatusSync(int cellConfigId, long timeout){
+    public boolean querySingleGoodsStatusSync(int cellConfigId, long timeout) {
         CellConfig cellConfig = cellConfigMapper.selectById(cellConfigId);
         if (cellConfig == null) {
             throw new RuntimeException("格口配置不存在: " + cellConfigId);
@@ -280,7 +281,7 @@ public class QianMingLockDeviceServiceManager {
             return res;
         } catch (Exception e) {
             log.error("格口储物状态获取失败，给有物");
-            return  true;
+            return true;
         }
     }
 
@@ -320,6 +321,40 @@ public class QianMingLockDeviceServiceManager {
             return false;
         }
     }
+
+    /**
+     * 校验指定柜子及锁板（mac）下的所有格口是否全部处于关闭状态(只检测使用的mac)
+     *
+     * @param cabinetConfigId
+     * @param activeCellMacAddress
+     * @return
+     */
+    public Boolean isAllActiveCellsClosed(Integer cabinetConfigId, List<Integer> activeCellMacAddress) {
+
+        try {
+            // 通过柜子ID获取设备连接服务
+            QianMingLockDeviceService deviceService = this.getDeviceServiceByCabinetId(cabinetConfigId);
+
+            // 确保设备连接处于打开状态
+            deviceService.open();
+
+            // 调用硬件接口查询该锁板(mac)的所有格口锁状态（设置 3000ms 超时时间）
+            long timeout = 3000L;
+            QianMingLockDevice.BoxStatusData boxStatusData = deviceService.queryBoxStatusSync(activeCellMacAddress.get(0), timeout);
+
+            if (boxStatusData == null) {
+                log.warn("柜子ID [{}] MAC [{}] 状态查询返回空数据", cabinetConfigId, activeCellMacAddress.get(0));
+                return false;
+            }
+            log.info(boxStatusData.toString());
+            return boxStatusData.isAllClosed(activeCellMacAddress);
+
+        } catch (Exception e) {
+            log.error("检查全关状态失败，cabinetConfigId={}, mac={}, 原因: {}", cabinetConfigId, activeCellMacAddress.get(0), e.getMessage());
+            return false;
+        }
+    }
+
 
     /**
      * 辅助方法

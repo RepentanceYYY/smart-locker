@@ -2,12 +2,7 @@
   <div class="borrow-container">
     <!-- 通知列表 -->
     <div class="notification-container">
-      <div
-          v-for="notify in notifications"
-          :key="notify.id"
-          class="notification"
-          :class="notify.type"
-      >
+      <div v-for="notify in notifications" :key="notify.id" class="notification" :class="notify.type">
         {{ notify.text }}
       </div>
     </div>
@@ -55,37 +50,27 @@
             <!-- 3D 圆柱轮播 -->
             <div class="carousel-cylinder">
               <div class="carousel-3d" :style="{ minHeight: carouselHeight + 'px' }">
-                <div
-                    v-for="(cab, idx) in cabinets"
-                    :key="cab.id"
-                    class="cabinet-item"
-                    :class="{ 'center-highlight': idx === currentIndex }"
-                    :style="[getCabinetStyle(idx), { width: cab.width || '280px', height: cab.height || 'auto' }]"
-                >
+                <div v-for="(cab, idx) in cabinets" :key="cab.id" class="cabinet-item"
+                  :class="{ 'center-highlight': idx === currentIndex }"
+                  :style="[getCabinetStyle(idx), { width: cab.width || '280px', height: cab.height || 'auto' }]">
                   <div class="cabinet-header">{{ cab.title }}</div>
                   <div class="cabinet-body">
                     <div class="cabinet-grid" :style="getGridStyle(cab)">
                       <template v-for="(cell, cellIdx) in cab.flatCells" :key="cellIdx">
                         <!-- 普通格口 -->
-                        <div
-                            v-if="cell.type === 'cell'"
-                            class="cell-container"
-                            :style="[getCellPosition(cell), cell.cellStyle]"
-                            :class="{ 'empty-door': cell.isEmpty }"
-                            @click="handleCellClick(cell, cab.id, cab.title)"
-                        >
+                        <div v-if="cell.type === 'cell'" class="cell-container"
+                          :style="[getCellPosition(cell), cell.cellStyle]" :class="{ 'empty-door': cell.isEmpty }"
+                          @click="handleCellClick(cell, cab.id, cab.title)">
                           <div class="cell-inner"></div>
-                          <div class="cabinet-cell" :class="{ 'empty-door': cell.isEmpty, 'door-open': cell.isDoorOpen }">
+                          <div class="cabinet-cell"
+                            :class="{ 'empty-door': cell.isEmpty, 'door-open': cell.isDoorOpen }">
                             <span class="cell-number">{{ cell.number }}</span>
                             <span class="tool-name">{{ truncateText(cell.toolName, 8) }}</span>
                           </div>
                         </div>
                         <!-- 图片格口 -->
-                        <div
-                            v-else-if="cell.type === 'image'"
-                            class="custom-image-cell"
-                            :style="[getCellPosition(cell), cell.cellStyle]"
-                        >
+                        <div v-else-if="cell.type === 'image'" class="custom-image-cell"
+                          :style="[getCellPosition(cell), cell.cellStyle]">
                           <img :src="cell.imageUrl" :alt="cell.label || '图标'" />
                           <span v-if="cell.label" class="image-label">{{ truncateText(cell.label, 10) }}</span>
                         </div>
@@ -143,11 +128,7 @@
 
             <!-- 右侧：领用完成按钮 -->
             <div class="button-area">
-              <button
-                  class="complete-btn"
-                  :disabled="isCompleteDisabled"
-                  @click="handleComplete"
-              >
+              <button class="complete-btn" :disabled="isCompleteDisabled" @click="handleComplete">
                 <span class="btn-icon">✅</span>
                 <span class="btn-label">领用完成</span>
               </button>
@@ -159,13 +140,8 @@
 
     <!-- 借用数据汇总模态框 -->
     <!-- Borrow.vue 模板中 -->
-    <BorrowSummaryModal
-        v-model:visible="showBorrowSummary"
-        :borrow-items="borrowItems"
-        :photo-data="photoData"
-        :default-expected-return-time="defaultExpectedReturnTime"
-        @submit="onBorrowSubmit"
-    />
+    <BorrowSummaryModal v-model:visible="showBorrowSummary" :borrow-items="borrowItems" :photo-data="photoData"
+      :default-expected-return-time="defaultExpectedReturnTime" @submit="onBorrowSubmit" />
 
     <!-- 未关闭格口警告模态框 -->
     <Teleport to="body">
@@ -524,25 +500,34 @@ function addBorrowRecord(cabinetId: number, cabinetName: string, cellId: number,
   })
 }
 
-// ================== 格口点击逻辑（增强：传递ID） ==================
-function handleCellClick(cell: any, cabinetId: number, cabinetName: string) {
+/**
+ * 处理格口点击事件
+ * @param cell 
+ * @param cabinetId 
+ * @param cabinetTitle 
+ */
+const handleCellClick = async (cell: any, cabinetId: number, cabinetTitle: string) => {
+  const anyOpen = cabinets.value.some(cab =>
+    cab.flatCells.some(cell => cell.type === 'cell' && cell.isDoorOpen === true)
+  )
+  if (anyOpen) {
+    addNotification('请先关闭当前开启的柜门', 'warning')
+    return
+  }
   if (cell.type !== 'cell') return
   if (cell.isEmpty) {
     addNotification(`🔒 该格口当前为空，无法打开 · 格口 ${cell.number}`, 'warning')
     return
   }
-  if (!cell.isDoorOpen) {
-    cell.isDoorOpen = true
-    addNotification(`🚪 柜门已打开 · 格口 ${cell.number}`, 'success')
-  } else {
-    cell.isDoorOpen = false
-    const toolName = cell.toolName
-    const cellNumber = cell.number
-    const cellId = cell.id
-    addNotification(`✅ 柜门已关闭 · 工具【${toolName}】已领用`, 'success')
-    addBorrowRecord(cabinetId, cabinetName, cellId, cellNumber, toolName)
-    cell.isEmpty = true
-    cell.toolName = ''
+  if (unlocking.value) {
+    addNotification(`操作频繁，请稍后再试`, 'warning')
+    return
+  }
+  unlocking.value = true
+  addNotification(`正在开启 ${cabinetTitle} - ${cell.number} 门锁...`, 'info')
+  const sendSuccess = await requestOpenLock(cabinetId, cell.id, cell.number)
+  if (!sendSuccess) {
+    unlocking.value = false
   }
 }
 
@@ -766,18 +751,12 @@ function handleComplete() {
       }
     }
   }
+  // 存在未关闭的柜门
   if (openDoors.length > 0) {
-    unclosedDoorsList.value = openDoors
-    showUnclosedModal.value = true
+    addNotification('尚有柜门未关闭，请先关闭柜门完成领用', 'warning')
     return
   }
-
-  if (borrowItems.value.length === 0) {
-    startEmptyDataCountdown()
-    return
-  }
-
-  showBorrowSummary.value = true
+  sendMessage('checkAllLockStatus', {})
 }
 
 function closeUnclosedModal() {
@@ -829,12 +808,245 @@ watch(currentIndex, (newIdx, oldIdx) => {
   }
 })
 
+// ================== WebSocket 连接 ==================
+let closeAndCheckTimer: any = null // 轮询定时器
+const isWaiting = ref(false)       // 状态锁：是否正在等待后端的响应
+const isPollingActive = ref(true)  // 业务锁：轮询是否仍在继续进行
+
+const closeAndCheck = async (cabId: any, cellId: any, cellNumber: any, toolName: any) => {
+  // 如果轮询已经结束，或者上一次的响应还没来，则不发送
+  if (!isPollingActive.value || isWaiting.value) return
+  isWaiting.value = true
+  // 检测柜门和物品状态
+  console.log('发送检测柜门和物品状态')
+  const sendSuccess = sendMessage('closeAndCheck', {
+    cabinetId: cabId,
+    cellId: cellId,
+    cellNumber: cellNumber,
+    toolName: toolName
+  })
+  if (!sendSuccess) {
+    isWaiting.value = false
+  }
+}
+// 递进式定时器
+const startCloseAndCheckPolling = (cabId: any, cellId: any, cellNumber: any, toolName: any) => {
+  isPollingActive.value = true
+  // 这里的检查依然保留，用于拦截定时器内部递归时的状态
+  if (!isPollingActive.value) return
+
+  closeAndCheckTimer = setTimeout(() => {
+    closeAndCheck(cabId, cellId, cellNumber, toolName)
+    // 只有当定时器没有被外部中断，且轮询依然处于激活状态时，才进行下一次递归
+    if (closeAndCheckTimer && isPollingActive.value) {
+      startCloseAndCheckPolling(cabId, cellId, cellNumber, toolName)
+    }
+  }, 600)
+}
+/**
+ * 停止轮询
+ */
+const stopCloseAndCheckPolling = () => {
+  isPollingActive.value = false // 标记轮询已结束
+  isWaiting.value = false       // 解锁等待状态
+  if (closeAndCheckTimer) {
+    clearTimeout(closeAndCheckTimer)         // 清除当前的定时器
+    closeAndCheckTimer = null
+  }
+}
+
+const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8080/ws/borrow'
+let socket: WebSocket | null = null
+const wsConnected = ref(false)
+
+const connectWebSocket = () => {
+  socket = new WebSocket(wsUrl)
+  socket.onopen = () => {
+    console.log('WebSocket 连接成功')
+    wsConnected.value = true
+  }
+  socket.onmessage = async (event) => {
+    try {
+      const message = JSON.parse(event.data)
+      await handleWebSocketMessage(message)
+    } catch (e) {
+      console.error('解析消息失败', e)
+    }
+  }
+  socket.onerror = (error) => {
+    console.error('WebSocket 错误', error)
+    addNotification('与服务器连接异常，请刷新页面重试', 'warning')
+  }
+  socket.onclose = () => {
+    console.log('WebSocket 连接关闭')
+    wsConnected.value = false
+    // 尝试重连
+    setTimeout(() => connectWebSocket(), 3000)
+  }
+}
+/**
+ * 开锁按钮状态锁
+ */
+const unlocking = ref(false)
+
+const requestOpenLock = (cabinetId: number, cellId: number, cellNumber: string): Promise<boolean> => {
+  if (!wsConnected.value) {
+    addNotification('服务器未连接，请稍后重试', 'warning')
+    return Promise.resolve(false)
+  }
+  sendMessage('openLock', { cabinetId, cellId, cellNumber })
+  return Promise.resolve(true)
+}
+
+/**
+ * 处理后端websocket返回的消息
+ * @param msg 
+ */
+const handleWebSocketMessage = async (msg: any) => {
+  const { type, code, data, message: msgText } = msg
+  switch (type) {
+    case 'openLock':
+      handleUnLockReply(msg)
+      return;
+    case 'checkAllLockStatus':
+      handleCheckAllLockStatus(msg)
+      return;
+    case 'closeAndCheck':
+      handleCloseAndCheck(msg)
+      return;
+  }
+}
+/**
+ * 处理开锁回复
+ * @param msg 
+ */
+const handleUnLockReply = async (msg: any) => {
+  const { type, code, data, message: msgText } = msg
+  switch (code) {
+    case 200:
+      // 开锁成功
+      const { cabinetId, cellId, cellNumber, toolName } = data
+      // 找到对应的格口并设置开门状态
+      for (const cab of cabinets.value) {
+        if (cab.id === cabinetId) {
+          const cell = cab.flatCells.find(c => c.type === 'cell' && c.id === cellId && c.number === cellNumber)
+          if (cell) {
+            cell.isDoorOpen = true
+            addNotification(`🚪 柜门已打开 · 格口 ${cell.number}`, 'success')
+            // 切换到对应的柜子
+            const idx = cabinets.value.findIndex(c => c.id === cabinetId)
+            if (idx !== -1) currentIndex.value = idx
+            // 启动轮询柜门状态和储物状态
+            await new Promise((resolve) => setTimeout(resolve, 1000))
+            startCloseAndCheckPolling(cab.id, cellId, cellNumber, toolName)
+          } else {
+            addNotification('开锁成功但未找到对应格口', 'warning')
+          }
+          break
+        }
+      }
+      break;
+    default:
+      console.warn('未注册消息', msg);
+  }
+  unlocking.value = false;
+}
+/**
+ * 处理检测关锁和储物状态回复
+ * @param msg 
+ */
+const handleCloseAndCheck = async (msg: any) => {
+  const { type, code, data, message: msgText } = msg
+  const { cabinetId, cellId, cellNumber, toolName, borrowTime } = data
+  switch (code) {
+    case 200:
+      // 关门成功且物品被领走
+      stopCloseAndCheckPolling()
+      // 更新前端状态
+      for (const cab of cabinets.value) {
+        if (cab.id === cabinetId) {
+          const cell = cab.flatCells.find(c => c.type === 'cell' && c.id === cellId && c.number === cellNumber)
+          if (cell) {
+            cell.isDoorOpen = false
+            cell.isEmpty = true
+            cell.toolName = toolName
+            addNotification(`✅ 柜门已关闭 · 工具【${toolName}】已领用`, 'success')
+            addBorrowRecord(cab.id, cab.title, cell.id, cell.number, toolName)
+          }
+          break
+        }
+      }
+      break;
+    case 204:
+      // 关门成功但物品未被带走
+      console.log(`✅ ${cellNumber}号格口已关锁，但工具 ${toolName} 未领用`)
+      stopCloseAndCheckPolling()
+      // 更新前端状态
+      for (const cab of cabinets.value) {
+        if (cab.id === cabinetId) {
+          const cell = cab.flatCells.find(c => c.type === 'cell' && c.id === cellId && c.number === cellNumber)
+          if (cell) {
+            cell.isDoorOpen = false
+            cell.isEmpty = false
+            cell.toolName = toolName
+            addNotification(`✅ ${cellNumber}号格口已关锁，但工具 ${toolName} 未领用`, 'warning')
+          }
+          break
+        }
+      }
+      break;
+    case 400:
+      // 请求数据错误
+      stopCloseAndCheckPolling()
+      addNotification('系统出现小差，请联系管理员', 'warning')
+      break;
+    case 409:
+      // 检测到未关锁 后续不检测是否储物
+      break;
+    case 500:
+      // 锁状态查询失败，后续不检测是否储物
+      stopCloseAndCheckPolling()
+      addNotification('门锁状态检测失败，请联系管理员', 'warning')
+      break;
+
+  }
+  isWaiting.value = false
+}
+/**
+ * 处理检测所有锁关闭状态回复
+ * @param msg 
+ */
+const handleCheckAllLockStatus = async (msg: any) => {
+  const { type, code, data, message: msgText } = msg
+  switch (code) {
+    case 200:
+      if (borrowItems.value.length === 0) {
+        startEmptyDataCountdown()
+        return
+      }
+      showBorrowSummary.value = true
+      break;
+    default:
+      addNotification('尚有柜门未关闭，请先关闭柜门完成领用', 'warning')
+  }
+}
+
+const sendMessage = (type: string, data: any) => {
+  if (!socket || socket.readyState !== WebSocket.OPEN) {
+    addNotification('网络连接异常，请稍后重试', 'warning')
+    return false
+  }
+  socket.send(JSON.stringify({ type, data }))
+  return true
+}
+
 onMounted(() => {
   loadPhotoData()
   loadCabinets()
   updateLayout()
   window.addEventListener('resize', handleResize)
   startTempHumiditySimulation()
+  connectWebSocket()
 })
 
 onBeforeUnmount(() => {
@@ -844,12 +1056,16 @@ onBeforeUnmount(() => {
   stopTempHumiditySimulation()
   clearEmptyDataTimer()
   clearSuccessTimer()
+  stopCloseAndCheckPolling()
+  if (socket) socket.close()
 })
 </script>
 
 <style lang="css" scoped>
 /* ================== 全局重置 ================== */
-html, body, #app {
+html,
+body,
+#app {
   height: 100%;
   margin: 0;
   padding: 0;
@@ -893,11 +1109,13 @@ html, body, #app {
   text-overflow: ellipsis;
 }
 
-.notification.info, .notification.success {
+.notification.info,
+.notification.success {
   background: rgba(16, 185, 129, 0.95);
   color: white;
   border-left: 4px solid #a7f3d0;
 }
+
 .notification.warning {
   background: rgba(245, 158, 11, 0.95);
   color: white;
@@ -905,8 +1123,15 @@ html, body, #app {
 }
 
 @keyframes slideInRight {
-  from { opacity: 0; transform: translateX(100%); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .full-layout {
@@ -916,6 +1141,7 @@ html, body, #app {
   width: 100%;
   overflow: hidden;
 }
+
 /* ================== 页面标题 ================== */
 .page-header {
   display: flex;
@@ -929,10 +1155,12 @@ html, body, #app {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   flex-shrink: 0;
 }
+
 .title-icon {
   font-size: 28px;
   filter: drop-shadow(0 0 6px #22d3ee);
 }
+
 .page-header h1 {
   margin: 0;
   font-size: 26px;
@@ -954,6 +1182,7 @@ html, body, #app {
   overflow: hidden;
   min-height: 0;
 }
+
 .top-section {
   flex: 1;
   position: relative;
@@ -966,7 +1195,8 @@ html, body, #app {
 }
 
 /* 温湿度卡片 */
-.temp-card, .humidity-card {
+.temp-card,
+.humidity-card {
   position: absolute;
   top: 8px;
   display: flex;
@@ -981,13 +1211,49 @@ html, body, #app {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   transition: all 0.3s ease;
 }
-.temp-card { left: 20px; border-left: 3px solid #f87171; }
-.humidity-card { right: 20px; border-right: 3px solid #4ade80; }
-.card-icon { font-size: 18px; filter: drop-shadow(0 0 2px rgba(255,255,255,0.5)); }
-.card-value { font-size: 18px; font-weight: 700; letter-spacing: 1px; line-height: 1; min-width: 45px; text-align: center; }
-.temp-card .card-value { color: #f87171; text-shadow: 0 0 4px rgba(248,113,113,0.4); }
-.humidity-card .card-value { color: #4ade80; text-shadow: 0 0 4px rgba(74,222,128,0.4); }
-.card-label { font-size: 11px; color: #94a3b8; font-weight: 500; background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 20px; }
+
+.temp-card {
+  left: 20px;
+  border-left: 3px solid #f87171;
+}
+
+.humidity-card {
+  right: 20px;
+  border-right: 3px solid #4ade80;
+}
+
+.card-icon {
+  font-size: 18px;
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.5));
+}
+
+.card-value {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  line-height: 1;
+  min-width: 45px;
+  text-align: center;
+}
+
+.temp-card .card-value {
+  color: #f87171;
+  text-shadow: 0 0 4px rgba(248, 113, 113, 0.4);
+}
+
+.humidity-card .card-value {
+  color: #4ade80;
+  text-shadow: 0 0 4px rgba(74, 222, 128, 0.4);
+}
+
+.card-label {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 500;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 2px 6px;
+  border-radius: 20px;
+}
 
 /* 3D轮播 */
 .carousel-cylinder {
@@ -1002,6 +1268,7 @@ html, body, #app {
   height: 100%;
   overflow: hidden;
 }
+
 .carousel-3d {
   position: relative;
   width: 100%;
@@ -1011,6 +1278,7 @@ html, body, #app {
   transform-style: preserve-3d;
   overflow: visible;
 }
+
 .cabinet-item {
   position: absolute;
   background: #f1f4f9;
@@ -1025,10 +1293,12 @@ html, body, #app {
   will-change: transform;
   max-width: 88vw;
 }
+
 .cabinet-item.center-highlight {
   filter: drop-shadow(0 0 12px rgba(100, 220, 160, 0.6));
   border: 1px solid #6fcf97;
 }
+
 .cabinet-header {
   background: linear-gradient(135deg, #eef2f7 0%, #e3e9f0 100%);
   border-radius: 20px 20px 0 0;
@@ -1039,6 +1309,7 @@ html, body, #app {
   color: #1e5a44;
   border-bottom: 1px solid #cbd5e0;
 }
+
 .cabinet-body {
   padding: 12px;
   position: relative;
@@ -1046,6 +1317,7 @@ html, body, #app {
   display: flex;
   flex-direction: column;
 }
+
 .cabinet-backboard {
   position: absolute;
   top: 60px;
@@ -1057,6 +1329,7 @@ html, body, #app {
   border-radius: 12px;
   pointer-events: none;
 }
+
 .cabinet-grid {
   display: grid;
   gap: 8px;
@@ -1064,12 +1337,14 @@ html, body, #app {
   z-index: 2;
   min-height: 260px;
 }
+
 .indicator-upper {
   display: flex;
   justify-content: center;
   margin: 4px 0 2px;
   flex-shrink: 0;
 }
+
 .indicator-text {
   background: rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(8px);
@@ -1080,6 +1355,7 @@ html, body, #app {
   color: #c2f0e0;
   border: 1px solid rgba(34, 211, 238, 0.5);
 }
+
 .divider {
   width: 85%;
   height: 2px;
@@ -1103,8 +1379,15 @@ html, body, #app {
   box-sizing: border-box;
   height: 100%;
 }
-.cell-container:active { transform: scale(0.98); }
-.cell-container:hover { box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.7); }
+
+.cell-container:active {
+  transform: scale(0.98);
+}
+
+.cell-container:hover {
+  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+}
+
 .custom-image-cell {
   background: rgba(0, 0, 0, 0.4);
   border-radius: 16px;
@@ -1118,6 +1401,7 @@ html, body, #app {
   overflow: hidden;
   cursor: default;
 }
+
 .cell-inner {
   position: absolute;
   inset: 0;
@@ -1126,6 +1410,7 @@ html, body, #app {
   transform: translateZ(-8px);
   pointer-events: none;
 }
+
 .cabinet-cell {
   position: absolute;
   top: 0;
@@ -1146,15 +1431,18 @@ html, body, #app {
   will-change: transform;
   box-sizing: border-box;
 }
+
 .cabinet-cell.door-open {
   transform: translateZ(6px) rotateY(-75deg);
   box-shadow: -8px 0 16px rgba(0, 0, 0, 0.3), inset -1px 0 0 rgba(255, 255, 255, 0.5);
 }
+
 .cabinet-cell.empty-door {
   background: rgba(255, 255, 245, 0.55);
   backdrop-filter: blur(4px);
   border-color: rgba(140, 180, 160, 0.6);
 }
+
 .cell-number {
   position: absolute;
   top: 3px;
@@ -1168,6 +1456,7 @@ html, body, #app {
   z-index: 2;
   white-space: nowrap;
 }
+
 .tool-name {
   font-size: 8px;
   font-weight: 600;
@@ -1183,13 +1472,18 @@ html, body, #app {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.empty-door .tool-name { display: none; }
+
+.empty-door .tool-name {
+  display: none;
+}
+
 .custom-image-cell img {
   max-width: 75%;
   max-height: 65%;
   object-fit: contain;
   border-radius: 8px;
 }
+
 .image-label {
   margin-top: 6px;
   font-size: 9px;
@@ -1200,7 +1494,8 @@ html, body, #app {
 }
 
 /* 导航按钮 */
-.nav-btn-left, .nav-btn-right {
+.nav-btn-left,
+.nav-btn-right {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
@@ -1222,17 +1517,35 @@ html, body, #app {
   letter-spacing: 1px;
   white-space: nowrap;
 }
-.nav-btn-left { left: 12px; }
-.nav-btn-right { right: 12px; }
-.arrow { font-size: 1.3rem; line-height: 1; }
-.btn-text { font-size: 0.85rem; font-weight: 600; }
-.nav-btn-left:hover:not(.disabled), .nav-btn-right:hover:not(.disabled) {
+
+.nav-btn-left {
+  left: 12px;
+}
+
+.nav-btn-right {
+  right: 12px;
+}
+
+.arrow {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.btn-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.nav-btn-left:hover:not(.disabled),
+.nav-btn-right:hover:not(.disabled) {
   background: rgba(14, 165, 233, 0.9);
   border-color: #7dd3fc;
   color: #0a1a1f;
   transform: translateY(-50%) scale(1.05);
 }
-.nav-btn-left.disabled, .nav-btn-right.disabled {
+
+.nav-btn-left.disabled,
+.nav-btn-right.disabled {
   opacity: 0.35;
   cursor: not-allowed;
   filter: grayscale(0.2);
@@ -1249,6 +1562,7 @@ html, body, #app {
   overflow: hidden;
   background: transparent;
 }
+
 .bottom-container {
   display: flex;
   width: 100%;
@@ -1258,6 +1572,7 @@ html, body, #app {
   align-items: stretch;
   height: 100%;
 }
+
 .photo-area {
   flex: 1;
   min-width: 0;
@@ -1266,6 +1581,7 @@ html, body, #app {
   justify-content: center;
   align-self: center;
 }
+
 .photo-card {
   position: relative;
   width: 100%;
@@ -1275,7 +1591,13 @@ html, body, #app {
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(34, 211, 238, 0.5);
 }
-.preview-image { width: 100%; height: auto; display: block; }
+
+.preview-image {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
 .photo-badge {
   position: absolute;
   bottom: 8px;
@@ -1287,6 +1609,7 @@ html, body, #app {
   font-size: 10px;
   color: #4ade80;
 }
+
 .photo-placeholder {
   display: flex;
   flex-direction: column;
@@ -1298,7 +1621,13 @@ html, body, #app {
   padding: 20px;
   border: 1px dashed rgba(34, 211, 238, 0.5);
 }
-.placeholder-icon { width: 48px; height: 48px; color: #94a3b8; }
+
+.placeholder-icon {
+  width: 48px;
+  height: 48px;
+  color: #94a3b8;
+}
+
 .info-area {
   flex: 0 0 auto;
   width: 400px;
@@ -1312,6 +1641,7 @@ html, body, #app {
   border: 1px solid rgba(34, 211, 238, 0.2);
   overflow: hidden;
 }
+
 .info-list {
   width: 100%;
   height: 100%;
@@ -1319,6 +1649,7 @@ html, body, #app {
   flex-direction: column;
   overflow: hidden;
 }
+
 .info-header {
   display: grid;
   grid-template-columns: 1fr 0.8fr 1.2fr 1.5fr;
@@ -1332,14 +1663,27 @@ html, body, #app {
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
+
 .info-scroll {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
 }
-.info-scroll::-webkit-scrollbar { width: 4px; }
-.info-scroll::-webkit-scrollbar-track { background: #1e293b; border-radius: 4px; }
-.info-scroll::-webkit-scrollbar-thumb { background: #22d3ee; border-radius: 4px; }
+
+.info-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.info-scroll::-webkit-scrollbar-track {
+  background: #1e293b;
+  border-radius: 4px;
+}
+
+.info-scroll::-webkit-scrollbar-thumb {
+  background: #22d3ee;
+  border-radius: 4px;
+}
+
 .info-row {
   display: grid;
   grid-template-columns: 1fr 0.8fr 1.2fr 1.5fr;
@@ -1350,7 +1694,11 @@ html, body, #app {
   transition: background 0.2s;
   flex-shrink: 0;
 }
-.info-row:hover { background: rgba(34, 211, 238, 0.1); }
+
+.info-row:hover {
+  background: rgba(34, 211, 238, 0.1);
+}
+
 .row-item {
   white-space: nowrap;
   overflow: hidden;
@@ -1358,6 +1706,7 @@ html, body, #app {
   color: #e2e8f0;
   font-weight: 500;
 }
+
 .button-area {
   flex: 1;
   min-width: 0;
@@ -1365,6 +1714,7 @@ html, body, #app {
   align-items: center;
   justify-content: center;
 }
+
 .complete-btn {
   width: 100%;
   display: flex;
@@ -1385,19 +1735,32 @@ html, body, #app {
   min-height: 100px;
   min-width: 140px;
 }
+
 .complete-btn:hover:not(:disabled) {
   background: linear-gradient(135deg, #10b981, #059669);
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
 }
-.complete-btn:active:not(:disabled) { transform: translateY(1px); }
+
+.complete-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
 .complete-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
 }
-.complete-btn .btn-icon { font-size: 38px; }
-.complete-btn .btn-label { font-size: 18px; letter-spacing: 2px; font-weight: 700; }
+
+.complete-btn .btn-icon {
+  font-size: 38px;
+}
+
+.complete-btn .btn-label {
+  font-size: 18px;
+  letter-spacing: 2px;
+  font-weight: 700;
+}
 
 /* 加载状态 */
 .loading-mask {
@@ -1417,6 +1780,7 @@ html, body, #app {
   font-size: 1.2rem;
   gap: 16px;
 }
+
 .loading-spinner {
   width: 48px;
   height: 48px;
@@ -1425,7 +1789,13 @@ html, body, #app {
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .empty-state {
   text-align: center;
   color: #ffb347;
@@ -1454,9 +1824,11 @@ html, body, #app {
   z-index: 20000;
   animation: fadeIn 0.2s ease;
 }
+
 .modal-overlay.no-close {
   cursor: default;
 }
+
 .modal-container {
   background: linear-gradient(145deg, #1e2a32, #0f1a1f);
   border-radius: 32px;
@@ -1469,6 +1841,7 @@ html, body, #app {
   animation: slideUp 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
   overflow: hidden;
 }
+
 .modal-header {
   display: flex;
   justify-content: space-between;
@@ -1477,6 +1850,7 @@ html, body, #app {
   border-bottom: 1px solid rgba(34, 211, 238, 0.3);
   background: rgba(0, 0, 0, 0.3);
 }
+
 .modal-header h3 {
   margin: 0;
   font-size: 1.4rem;
@@ -1486,6 +1860,7 @@ html, body, #app {
   align-items: center;
   gap: 8px;
 }
+
 .close-btn {
   background: none;
   border: none;
@@ -1496,13 +1871,19 @@ html, body, #app {
   line-height: 1;
   padding: 0 8px;
 }
-.close-btn:hover { color: #f87171; transform: scale(1.1); }
+
+.close-btn:hover {
+  color: #f87171;
+  transform: scale(1.1);
+}
+
 .modal-body {
   flex: 1;
   overflow-y: auto;
   padding: 16px 20px;
   background: rgba(0, 0, 0, 0.2);
 }
+
 .modal-footer {
   padding: 16px 24px;
   display: flex;
@@ -1511,9 +1892,11 @@ html, body, #app {
   border-top: 1px solid rgba(34, 211, 238, 0.2);
   background: rgba(0, 0, 0, 0.3);
 }
+
 .modal-footer.single-button {
   justify-content: center;
 }
+
 .confirm-btn {
   background: linear-gradient(135deg, #10b981, #059669);
   border: none;
@@ -1526,11 +1909,13 @@ html, body, #app {
   transition: all 0.2s;
   box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
 }
+
 .confirm-btn:hover {
   transform: translateY(-2px);
   background: linear-gradient(135deg, #0fba7a, #048a5a);
   box-shadow: 0 6px 14px rgba(16, 185, 129, 0.4);
 }
+
 .cancel-btn {
   background: rgba(100, 116, 139, 0.8);
   border: none;
@@ -1542,6 +1927,7 @@ html, body, #app {
   cursor: pointer;
   transition: all 0.2s;
 }
+
 .cancel-btn:hover {
   background: rgba(71, 85, 105, 0.9);
   transform: translateY(-2px);
@@ -1551,15 +1937,20 @@ html, body, #app {
 .warning-modal .modal-container {
   border-left: 4px solid #f97316;
 }
-.warning-header h3 { color: #f97316; }
+
+.warning-header h3 {
+  color: #f97316;
+}
+
 .warning-tip {
   color: #facc15;
   margin-bottom: 16px;
   font-size: 0.9rem;
-  background: rgba(0,0,0,0.3);
+  background: rgba(0, 0, 0, 0.3);
   padding: 8px 12px;
   border-radius: 12px;
 }
+
 .unclosed-list .list-header {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1572,18 +1963,24 @@ html, body, #app {
   color: #f97316;
   margin-bottom: 8px;
 }
+
 .unclosed-list .list-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   padding: 8px 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   color: #e2e8f0;
 }
-.unclosed-list .list-row:hover { background: rgba(249, 115, 22, 0.1); }
+
+.unclosed-list .list-row:hover {
+  background: rgba(249, 115, 22, 0.1);
+}
+
 .warning-btn {
   background: linear-gradient(135deg, #f97316, #ea580c);
 }
+
 .warning-btn:hover {
   background: linear-gradient(135deg, #fb923c, #ea580c);
 }
@@ -1592,19 +1989,25 @@ html, body, #app {
 .info-modal .modal-container {
   border-left: 4px solid #22d3ee;
 }
-.info-header h3 { color: #22d3ee; }
+
+.info-header h3 {
+  color: #22d3ee;
+}
+
 .info-tip {
   color: #c2f0e0;
   margin-bottom: 16px;
   font-size: 1rem;
   text-align: center;
 }
+
 .countdown-text {
   text-align: center;
   font-size: 1.1rem;
   color: #facc15;
   margin-top: 16px;
 }
+
 .countdown-number {
   font-size: 1.6rem;
   font-weight: 800;
@@ -1616,25 +2019,43 @@ html, body, #app {
 .success-modal .modal-container {
   border-left: 4px solid #10b981;
 }
-.success-header h3 { color: #10b981; }
+
+.success-header h3 {
+  color: #10b981;
+}
+
 .success-tip {
   color: #a7f3d0;
   margin-bottom: 16px;
   font-size: 1rem;
   text-align: center;
 }
+
 .success-tip strong {
   color: #4ade80;
   font-size: 1.3rem;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
+
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* 响应式 */
@@ -1643,51 +2064,167 @@ html, body, #app {
     height: 50px;
     gap: 8px;
   }
+
   .title-icon {
     font-size: 22px;
   }
+
   .page-header h1 {
     font-size: 20px;
   }
+
   .upper-area {
     height: calc(100vh - 350px - 50px);
   }
-  .notification-container { top: 70px; right: 10px; max-width: 260px; }
-  .notification { font-size: 12px; padding: 8px 16px; }
-  .nav-btn-left, .nav-btn-right { padding: 8px 16px; }
-  .nav-btn-left .btn-text, .nav-btn-right .btn-text { display: none; }
-  .nav-btn-left .arrow, .nav-btn-right .arrow { font-size: 1.4rem; }
-  .bottom-container { gap: 10px; }
-  .info-header, .info-row { grid-template-columns: 1fr 0.7fr 1fr 1.3fr; gap: 8px; }
-  .header-item, .row-item { font-size: 10px; }
-  .complete-btn .btn-icon { font-size: 28px; }
-  .complete-btn .btn-label { font-size: 14px; }
-  .complete-btn { padding: 16px 12px; min-height: 80px; gap: 8px; }
-  .temp-card, .humidity-card { padding: 3px 10px; top: 4px; }
-  .card-icon { font-size: 14px; }
-  .card-value { font-size: 14px; min-width: 35px; }
-  .card-label { font-size: 9px; padding: 1px 4px; }
+
+  .notification-container {
+    top: 70px;
+    right: 10px;
+    max-width: 260px;
+  }
+
+  .notification {
+    font-size: 12px;
+    padding: 8px 16px;
+  }
+
+  .nav-btn-left,
+  .nav-btn-right {
+    padding: 8px 16px;
+  }
+
+  .nav-btn-left .btn-text,
+  .nav-btn-right .btn-text {
+    display: none;
+  }
+
+  .nav-btn-left .arrow,
+  .nav-btn-right .arrow {
+    font-size: 1.4rem;
+  }
+
+  .bottom-container {
+    gap: 10px;
+  }
+
+  .info-header,
+  .info-row {
+    grid-template-columns: 1fr 0.7fr 1fr 1.3fr;
+    gap: 8px;
+  }
+
+  .header-item,
+  .row-item {
+    font-size: 10px;
+  }
+
+  .complete-btn .btn-icon {
+    font-size: 28px;
+  }
+
+  .complete-btn .btn-label {
+    font-size: 14px;
+  }
+
+  .complete-btn {
+    padding: 16px 12px;
+    min-height: 80px;
+    gap: 8px;
+  }
+
+  .temp-card,
+  .humidity-card {
+    padding: 3px 10px;
+    top: 4px;
+  }
+
+  .card-icon {
+    font-size: 14px;
+  }
+
+  .card-value {
+    font-size: 14px;
+    min-width: 35px;
+  }
+
+  .card-label {
+    font-size: 9px;
+    padding: 1px 4px;
+  }
 }
+
 @media (max-width: 480px) {
   .page-header h1 {
     font-size: 18px;
   }
+
   .title-icon {
     font-size: 20px;
   }
-  .cabinet-item { width: 260px !important; }
-  .bottom-container { gap: 8px; }
-  .info-header, .info-row { grid-template-columns: 1fr 0.6fr 0.9fr 1.2fr; gap: 6px; }
-  .header-item, .row-item { font-size: 9px; }
-  .info-row { padding: 6px 4px; }
-  .complete-btn .btn-icon { font-size: 24px; }
-  .complete-btn .btn-label { font-size: 12px; }
-  .complete-btn { padding: 12px 8px; min-height: 70px; gap: 6px; }
-  .placeholder-icon { width: 24px; height: 24px; }
-  .photo-placeholder span { font-size: 9px; }
-  .temp-card, .humidity-card { padding: 2px 8px; gap: 4px; }
-  .card-icon { font-size: 12px; }
-  .card-value { font-size: 12px; min-width: 30px; }
-  .card-label { font-size: 8px; }
+
+  .cabinet-item {
+    width: 260px !important;
+  }
+
+  .bottom-container {
+    gap: 8px;
+  }
+
+  .info-header,
+  .info-row {
+    grid-template-columns: 1fr 0.6fr 0.9fr 1.2fr;
+    gap: 6px;
+  }
+
+  .header-item,
+  .row-item {
+    font-size: 9px;
+  }
+
+  .info-row {
+    padding: 6px 4px;
+  }
+
+  .complete-btn .btn-icon {
+    font-size: 24px;
+  }
+
+  .complete-btn .btn-label {
+    font-size: 12px;
+  }
+
+  .complete-btn {
+    padding: 12px 8px;
+    min-height: 70px;
+    gap: 6px;
+  }
+
+  .placeholder-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .photo-placeholder span {
+    font-size: 9px;
+  }
+
+  .temp-card,
+  .humidity-card {
+    padding: 2px 8px;
+    gap: 4px;
+  }
+
+  .card-icon {
+    font-size: 12px;
+  }
+
+  .card-value {
+    font-size: 12px;
+    min-width: 30px;
+  }
+
+  .card-label {
+    font-size: 8px;
+  }
 }
 </style>
