@@ -1,7 +1,6 @@
 package com.tairui.server.webSocket;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tairui.server.device.qianMingLock.QianMingLockDevice;
 import com.tairui.server.deviceService.QianMingLockDeviceServiceManager;
 import com.tairui.server.dto.CabinetFullDTO;
 import com.tairui.server.service.CabinetConfigService;

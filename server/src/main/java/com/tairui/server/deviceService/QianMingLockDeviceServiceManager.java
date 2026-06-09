@@ -19,6 +19,7 @@ import org.springframework.util.StringUtils;
 import jakarta.annotation.PostConstruct;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -251,6 +252,9 @@ public class QianMingLockDeviceServiceManager {
 
     /**
      * 查询指定格口号所在板子所有的格口号的储物状态
+     * @param cellConfigId
+     * @param timeout
+     * @return
      */
     public QianMingLockDevice.BoxGoodsData queryGoodsStatusSync(int cellConfigId, long timeout) {
         DeviceContext ctx = prepareDeviceContext(cellConfigId);
@@ -261,6 +265,35 @@ public class QianMingLockDeviceServiceManager {
         }
     }
 
+    /**
+     * 查询单个柜子所有有效格口的储物状态
+     * @param cabinetId 柜子id
+     * @param boxNos 有效格口号列表
+     * @param timeout 超时时间
+     * @return
+     * @throws Exception
+     */
+    public Map<Integer, Boolean> querySingleCabinetGoodsStatusSync(Integer cabinetId, List<Integer> boxNos, long timeout) throws Exception {
+
+        QianMingLockDeviceService deviceService = getDeviceServiceByCabinetId(cabinetId);
+
+        QianMingLockDevice.BoxGoodsData boxGoodsData = deviceService.queryGoodsStatusSync(boxNos.get(0), timeout);
+
+        Map<Integer, Boolean> result = new HashMap<>();
+
+        for (Integer boxNo : boxNos) {
+            result.put(boxNo, boxGoodsData.hasGoods(boxNo));
+        }
+
+        return result;
+    }
+
+    /**
+     * 查询单个格口储物状态
+     * @param cellConfigId 格口配置id
+     * @param timeout 超时时间
+     * @return
+     */
     public boolean querySingleGoodsStatusSync(int cellConfigId, long timeout) {
         CellConfig cellConfig = cellConfigMapper.selectById(cellConfigId);
         if (cellConfig == null) {
@@ -284,6 +317,7 @@ public class QianMingLockDeviceServiceManager {
             return true;
         }
     }
+
 
 
     /**
