@@ -1,5 +1,5 @@
 <template>
-    <div v-if="visible" class="dialog-overlay" @click="handleCancel">
+    <div v-if="visible" class="dialog-overlay">
         <div class="dialog-content" @click.stop>
             <div class="inventory-container">
                 <div class="inventory-header">
@@ -10,6 +10,10 @@
                             <span class="countdown-time">{{ countdown.secondsLeft.value }}</span>
                             <span class="countdown-text">秒后自动关闭弹窗</span>
                         </div>
+                        <!-- 右上角关闭按钮（X） -->
+                        <button class="close-btn" @click="handleConfirm" title="关闭">
+                            ✕
+                        </button>
                     </div>
                 </div>
 
@@ -42,28 +46,23 @@
                                         <td>{{ item.cellNumber || '-' }}</td>
                                         <td class="tool-name">{{ item.toolName || '-' }}</td>
                                         <td>
-                                            <span >
-                                                <span :class="getFromClass(item.status)">{{ getFromText(item.status) }}</span>
-                                                ->
-                                                <span :class="getToClass(item.status)">{{ getToText(item.status) }}</span>
+                                            <span>
+                                                <span :class="getFromClass(item.status)">{{ getFromText(item.status)
+                                                }}</span>
+                                                ➜
+                                                <span :class="getToClass(item.status)">{{ getToText(item.status)
+                                                }}</span>
                                             </span>
                                         </td>
                                         <td>{{ formatDateTime(item.lastOperationTime) }}</td>
                                     </tr>
                                     <tr v-if="inventoryList.length === 0">
-                                        <td colspan="5" class="empty-row" style="text-align: center;">暂无盘点数据</td>
+                                        <td colspan="5" class="empty-row" style="text-align: center;">暂无变化</td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
                         <div class="record-count" v-if="inventoryList.length > 0">共 {{ inventoryList.length }} 条记录</div>
-                    </div>
-
-                    <div class="bottom-actions">
-                     
-                        <button class="back-home-btn" @click="handleConfirm">
-                            <span>关闭</span>
-                        </button>
                     </div>
                 </div>
             </div>
@@ -74,7 +73,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch, withDefaults } from 'vue'
+import { ref, watch } from 'vue'
 import { useCountdown } from '@/composables/useCountdown'
 
 interface InventoryItem {
@@ -149,16 +148,6 @@ function formatDateTime(dateStr?: string): string {
     }
 }
 
-function getStatusText(status?: string): string {
-    if (status === '柜内' || status === 'returned') return '柜外->柜内'
-    return '柜内->柜外'
-}
-//领用归还颜色
-function getStatusClass(status?: string): string {
-    if (status === '柜内' || status === 'returned') return 'status-badge returned'
-    return 'status-badge borrowed'
-}
-
 function isToInside(status?: string) {
     return status === '柜内' || status === 'returned'
 }
@@ -195,7 +184,7 @@ async function fetchData() {
                 cabinetTitle: i.cabinetName,
                 cellNumber: i.cellNumber,
                 toolName: i.toolName,
-                    status: '柜外',
+                status: '柜外',
                 lastOperationTime: i.borrowTime,
             })),
             ...returnItems.map((i) => ({
@@ -203,7 +192,7 @@ async function fetchData() {
                 cabinetTitle: i.cabinetName,
                 cellNumber: i.cellNumber,
                 toolName: i.toolName,
-                    status: '柜内',
+                status: '柜内',
                 lastOperationTime: i.returnTime,
             })),
         ]
@@ -237,6 +226,37 @@ watch(() => props.visible, (v) => {
 })
 </script>
 <style lang="css" scoped>
+/* 右上角关闭按钮 */
+.close-btn {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: 12px;
+  flex-shrink: 0;
+}
+
+.close-btn:hover {
+  background: #ef4444;
+  color: white;
+  border-color: #ef4444;
+  transform: scale(1.1);
+}
+
+/* 确保 header-right 布局合理 */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .dialog-overlay {
     position: fixed;
     top: 0;
