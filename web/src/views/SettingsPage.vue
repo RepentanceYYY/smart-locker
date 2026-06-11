@@ -1,210 +1,205 @@
 <template>
   <div class="settings-container">
-    <div class="settings-header">
-      <button class="back-btn" @click="goBack">
-        <span class="back-icon">←</span>
-        <span>返回首页</span>
-      </button>
-      <h1 class="settings-title">📊 系统概览</h1>
-      <div class="countdown-display" v-if="countdown && countdown.secondsLeft.value > 0 && systemConfigStore.loaded">
-        <span class="countdown-icon">⏱️</span>
-        <span class="countdown-time">{{ formatCountdownTime(countdown.secondsLeft.value) }}</span>
-        <span class="countdown-text">后自动返回</span>
-      </div>
-      <div class="placeholder" v-else></div>
-    </div>
-
-    <div class="settings-content">
-      <!-- ========== 日志查询模块 ========== -->
-      <div class="info-card log-card" @click="handleUserOperation">
-        <div class="card-header">
-          <div class="header-left">
-            <span class="card-icon">📋</span>
-            <h3>日志查询</h3>
-          </div>
-          <button class="detail-btn" @click.stop="viewDetail('log')">查看详情 →</button>
+    <!-- 新增外框，与页面一样大，内部滚动 -->
+    <div class="outer-frame">
+      <div class="settings-header">
+        <button class="back-btn" @click="goBack">
+          <span class="back-icon">←</span>
+          <span>返回首页</span>
+        </button>
+        <h1 class="settings-title">📊 系统概览</h1>
+        <div class="countdown-display" v-if="countdown && countdown.secondsLeft.value > 0 && systemConfigStore.loaded">
+          <span class="countdown-icon">⏱️</span>
+          <span class="countdown-time">{{ formatCountdownTime(countdown.secondsLeft.value) }}</span>
+          <span class="countdown-text">后自动返回</span>
         </div>
-        <div class="stats-row">
-          <div class="stat-item">
-            <div class="stat-value">{{ logStats.total }}</div>
-            <div class="stat-label">日志总数</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value">{{ logStats.unreturnedCount }}</div>
-            <div class="stat-label">未归还数量</div>
-          </div>
-        </div>
-        <div class="section-title">📌 未归还记录</div>
-        <div class="unreturned-scroll-wrapper">
-          <div class="unreturned-table">
-            <div v-if="unreturnedList.length === 0" class="empty-tip">暂无未归还记录</div>
-            <div v-else>
-              <div class="table-header">
-                <span>柜子名称</span>
-                <span>格口号</span>
-                <span>工具</span>
-                <span>借用图片</span>
-                <span>借用时间</span>
-              </div>
-              <div v-for="(item, idx) in unreturnedList" :key="idx" class="table-row">
-                <span class="cell cabinet">{{ item.cabinetTitle || '-' }}</span>
-                <span class="cell cell-number">{{ item.cellNumber || '-' }}</span>
-                <span class="cell tool">{{ item.toolName || '-' }}</span>
-                <span class="cell photo">
-                  <img
-                      v-if="item.borrowerPhoto"
-                      :src="item.borrowerPhoto"
-                      class="borrow-photo"
-                      @click.stop="previewImage(item.borrowerPhoto)"
-                      @error="handleImageError"
-                      alt="借用图片"
-                  />
-                  <span v-else class="no-photo">无图片</span>
-                </span>
-                <span class="cell time">{{ item.borrowTime || '-' }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <div class="placeholder" v-else></div>
       </div>
 
-      <!-- ========== 硬件设置模块 ========== -->
-      <div class="info-card hardware-card" @click="handleUserOperation">
-        <div class="card-header">
-          <div class="header-left">
-            <span class="card-icon">🖥️</span>
-            <h3>硬件设置</h3>
+      <div class="settings-content">
+        <!-- 日志查询模块 -->
+        <div class="info-card log-card" @click="handleUserOperation">
+          <div class="card-header">
+            <div class="header-left">
+              <span class="card-icon">📋</span>
+              <h3>日志查询</h3>
+            </div>
+            <button class="detail-btn" @click.stop="viewDetail('log')">查看详情 →</button>
           </div>
-          <button class="detail-btn" @click.stop="viewDetail('hardware')">查看详情 →</button>
-        </div>
-        <div v-if="hardwareLoading" class="loading-placeholder">
-          <span class="loading-spinner"></span>
-          <span>加载硬件配置中...</span>
-        </div>
-        <div v-else-if="hardwareError" class="error-placeholder">
-          <span>⚠️ 加载失败：{{ hardwareError }}</span>
-          <button class="retry-btn" @click.stop="fetchHardwareData">重试</button>
-        </div>
-        <template v-else>
-          <div class="stats-row three-cols">
+          <div class="stats-row">
             <div class="stat-item">
-              <div class="stat-value">{{ hardwareInfo.cabinetCount }}</div>
-              <div class="stat-label">柜子数量</div>
+              <div class="stat-value">{{ logStats.total }}</div>
+              <div class="stat-label">日志总数</div>
             </div>
             <div class="stat-item">
-              <div class="stat-value">{{ hardwareInfo.totalSlots }}</div>
-              <div class="stat-label">总格口数</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-value">{{ hardwareInfo.emptySlots }}</div>
-              <div class="stat-label">空位数量</div>
+              <div class="stat-value">{{ logStats.unreturnedCount }}</div>
+              <div class="stat-label">未归还数量</div>
             </div>
           </div>
-          <div class="info-row">
-            <span class="info-key">已用格口：</span>
-            <span class="info-value">{{ hardwareInfo.usedSlots }}</span>
-            <span class="info-key">占用率：</span>
-            <span class="info-value">{{ hardwareInfo.usageRate }}%</span>
-          </div>
-        </template>
-      </div>
-
-      <!-- ========== 温湿度日志查询模块 ========== -->
-      <div class="info-card temp-card" @click="handleUserOperation">
-        <div class="card-header">
-          <div class="header-left">
-            <span class="card-icon">🌡️</span>
-            <h3>温湿度日志</h3>
-          </div>
-          <button class="detail-btn" @click.stop="viewDetail('tempHumidity')">查看详情 →</button>
-        </div>
-        <div v-if="tempHumidityLoading" class="loading-placeholder">
-          <span class="loading-spinner"></span>
-          <span>加载温湿度记录中...</span>
-        </div>
-        <div v-else-if="tempHumidityError" class="error-placeholder">
-          <span>⚠️ 加载失败：{{ tempHumidityError }}</span>
-          <button class="retry-btn" @click.stop="fetchTempHumidityLogs">重试</button>
-        </div>
-        <div v-else>
-          <div class="section-title">📊 最近记录</div>
-          <div class="temp-table-wrapper">
-            <div v-if="recentTempLogs.length === 0" class="empty-tip">
-              暂无温湿度记录
-            </div>
-            <div v-else>
-              <!-- 表头：4列 -->
-              <div class="table-header temp-header">
-                <span>柜子名称</span>
-                <span>温度 (°C)</span>
-                <span>湿度 (%)</span>
-                <span>记录时间</span>
+          <div class="section-title">📌 未归还记录</div>
+          <div class="unreturned-scroll-wrapper">
+            <div class="unreturned-table">
+              <div v-if="unreturnedList.length === 0" class="empty-tip">暂无未归还记录</div>
+              <div v-else>
+                <div class="table-header">
+                  <span>柜子名称</span>
+                  <span>格口号</span>
+                  <span>工具</span>
+                  <span>借用图片</span>
+                  <span>借用时间</span>
+                </div>
+                <div v-for="(item, idx) in unreturnedList" :key="idx" class="table-row">
+                  <span class="cell cabinet">{{ item.cabinetTitle || '-' }}</span>
+                  <span class="cell cell-number">{{ item.cellNumber || '-' }}</span>
+                  <span class="cell tool">{{ item.toolName || '-' }}</span>
+                  <span class="cell photo">
+                    <img
+                        v-if="item.borrowerPhoto"
+                        :src="item.borrowerPhoto"
+                        class="borrow-photo"
+                        @click.stop="previewImage(item.borrowerPhoto)"
+                        @error="handleImageError"
+                        alt="借用图片"
+                    />
+                    <span v-else class="no-photo">无图片</span>
+                  </span>
+                  <span class="cell time">{{ item.borrowTime || '-' }}</span>
+                </div>
               </div>
-              <!-- 数据行：顺序与表头一致 -->
-              <div
-                  v-for="(log, idx) in recentTempLogs"
-                  :key="log.id || idx"
-                  class="table-row temp-row"
-              >
-                <span class="cell cabinet-name">{{ log.cabinetTitle || '-' }}</span>
-                <span
-                    class="cell temp-value"
-                    :class="{ warning: log.temperature > 40 || log.temperature < 0 }"
+            </div>
+          </div>
+        </div>
+
+        <!-- 硬件设置模块 -->
+        <div class="info-card hardware-card" @click="handleUserOperation">
+          <div class="card-header">
+            <div class="header-left">
+              <span class="card-icon">🖥️</span>
+              <h3>硬件设置</h3>
+            </div>
+            <button class="detail-btn" @click.stop="viewDetail('hardware')">查看详情 →</button>
+          </div>
+          <div v-if="hardwareLoading" class="loading-placeholder">
+            <span class="loading-spinner"></span>
+            <span>加载硬件配置中...</span>
+          </div>
+          <div v-else-if="hardwareError" class="error-placeholder">
+            <span>⚠️ 加载失败：{{ hardwareError }}</span>
+            <button class="retry-btn" @click.stop="fetchHardwareData">重试</button>
+          </div>
+          <template v-else>
+            <div class="stats-row three-cols">
+              <div class="stat-item">
+                <div class="stat-value">{{ hardwareInfo.cabinetCount }}</div>
+                <div class="stat-label">柜子数量</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">{{ hardwareInfo.totalSlots }}</div>
+                <div class="stat-label">总格口数</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">{{ hardwareInfo.emptySlots }}</div>
+                <div class="stat-label">空位数量</div>
+              </div>
+            </div>
+            <div class="info-row">
+              <span class="info-key">已用格口：</span>
+              <span class="info-value">{{ hardwareInfo.usedSlots }}</span>
+              <span class="info-key">占用率：</span>
+              <span class="info-value">{{ hardwareInfo.usageRate }}%</span>
+            </div>
+          </template>
+        </div>
+
+        <!-- 温湿度日志查询模块 -->
+        <div class="info-card temp-card" @click="handleUserOperation">
+          <div class="card-header">
+            <div class="header-left">
+              <span class="card-icon">🌡️</span>
+              <h3>温湿度日志</h3>
+            </div>
+            <button class="detail-btn" @click.stop="viewDetail('tempHumidity')">查看详情 →</button>
+          </div>
+          <div v-if="tempHumidityLoading" class="loading-placeholder">
+            <span class="loading-spinner"></span>
+            <span>加载温湿度记录中...</span>
+          </div>
+          <div v-else-if="tempHumidityError" class="error-placeholder">
+            <span>⚠️ 加载失败：{{ tempHumidityError }}</span>
+            <button class="retry-btn" @click.stop="fetchTempHumidityLogsData">重试</button>
+          </div>
+          <div v-else>
+            <div class="section-title">📊 最近记录</div>
+            <div class="temp-table-wrapper">
+              <div v-if="recentTempLogs.length === 0" class="empty-tip">
+                暂无温湿度记录
+              </div>
+              <div v-else>
+                <div class="table-header temp-header">
+                  <span>柜子名称</span>
+                  <span>温度 (°C)</span>
+                  <span>湿度 (%)</span>
+                  <span>记录时间</span>
+                </div>
+                <div
+                    v-for="(log, idx) in recentTempLogs"
+                    :key="idx"
+                    class="table-row temp-row"
                 >
-          {{ formatTemperature(log.temperature) }}
-        </span>
-                <span
-                    class="cell humidity-value"
-                    :class="{ warning: log.humidity > 80 || log.humidity < 20 }"
-                >
-          {{ formatHumidity(log.humidity) }}
-        </span>
-                <span class="cell time">{{ formatDateTime(log.recordTime) }}</span>
+                  <span class="cell cabinet-name">{{ log.cabinetTitle || '-' }}</span>
+                  <span class="cell cell-number">
+                    {{ log.temperature }}
+                  </span>
+                  <span class="cell cell-number">
+                    {{ log.humidity }}
+                  </span>
+                  <span class="cell time">{{ log.recordTime }}</span>
+                </div>
               </div>
             </div>
-          </div>
-          <div
-              class="config-footer-tip"
-              v-if="systemConfigStore.config.tempHumidityLogInterval"
-          >
-            <span>📌 记录间隔：{{ systemConfigStore.config.tempHumidityLogInterval }} 分钟</span>
+            <div
+                class="config-footer-tip"
+                v-if="systemConfigStore.config.tempHumidityLogInterval"
+            >
+              <span>📌 记录间隔：{{ systemConfigStore.config.tempHumidityLogInterval }} 分钟</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- ========== 系统配置模块 ========== -->
-      <div class="info-card system-card" @click="handleUserOperation">
-        <div class="card-header">
-          <div class="header-left">
-            <span class="card-icon">⚙️</span>
-            <h3>系统配置</h3>
+        <!-- 系统配置模块 -->
+        <div class="info-card system-card" @click="handleUserOperation">
+          <div class="card-header">
+            <div class="header-left">
+              <span class="card-icon">⚙️</span>
+              <h3>系统配置</h3>
+            </div>
+            <button class="reset-btn" @click.stop="openResetModal">恢复出厂设置</button>
           </div>
-          <button class="reset-btn" @click.stop="openResetModal">恢复出厂设置</button>
-        </div>
-        <div v-if="systemConfigStore.loading" class="loading-placeholder">
-          <span class="loading-spinner"></span>
-          <span>加载系统配置中...</span>
-        </div>
-        <div v-else>
-          <div class="config-grid">
-            <div class="config-item" v-for="field in configFields" :key="field.key">
-              <div class="config-label">{{ field.label }}</div>
-              <div class="config-value-group">
-                <span class="config-value" :class="{ 'password-mask': field.key === 'adminPwd' }">
-                  {{ formatDisplayValue(field.key) }}
-                </span>
-                <button class="edit-icon" @click.stop="openEditModal(field.key, field.label)" title="编辑">✏️</button>
+          <div v-if="systemConfigStore.loading" class="loading-placeholder">
+            <span class="loading-spinner"></span>
+            <span>加载系统配置中...</span>
+          </div>
+          <div v-else>
+            <div class="config-grid">
+              <div class="config-item" v-for="field in configFields" :key="field.key">
+                <div class="config-label">{{ field.label }}</div>
+                <div class="config-value-group">
+                  <span class="config-value" :class="{ 'password-mask': field.key === 'adminPwd' }">
+                    {{ formatDisplayValue(field.key) }}
+                  </span>
+                  <button class="edit-icon" @click.stop="openEditModal(field.key, field.label)" title="编辑">✏️</button>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="config-footer-tip">
-            <span>💡 提示：点击 ✏️ 图标修改配置，所有修改将自动保存</span>
+            <div class="config-footer-tip">
+              <span>💡 提示：点击 ✏️ 图标修改配置，所有修改将自动保存</span>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ========== 编辑配置模态框 ========== -->
+    <!-- 编辑配置模态框 -->
     <div v-if="editModalVisible" class="modal-mask" @click.self="closeEditModal">
       <div class="modal-container">
         <div class="modal-header">
@@ -271,7 +266,7 @@
       </div>
     </div>
 
-    <!-- ========== 恢复出厂设置确认模态框 ========== -->
+    <!-- 恢复出厂设置确认模态框 -->
     <div v-if="resetModalVisible" class="modal-mask" @click.self="closeResetModal">
       <div class="modal-container reset-modal">
         <div class="modal-header warning-header">
@@ -321,40 +316,11 @@ import { fetchLogOverview, type UnreturnedItem } from '@/api/log'
 import { fetchCabinetList } from '@/api/cabinet'
 import type { SystemConfig } from '@/api/system'
 import { useCountdown } from '@/composables/useCountdown'
-
-// ---------- 温湿度日志类型定义 ----------
-interface TempHumidityLog {
-  id: number
-  recordTime: string
-  temperature: number
-  humidity: number
-}
-
-// ---------- 模拟获取温湿度日志 API（实际使用时替换为真实接口） ----------
-async function fetchTempHumidityLogsFromApi(): Promise<TempHumidityLog[]> {
-  // TODO: 替换为真实的 API 请求，例如：
-  // const response = await fetch('/api/temp-humidity/logs?limit=10')
-  // if (!response.ok) throw new Error('Failed to fetch')
-  // return response.json()
-
-  // 模拟数据（生产环境请删除）
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const mockLogs: TempHumidityLog[] = Array.from({ length: 12 }, (_, i) => ({
-        id: i,
-        recordTime: new Date(Date.now() - i * 3600000).toISOString(),
-        temperature: +(15 + Math.random() * 25).toFixed(1),
-        humidity: +(30 + Math.random() * 50).toFixed(0)
-      }))
-      resolve(mockLogs)
-    }, 500)
-  })
-}
+import { fetchTempHumidityLogs, type TempHumidityLog } from '@/api/tempHumidity'
 
 const router = useRouter()
 const systemConfigStore = useSystemConfigStore()
 
-// ==================== 倒计时功能 ====================
 const countdown = useCountdown({
   onTimeout: () => {
     console.log('倒计时结束，返回首页')
@@ -375,7 +341,7 @@ function formatCountdownTime(seconds: number): string {
   return `${seconds}秒`
 }
 
-// ==================== 日志数据 ====================
+// 日志数据
 const logStats = ref({ total: 0, unreturnedCount: 0 })
 const unreturnedList = ref<UnreturnedItem[]>([])
 
@@ -389,18 +355,6 @@ function handleImageError(e: Event) {
     span.innerText = '图片加载失败'
     parent.appendChild(span)
   }
-}
-
-// 温度格式化
-function formatTemperature(value: number | undefined | null): string {
-  if (value === undefined || value === null || isNaN(value)) return '--'
-  return value.toFixed(1)
-}
-
-// 湿度格式化（取整数）
-function formatHumidity(value: number | undefined | null): string {
-  if (value === undefined || value === null || isNaN(value)) return '--'
-  return Math.round(value).toString()
 }
 
 async function fetchLogData() {
@@ -420,20 +374,10 @@ async function fetchLogData() {
   }
 }
 
-// ==================== 硬件数据 ====================
-interface CellItem {
-  id: number
-  type: string
-  isEmpty?: boolean
-}
-interface CabinetRow {
-  cells: CellItem[]
-}
-interface CabinetFromAPI {
-  id: number
-  title: string
-  rows: CabinetRow[]
-}
+// 硬件数据
+interface CellItem { id: number; type: string; isEmpty?: boolean }
+interface CabinetRow { cells: CellItem[] }
+interface CabinetFromAPI { id: number; title: string; rows: CabinetRow[] }
 
 const hardwareLoading = ref(true)
 const hardwareError = ref('')
@@ -486,44 +430,30 @@ async function fetchHardwareData() {
   }
 }
 
-// ==================== 温湿度日志数据 ====================
+// 温湿度日志数据
 const tempHumidityLoading = ref(false)
 const tempHumidityError = ref('')
 const recentTempLogs = ref<TempHumidityLog[]>([])
 const tempHumidityStats = ref({ total: 0, latestTemp: '--', latestHumidity: '--' })
 
-async function fetchTempHumidityLogs() {
+async function fetchTempHumidityLogsData() {
   tempHumidityLoading.value = true
   tempHumidityError.value = ''
   try {
-    const logs = await fetchTempHumidityLogsFromApi()
-    // 按时间倒序，取最近5条展示
-    const sorted = [...logs].sort((a, b) => new Date(b.recordTime).getTime() - new Date(a.recordTime).getTime())
-    recentTempLogs.value = sorted.slice(0, 5)
+    const logs = await fetchTempHumidityLogs(5)
+    recentTempLogs.value = logs
     tempHumidityStats.value.total = logs.length
-    if (sorted.length > 0) {
-      tempHumidityStats.value.latestTemp = sorted[0].temperature.toFixed(1)
-      tempHumidityStats.value.latestHumidity = sorted[0].humidity.toFixed(0)
-    } else {
-      tempHumidityStats.value.latestTemp = '--'
-      tempHumidityStats.value.latestHumidity = '--'
-    }
   } catch (error) {
     console.error('获取温湿度日志失败:', error)
     tempHumidityError.value = '加载温湿度记录失败，请稍后重试'
     showMessage('温湿度数据加载失败')
+    recentTempLogs.value = []
   } finally {
     tempHumidityLoading.value = false
   }
 }
 
-function formatDateTime(isoString: string): string {
-  if (!isoString) return '-'
-  const date = new Date(isoString)
-  return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
-}
-
-// ==================== 系统配置（使用 Pinia Store） ====================
+// 系统配置
 const configFields = [
   { key: 'systemName', label: '系统名称' },
   { key: 'engName', label: '英文名称' },
@@ -565,7 +495,7 @@ function formatDisplayValue(key: keyof SystemConfig): string {
   return val as string
 }
 
-// ==================== 编辑配置模态框 ====================
+// 编辑配置模态框
 const editModalVisible = ref(false)
 const editField = ref<keyof SystemConfig | ''>('')
 const editLabel = ref('')
@@ -653,7 +583,6 @@ async function confirmEdit() {
         return
       }
       await systemConfigStore.updateConfigField('autoReturnTimeoutMinutes', newTimeout)
-      // 倒计时配置变化后，重启倒计时（如果有需要）
       countdown.restart?.()
     } else if (field === 'tempHumidityLogInterval') {
       const newInterval = Number(editTempValue.value)
@@ -662,8 +591,7 @@ async function confirmEdit() {
         return
       }
       await systemConfigStore.updateConfigField('tempHumidityLogInterval', newInterval)
-      // 间隔变化后刷新温湿度日志显示
-      fetchTempHumidityLogs()
+      fetchTempHumidityLogsData()
     } else if (field === 'engName') {
       const newVal = (editTempValue.value as string).trim()
       if (newVal === '') {
@@ -696,7 +624,7 @@ function closeEditModal() {
   passwordVisible.value = false
 }
 
-// ==================== 恢复出厂设置 ====================
+// 恢复出厂设置
 const resetModalVisible = ref(false)
 const resetInputValue = ref('')
 const resetErrorMsg = ref('')
@@ -741,7 +669,7 @@ async function confirmReset() {
   }
 }
 
-// ==================== 图片预览 ====================
+// 图片预览
 const previewVisible = ref(false)
 const previewUrl = ref('')
 
@@ -752,7 +680,7 @@ function previewImage(url: string) {
   }
 }
 
-// ==================== 页面跳转 ====================
+// 页面跳转
 function viewDetail(module: string) {
   handleUserOperation()
   if (module === 'log') {
@@ -766,7 +694,7 @@ function viewDetail(module: string) {
   }
 }
 
-// ==================== Toast 提示 ====================
+// Toast
 const showToast = ref(false)
 const toastText = ref('')
 let toastTimer: ReturnType<typeof setTimeout> | null = null
@@ -784,11 +712,10 @@ function goBack() {
   router.push('/')
 }
 
-// ==================== 生命周期 ====================
 onMounted(() => {
   fetchLogData()
   fetchHardwareData()
-  fetchTempHumidityLogs()
+  fetchTempHumidityLogsData()
   if (!systemConfigStore.loaded && !systemConfigStore.loading) {
     systemConfigStore.loadConfig()
   }
@@ -796,13 +723,47 @@ onMounted(() => {
 </script>
 
 <style lang="css" scoped>
-/* 整体容器 */
+/* 整体容器：固定全屏，禁止外层滚动 */
 .settings-container {
-  min-height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: radial-gradient(circle at 20% 30%, #0a1a1f, #051016);
   padding: 20px;
-  overflow-y: auto;
+  overflow: hidden;
 }
+
+/* 新增外框：占满容器，内部滚动，带边框和圆角 */
+.outer-frame {
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 25, 35, 0.6);
+  backdrop-filter: blur(8px);
+  border: 2px solid rgba(34, 211, 238, 0.4);
+  border-radius: 32px;
+  box-shadow: 0 0 30px rgba(34, 211, 238, 0.1), inset 0 0 20px rgba(34, 211, 238, 0.05);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 24px;
+  box-sizing: border-box;
+  scrollbar-width: thin;
+}
+
+/* 外框滚动条样式 */
+.outer-frame::-webkit-scrollbar {
+  width: 6px;
+}
+.outer-frame::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+.outer-frame::-webkit-scrollbar-thumb {
+  background: #22d3ee;
+  border-radius: 4px;
+}
+
 .settings-header {
   display: flex;
   align-items: center;
@@ -1380,7 +1341,7 @@ onMounted(() => {
 .temp-header,
 .temp-row {
   display: grid;
-  grid-template-columns: 1.5fr 0.8fr 0.8fr 1.5fr;  /* 柜名 | 温度 | 湿度 | 时间 */
+  grid-template-columns: 1.5fr 0.8fr 0.8fr 1.5fr;
   gap: 12px;
   padding: 10px 16px;
   align-items: center;
@@ -1412,27 +1373,12 @@ onMounted(() => {
   font-weight: bold;
 }
 
-/* 滚动条 */
-.settings-container::-webkit-scrollbar,
-.unreturned-scroll-wrapper::-webkit-scrollbar,
-.temp-table-wrapper::-webkit-scrollbar {
-  width: 5px;
-}
-.settings-container::-webkit-scrollbar-track,
-.unreturned-scroll-wrapper::-webkit-scrollbar-track,
-.temp-table-wrapper::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 4px;
-}
-.settings-container::-webkit-scrollbar-thumb,
-.unreturned-scroll-wrapper::-webkit-scrollbar-thumb,
-.temp-table-wrapper::-webkit-scrollbar-thumb {
-  background: #22d3ee;
-  border-radius: 4px;
-}
-
+/* 内嵌滚动条（未归还列表和温湿度表格）已在上方定义 */
 /* 响应式 */
 @media (max-width: 900px) {
+  .outer-frame {
+    padding: 15px 20px;
+  }
   .table-header, .table-row {
     grid-template-columns: 1fr 0.5fr 1fr 0.7fr 1.2fr;
     gap: 8px;
@@ -1447,7 +1393,9 @@ onMounted(() => {
   .temp-header, .temp-row { grid-template-columns: 1.5fr 0.8fr 0.8fr; gap: 8px; }
 }
 @media (max-width: 700px) {
-  .settings-container { padding: 15px; }
+  .outer-frame {
+    padding: 12px 16px;
+  }
   .settings-title { font-size: 20px; }
   .placeholder { width: 60px; }
   .stats-row { gap: 12px; }

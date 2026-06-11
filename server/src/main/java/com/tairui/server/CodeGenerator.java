@@ -8,8 +8,9 @@ import com.baomidou.mybatisplus.generator.engine.VelocityTemplateEngine;
 
 import java.util.Collections;
 
-/*
 
+
+/*
 public class CodeGenerator {
     public static void main(String[] args) {
         FastAutoGenerator.create("jdbc:mysql://localhost:3306/grid_cabinet_db?useSSL=false&serverTimezone=Asia/Shanghai",
@@ -36,7 +37,7 @@ public class CodeGenerator {
                 })
                 // 策略配置（增加 serviceBuilder）
                 .strategyConfig(builder -> {
-                    builder.addInclude("system_config")
+                    builder.addInclude("th_history")
                             // Entity 策略
                             .entityBuilder()
                             .enableLombok()

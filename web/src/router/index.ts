@@ -36,6 +36,11 @@ const routes: Array<RouteRecordRaw> = [
         path: '/hardware-detail',
         name: 'HardwareDetail',
         component: () => import('@/views/HardwareDetail.vue')
+    },
+    {
+        path: '/temp-humidity-detail',
+        name: 'tempHumidity',
+        component: () => import('@/views/TempHumidityDetail.vue')
     }
 ]
 
