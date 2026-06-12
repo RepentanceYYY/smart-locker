@@ -78,6 +78,7 @@ public class SystemConfigServiceImpl extends ServiceImpl<SystemConfigMapper, Sys
         config.setBorrowPeriod("7");
         config.setAutoReturnTimeoutMinutes(5);
         config.setTempHumidityLogInterval(5);
+        config.setEnableFaceCapture(0);
         return config;
     }
 

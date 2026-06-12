@@ -20,4 +20,6 @@ public class SystemConfigDTO {
     private Integer autoReturnTimeoutMinutes;
 
     private Integer tempHumidityLogInterval;
+
+    private Integer enableFaceCapture;
 }
