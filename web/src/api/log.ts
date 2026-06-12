@@ -1,5 +1,5 @@
 // api/log.ts
-import axios from 'axios'
+import request from '@/utils/request'
 
 /**
  * 日志概览数据结构
@@ -43,7 +43,7 @@ export interface LogListDTO {
  */
 export async function fetchLogOverview(): Promise<LogOverviewData> {
     try {
-        const response = await axios.get('/api/log/overview')
+        const response = await request.get('/api/log/overview')
         let rawData = response.data
 
         // 处理可能的数据包装格式（兼容 {code, data} 或直接返回 data）
@@ -85,7 +85,7 @@ export async function fetchAllLogList(params: {
     endTime?: string
 } = {}): Promise<LogListDTO[]> {
     try {
-        const response = await axios.get('/api/log/listAll', { params })
+        const response = await request.get('/api/log/listAll', { params })
         let rawData = response.data
 
         if (rawData && typeof rawData === 'object' && 'data' in rawData) {

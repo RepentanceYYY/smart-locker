@@ -1,12 +1,12 @@
 // api/cabinet.ts
-import axios from 'axios'
+import request from '@/utils/request'
 
 /**
  * 获取柜子配置列表
  * @returns {Promise<any[]>} 返回柜子配置数组
  */
-export function fetchCabinetList() {
-    return axios.get('/api/cabinet/list').then(response => {
+export const fetchCabinetList = async (): Promise<any[]> => {
+    return await request.get('/api/cabinet/list').then(response => {
         let rawData = response.data
 
         // 处理可能的数据包装格式
@@ -30,20 +30,20 @@ export function fetchCabinetList() {
  * @param data 柜子配置数据
  * @returns {Promise<any>}
  */
-export function updateCabinet(id: number, data: any) {
-    return axios.put(`/api/cabinet/${id}`, data).then(response => response.data)
+export const updateCabinet = async (id: number, data: any): Promise<any> => {
+    return await request.put(`/api/cabinet/${id}`, data).then(response => response.data)
 }
 
 /**
  * 创建柜子
  */
-export function createCabinet(data: any) {
-    return axios.post('/api/cabinet', data).then(response => response.data)
+export const createCabinet = async (data: any) => {
+    return await request.post('/api/cabinet', data).then(response => response.data)
 }
 
 /**
  * 删除柜子
  */
-export function deleteCabinet(id: number) {
-    return axios.delete(`/api/cabinet/${id}`).then(response => response.data)
+export const deleteCabinet = async (id: number) => {
+    return request.delete(`/api/cabinet/${id}`).then(response => response.data)
 }

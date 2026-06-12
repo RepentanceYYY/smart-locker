@@ -65,6 +65,10 @@ public class DeviceCore {
         }
     }
 
+    public CommDispatcher getCommDispatcher() {
+        return this.commDispatcher;
+    }
+
     public final Charset getCharset() {
         return this.commDispatcher.getCharset();
     }
@@ -513,6 +517,7 @@ public class DeviceCore {
     /**
      * 强校验
      * 如果是多设备共享通信调度层，必须重写该方法，通过(拨码器地址)等设备唯一ID进行匹配
+     *
      * @param writeBytes 写入
      * @param readBytes  读取
      * @return
@@ -525,6 +530,7 @@ public class DeviceCore {
     /**
      * 接收到设备主动上报数据时
      * 如果是多设备共享通信调度层，必须重写该方法，通过(拨码器地址)等设备唯一ID进行匹配
+     *
      * @param readBytes 读取到的设备完整协议帧数据
      */
     public void onDeviceReported(byte[] readBytes) {

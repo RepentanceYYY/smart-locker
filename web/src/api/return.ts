@@ -1,4 +1,4 @@
-import axios from 'axios'
+import request from '@/utils/request'
 
 export interface ReturnItem {
     cabinetId: number
@@ -17,7 +17,7 @@ export interface SubmitReturnParams {
     photoFile?: File            // 可选属性
 }
 
-export async function submitReturnRecords(params: SubmitReturnParams) {
+export const submitReturnRecords = async (params: SubmitReturnParams) => {
     const formData = new FormData()
     // 将 JSON 数据转为字符串
     formData.append('data', JSON.stringify({
@@ -30,7 +30,7 @@ export async function submitReturnRecords(params: SubmitReturnParams) {
         formData.append('photo', params.photoFile, 'return_photo.jpg')
     }
 
-    const response = await axios.post('/api/return/records', formData, {
+    const response = await request.post('/api/return/records', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
     })
     return response.data

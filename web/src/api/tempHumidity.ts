@@ -1,5 +1,4 @@
-// api/tempHumidity.ts
-import axios from 'axios'
+import request from '@/utils/request'
 
 /**
  * 温湿度日志数据结构
@@ -18,7 +17,7 @@ export interface TempHumidityLog {
  */
 export async function fetchTempHumidityLogs(limit: number = 5): Promise<TempHumidityLog[]> {
     try {
-        const response = await axios.get('/api/tempHumidity/logs', {
+        const response = await request.get('/api/tempHumidity/logs', {
             params: { limit }
         })
 
@@ -44,7 +43,7 @@ export async function fetchTempHumidityLogs(limit: number = 5): Promise<TempHumi
 
 export async function searchTempHumidityLogs(params: Record<string, any>): Promise<TempHumidityLog[]> {
     try {
-        const response = await axios.get('/api/tempHumidity/logs/search', { params })
+        const response = await request.get('/api/tempHumidity/logs/search', { params })
         let rawData = response.data
         if (rawData && typeof rawData === 'object' && 'data' in rawData) {
             rawData = rawData.data

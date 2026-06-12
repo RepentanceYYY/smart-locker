@@ -590,7 +590,7 @@
             </div>
           </div>
 
-          <div class="form-row form-row--two-columns">
+          <!-- <div class="form-row form-row--two-columns">
             <div class="form-field" :class="{ 'form-row--error': cabinetErrors.temperatureMin }">
               <label class="form-label"><span class="label-icon">🌡️</span>温度下限 (℃)<span class="required-star">*</span></label>
               <input type="number" v-model.number="cabinetEditForm.temperatureMin" class="form-input" placeholder="-30~50" step="1" />
@@ -601,7 +601,7 @@
               <input type="number" v-model.number="cabinetEditForm.temperatureMax" class="form-input" placeholder="-30~50" step="1" />
               <div v-if="cabinetErrors.temperatureMax" class="form-error">{{ cabinetErrors.temperatureMax }}</div>
             </div>
-          </div>
+          </div> -->
         </div>
         <div class="dialog-footer dialog-footer--editable">
           <button

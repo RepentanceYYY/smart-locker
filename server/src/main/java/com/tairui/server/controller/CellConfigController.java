@@ -28,7 +28,7 @@ public class CellConfigController {
      * 图片单独上传接口
      */
     @PostMapping("/uploadImage")
-    public Result<String> uploadImage(@RequestParam("file") MultipartFile file) {
+    public Result uploadImage(@RequestParam("file") MultipartFile file) {
         // 参数校验（Controller 层职责）
         if (file.isEmpty()) {
             return Result.error("文件不能为空");
@@ -53,7 +53,7 @@ public class CellConfigController {
      * 更新格口配置（含图片单元格）
      */
     @PutMapping("/update")
-    public Result<?> updateCell(@Valid @RequestBody CellConfigUpdateDTO dto) {
+    public Result updateCell(@Valid @RequestBody CellConfigUpdateDTO dto) {
         cellConfigService.updateCell(dto);
         return Result.success();
     }
@@ -62,7 +62,7 @@ public class CellConfigController {
      * 新增格口配置
      */
     @PostMapping("/add")
-    public Result<?> addCell(@Valid @RequestBody CellConfigUpdateDTO dto) {
+    public Result addCell(@Valid @RequestBody CellConfigUpdateDTO dto) {
         cellConfigService.addCell(dto);
         return Result.success();
     }
@@ -71,7 +71,7 @@ public class CellConfigController {
      * 删除格口配置（根据ID）
      */
     @DeleteMapping("/delete/{id}")
-    public Result<?> deleteCell(@PathVariable Integer id) {
+    public Result deleteCell(@PathVariable Integer id) {
         cellConfigService.deleteCell(id);
         return Result.success();
     }

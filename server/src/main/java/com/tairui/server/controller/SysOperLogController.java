@@ -2,6 +2,7 @@
 package com.tairui.server.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tairui.server.common.Result;
 import com.tairui.server.dto.BorrowRecordSubmitDTO;
 import com.tairui.server.dto.LogListDTO;
 import com.tairui.server.dto.LogOverviewDTO;
@@ -25,44 +26,34 @@ public class SysOperLogController {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @PostMapping(value = "/borrow/records", consumes = "multipart/form-data")
-    public Map<String, Object> submitBorrowRecords(
+    public Result submitBorrowRecords(
             @RequestPart("data") String dataJson,
             @RequestPart(value = "photo", required = false) MultipartFile photoFile) throws Exception {
 
         BorrowRecordSubmitDTO dto = objectMapper.readValue(dataJson, BorrowRecordSubmitDTO.class);
         sysOperLogService.saveBorrowRecordsWithPhoto(dto, photoFile);
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", 200);
-        result.put("message", "success");
-        return result;
+        return Result.success();
     }
 
     @PostMapping(value = "/return/records", consumes = "multipart/form-data")
-    public Map<String, Object> submitReturnRecords(
+    public Result submitReturnRecords(
             @RequestPart("data") String dataJson,
             @RequestPart(value = "photo", required = false) MultipartFile photoFile) throws Exception {
 
         ReturnRecordSubmitDTO dto = objectMapper.readValue(dataJson, ReturnRecordSubmitDTO.class);
         sysOperLogService.saveReturnRecordsWithPhoto(dto, photoFile);
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", 200);
-        result.put("message", "success");
-        return result;
+        return Result.success();
     }
+
     @GetMapping("/log/overview")
-    public Map<String, Object> getLogOverview() {
+    public Result getLogOverview() {
         LogOverviewDTO data = sysOperLogService.getLogOverview();
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", 200);
-        result.put("message", "success");
-        result.put("data", data);
-        return result;
+        return Result.success(data);
     }
 
     @GetMapping("/log/listAll")
-    public Map<String, Object> getAllLogList(
+    public Result getAllLogList(
             @RequestParam(required = false) String borrowerName,
             @RequestParam(required = false) String toolName,
             @RequestParam(required = false) Integer status,
@@ -70,11 +61,7 @@ public class SysOperLogController {
             @RequestParam(required = false) String endTime
     ) {
         List<LogListDTO> data = sysOperLogService.getAllLogList(borrowerName, toolName, status, startTime, endTime);
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", 200);
-        result.put("message", "success");
-        result.put("data", data);
-        return result;
+        return Result.success(data);
     }
 
 }

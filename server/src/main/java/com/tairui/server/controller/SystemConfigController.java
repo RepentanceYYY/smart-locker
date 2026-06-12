@@ -1,5 +1,6 @@
 package com.tairui.server.controller;
 
+import com.tairui.server.common.Result;
 import com.tairui.server.dto.SystemConfigDTO;
 import com.tairui.server.service.SystemConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,17 +23,19 @@ public class SystemConfigController {
     private SystemConfigService systemConfigService;
 
     @GetMapping
-    public SystemConfigDTO getConfig() {
-        return systemConfigService.getConfig();
+    public Result getConfig() {
+        return Result.success(systemConfigService.getConfig());
     }
 
     @PutMapping
-    public void updateConfig(@RequestBody SystemConfigDTO dto) {
+    public Result updateConfig(@RequestBody SystemConfigDTO dto) {
         systemConfigService.updateConfig(dto);
+        return Result.success();
     }
 
     @PostMapping("/reset")
-    public void resetConfig() {
+    public Result resetConfig() {
         systemConfigService.resetConfig();
+        return Result.success();
     }
 }

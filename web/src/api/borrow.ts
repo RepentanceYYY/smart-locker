@@ -1,5 +1,5 @@
 // src/api/borrow.ts
-import axios from 'axios'
+import request from '@/utils/request'
 
 export interface BorrowItem {
     cabinetId: number
@@ -24,7 +24,7 @@ export interface SubmitBorrowParams {
  * @param data 领用数据 + 照片文件
  * @returns Promise<any>
  */
-export async function submitBorrowRecords(data: SubmitBorrowParams) {
+export const submitBorrowRecords = async (data: SubmitBorrowParams) => {
     try {
         const formData = new FormData()
         // 将 JSON 数据转为字符串放入 formData
@@ -40,7 +40,7 @@ export async function submitBorrowRecords(data: SubmitBorrowParams) {
             formData.append('photo', data.photoFile, 'borrow_photo.jpg')
         }
 
-        const response = await axios.post('/api/borrow/records', formData, {
+        const response = await request.post('/api/borrow/records', formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         })
         return response.data

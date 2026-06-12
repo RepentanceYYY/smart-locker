@@ -20,35 +20,26 @@ public class CabinetConfigController {
     private CabinetConfigService cabinetConfigService;
 
     @GetMapping("/list")
-    public List<CabinetFullDTO> getCabinetList() {
-        return cabinetConfigService.getFullConfigList();
+    public Result getCabinetList() {
+        return Result.success(cabinetConfigService.getFullConfigList());
     }
 
     @PutMapping("/{id}")
-    public Map<String, Object> updateCabinet(@PathVariable Integer id, @RequestBody CabinetUpdateDTO updateDTO) {
+    public Result updateCabinet(@PathVariable Integer id, @RequestBody CabinetUpdateDTO updateDTO) {
         cabinetConfigService.updateCabinet(id, updateDTO);
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", 200);
-        result.put("message", "更新成功");
-        return result;
+        return Result.success(200, "更新成功", null);
     }
 
     // 新增：创建柜子
     @PostMapping
-    public Map<String, Object> createCabinet(@RequestBody CabinetUpdateDTO createDTO) {
+    public Result createCabinet(@RequestBody CabinetUpdateDTO createDTO) {
         cabinetConfigService.createCabinet(createDTO);
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", 200);
-        result.put("message", "创建成功");
-        return result;
+        return Result.success(200, "创建成功", null);
     }
 
     @DeleteMapping("/{id}")
-    public Map<String, Object> deleteCabinet(@PathVariable Integer id) {
+    public Result deleteCabinet(@PathVariable Integer id) {
         cabinetConfigService.deleteCabinet(id);
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", 200);
-        result.put("message", "删除成功");
-        return result;
+        return Result.success(200, "删除成功", null);
     }
 }

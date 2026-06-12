@@ -1,5 +1,5 @@
 // api/cell.ts
-import axios from 'axios'
+import request from '@/utils/request'
 
 // ================== DTO 定义 ==================
 // 更新格口配置的请求体（对应后端 CellConfig 实体）
@@ -28,7 +28,7 @@ export interface UpdateCellDTO {
  * @param data 格口配置 DTO
  */
 export const updateCellConfig = (data: UpdateCellDTO) => {
-    return axios.put('/api/cellConfig/update', data)
+    return request.put('/api/cellConfig/update', data)
 }
 
 
@@ -37,7 +37,7 @@ export const updateCellConfig = (data: UpdateCellDTO) => {
  * @param data 新增格口 DTO
  */
 export const addCellConfig = (data: UpdateCellDTO) => {
-    return axios.post('/api/cellConfig/add', data)
+    return request.post('/api/cellConfig/add', data)
 }
 
 /**
@@ -48,7 +48,7 @@ export const addCellConfig = (data: UpdateCellDTO) => {
 export const uploadImage = (file: File) => {
     const formData = new FormData()
     formData.append('file', file)
-    return axios.post<{ code: number; data: string; message: string }>(
+    return request.post<{ code: number; data: string; message: string }>(
         '/api/cellConfig/uploadImage',
         formData,
         {
@@ -62,5 +62,5 @@ export const uploadImage = (file: File) => {
  * @param id 格口配置ID
  */
 export const deleteCellConfig = (id: number) => {
-    return axios.delete(`/api/cellConfig/delete/${id}`)
+    return request.delete(`/api/cellConfig/delete/${id}`)
 }
