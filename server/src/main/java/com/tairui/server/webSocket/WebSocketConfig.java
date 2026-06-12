@@ -13,18 +13,21 @@ public class WebSocketConfig implements WebSocketConfigurer {
     private final ReturnWebSocketHandler returnWebSocketHandler;
     private final BorrowWebSocketHandler borrowWebSocketHandler;
     private final InventoryWebSocketHandler inventoryWebSocketHandler;
+    private final DehumidifierWebSocketHandler dehumidifierWebSocketHandler;
 
-    public WebSocketConfig(ReturnWebSocketHandler returnWebSocketHandler, BorrowWebSocketHandler borrowWebSocketHandler, InventoryWebSocketHandler inventoryWebSocketHandler) {
+    public WebSocketConfig(ReturnWebSocketHandler returnWebSocketHandler, BorrowWebSocketHandler borrowWebSocketHandler, InventoryWebSocketHandler inventoryWebSocketHandler, DehumidifierWebSocketHandler dehumidifierWebSocketHandler) {
         this.returnWebSocketHandler = returnWebSocketHandler;
         this.borrowWebSocketHandler = borrowWebSocketHandler;
         this.inventoryWebSocketHandler = inventoryWebSocketHandler;
+        this.dehumidifierWebSocketHandler = dehumidifierWebSocketHandler;
     }
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(returnWebSocketHandler, "/ws/return")
-                .addHandler(borrowWebSocketHandler,"/ws/borrow")
-                .addHandler(inventoryWebSocketHandler,"/ws/inventory")
+                .addHandler(borrowWebSocketHandler, "/ws/borrow")
+                .addHandler(inventoryWebSocketHandler, "/ws/inventory")
+                .addHandler(dehumidifierWebSocketHandler, "/ws/dehumidifier")
                 .setAllowedOrigins("*");
     }
 }

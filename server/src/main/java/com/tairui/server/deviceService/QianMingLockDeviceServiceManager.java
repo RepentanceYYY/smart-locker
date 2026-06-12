@@ -49,21 +49,21 @@ public class QianMingLockDeviceServiceManager {
     public void init() {
         List<CabinetConfig> cabinetConfigs = cabinetConfigMapper.selectList(null);
         if (cabinetConfigs.isEmpty()) {
-            log.warn("暂无柜子配置数据，跳过初始化");
+            log.warn("暂无柜子配置数据，跳过锁板初始化");
             return;
         }
         for (CabinetConfig cabinetConfig : cabinetConfigs) {
             try {
                 String commPort = cabinetConfig.getLockCommPort();
                 if (!StringUtils.hasText(cabinetConfig.getLockCommType())) {
-                    throw new RuntimeException(cabinetConfig.getTitle() + "通信类型未配置");
+                    throw new RuntimeException(cabinetConfig.getTitle() + "锁板通信类型未配置");
                 }
                 if (!StringUtils.hasText(commPort)) {
-                    throw new RuntimeException(cabinetConfig.getTitle() + "通信地址未配置");
+                    throw new RuntimeException(cabinetConfig.getTitle() + "锁板通信地址未配置");
                 }
 
                 if (qianmingLockDeviceServiceMap.containsKey(commPort)) {
-                    log.info("{} 的通信地址 {} 已被其他柜子初始化，共享同一连接。", cabinetConfig.getTitle(), commPort);
+                    log.info("{} 锁板的通信地址 {} 已被其他柜子初始化，共享同一连接。", cabinetConfig.getTitle(), commPort);
                     continue;
                 }
 
@@ -71,7 +71,7 @@ public class QianMingLockDeviceServiceManager {
                 this.createDeviceServiceByCabinetConfig(cabinetConfig);
 
             } catch (Exception e) {
-                log.error("初始化柜子 [{}] 失败: {}", cabinetConfig.getTitle(), e.getMessage());
+                log.error("初始化柜子锁板 [{}] 失败: {}", cabinetConfig.getTitle(), e.getMessage());
             }
         }
     }
@@ -151,15 +151,15 @@ public class QianMingLockDeviceServiceManager {
         dispatcher.addDevice(qianMingLockDeviceService);
         qianMingLockDeviceService.setSimulationMode(simulationMode);
 
-        log.info("硬件控制器初始化完成，真实模式，通讯方式: {}，地址: {}", cabinetConfig.getLockCommType(), commPort);
+        log.info("锁板硬件控制器初始化完成，真实模式，通讯方式: {}，地址: {}", cabinetConfig.getLockCommType(), commPort);
         try {
             qianMingLockDeviceService.open();
-            log.info("{}使用的 {} 打开连接成功", cabinetConfig.getTitle(), commPort);
+            log.info("{}锁板使用的 {} 打开连接成功", cabinetConfig.getTitle(), commPort);
 
             qianmingLockDeviceServiceMap.put(commPort, qianMingLockDeviceService);
 
         } catch (IOException e) {
-            log.error("{}使用的 {} 打开连接失败，原因:{}", cabinetConfig.getTitle(), commPort, e.getMessage());
+            log.error("{}锁板使用的 {} 打开连接失败，原因:{}", cabinetConfig.getTitle(), commPort, e.getMessage());
         }
         return qianMingLockDeviceService;
     }
@@ -192,7 +192,7 @@ public class QianMingLockDeviceServiceManager {
             try {
                 remove.close();
             } catch (Exception e) {
-                throw new RuntimeException("关闭设备连接失败", e);
+                throw new RuntimeException("关闭锁板设备连接失败", e);
             }
         }
     }
