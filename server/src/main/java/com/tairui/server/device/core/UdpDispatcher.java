@@ -1,49 +1,52 @@
 package com.tairui.server.device.core;
 
-import com.fazecast.jSerialComm.SerialPort;
-import com.tairui.server.device.channel.SerialChannel;
+import com.tairui.server.device.channel.UdpChannel;
 import com.tairui.server.device.model.Task;
 
 import java.io.IOException;
+import java.net.DatagramPacket;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 
-public class SerialDispatcher extends CommDispatcher {
-    public SerialDispatcher(SerialChannel serialChannel) {
-        this.serialChannel = serialChannel;
-        this.serialChannel.receiveEvent = this::channelReceiveEvent;
+public class UdpDispatcher extends CommDispatcher {
+    public UdpDispatcher(UdpChannel udpChannel) {
+        this.udpChannel = udpChannel;
+        this.udpChannel.receiveEvent = this::channelReceiveEvent;
     }
 
-    private SerialChannel serialChannel;
+    /**
+     * Udp 通道
+     */
+    private UdpChannel udpChannel;
 
     @Override
     public String getConnectionId() {
-        return this.serialChannel.getConnectionId();
+        return this.udpChannel.getConnectionId();
     }
 
     @Override
     public boolean isOpen() {
-        return this.serialChannel.getIsOpen();
+        return this.udpChannel.getIsOpen();
     }
 
     @Override
     public void open() throws IOException {
-        this.serialChannel.open();
+        this.udpChannel.open();
     }
 
     @Override
     public void close() throws IOException {
-        this.serialChannel.close();
+        this.udpChannel.close();
     }
 
     @Override
     public void write(Task task) throws IOException {
-        this.serialChannel.send(task.getWriteBytes());
+        this.udpChannel.send(task.getWriteBytes());
     }
 
     @Override
     public Charset getCharset() {
-        return this.serialChannel.charset;
+        return this.udpChannel.charset;
     }
 
     /**
@@ -52,7 +55,7 @@ public class SerialDispatcher extends CommDispatcher {
      * @param readBytes
      * @param length
      */
-    private void channelReceiveEvent(SerialPort source, byte[] readBytes, int length) {
+    private void channelReceiveEvent(DatagramPacket source, byte[] readBytes, int length) {
         byte[] data = Arrays.copyOf(readBytes, length);
         receive(data);
     }

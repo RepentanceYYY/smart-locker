@@ -17,7 +17,6 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
 public class DeviceCore {
-    public static DeviceCore instance = new DeviceCore();
 
     /**
      * 通信调度器
@@ -36,14 +35,29 @@ public class DeviceCore {
      */
     private final Object bufferLock = new Object();
 
-    public long getWriteIntervalTime() {
+    /**
+     * 获取写入时间间隔
+     *
+     * @return
+     */
+    public final long getWriteIntervalTime() {
         return writeIntervalTime;
     }
 
+    /**
+     * 设置写入时间间隔(ms)
+     *
+     * @param writeIntervalTime
+     */
     public void setWriteIntervalTime(long writeIntervalTime) {
         this.writeIntervalTime = writeIntervalTime;
     }
 
+    /**
+     * 设置通信调度器
+     *
+     * @param commDispatcher
+     */
     public void setCommDispatcher(CommDispatcher commDispatcher) {
         this.commDispatcher = commDispatcher;
         if (this.commDispatcher != null) {
@@ -51,12 +65,8 @@ public class DeviceCore {
         }
     }
 
-    public Charset getCharset() {
+    public final Charset getCharset() {
         return this.commDispatcher.getCharset();
-    }
-
-    public void setTimeout(int timeout) {
-        commDispatcher.responseTimeout = Math.max(timeout, commDispatcher.responseTimeout);
     }
 
     @FunctionalInterface
@@ -101,7 +111,7 @@ public class DeviceCore {
      * @param retryCount   重试次数
      * @param dataReceived 接收到响应的回调
      */
-    public void write(DispatchMode dispatchMode, byte[] writeBytes, int priority, int retryCount, BiConsumer<byte[], byte[]> dataReceived) {
+    public final void write(DispatchMode dispatchMode, byte[] writeBytes, int priority, int retryCount, BiConsumer<byte[], byte[]> dataReceived) {
         this.commDispatcher.write(dispatchMode, writeBytes, priority, retryCount, dataReceived);
     }
 
@@ -112,7 +122,7 @@ public class DeviceCore {
      * @param writeBytes
      * @param dataReceived 接收到响应的回调
      */
-    public void write(byte[] writeBytes, BiConsumer<byte[], byte[]> dataReceived) {
+    public final void write(byte[] writeBytes, BiConsumer<byte[], byte[]> dataReceived) {
         this.commDispatcher.write(DispatchMode.SEQUENTIAL, writeBytes, 10, 0, dataReceived);
     }
 
@@ -122,7 +132,7 @@ public class DeviceCore {
      *
      * @param writeBytes
      */
-    public void write(byte[] writeBytes) {
+    public final void write(byte[] writeBytes) {
         this.commDispatcher.write(DispatchMode.SEQUENTIAL, writeBytes, 10, 0, this::callback);
     }
 
@@ -133,7 +143,7 @@ public class DeviceCore {
      * @param writeBytes
      * @param timeout
      */
-    public void write(byte[] writeBytes, long timeout) {
+    public final void write(byte[] writeBytes, long timeout) {
         this.commDispatcher.write(DispatchMode.SEQUENTIAL, writeBytes, 10, 0, timeout, this::callback);
     }
 
@@ -145,52 +155,59 @@ public class DeviceCore {
      * @param timeout
      * @param dataReceived 回调
      */
-    public void write(byte[] writeBytes, long timeout, BiConsumer<byte[], byte[]> dataReceived) {
+    public final void write(byte[] writeBytes, long timeout, BiConsumer<byte[], byte[]> dataReceived) {
         this.commDispatcher.write(DispatchMode.SEQUENTIAL, writeBytes, 10, 0, timeout, dataReceived);
     }
 
     /**
      * 写入数据
      *
-     * @param writeASCII
+     * @param writeBytes   写入的byte数组
+     * @param retryCount   重试次数
+     * @param timeout      单条命令超时时间
+     * @param dataReceived 业务处理回调函数
      */
-    public void write(String writeASCII) {
-        System.out.println("写入ASCII:" + writeASCII);
-        byte[] bytes = writeASCII.getBytes(this.commDispatcher.getCharset());
-        this.write(bytes);
-    }
-
-    public void write(String writeASCII, long timeout) {
-        byte[] bytes = writeASCII.getBytes(this.commDispatcher.getCharset());
-        this.write(bytes, timeout);
-    }
-
-    public void write(String writeASCII, int retryCount, long timeout) {
-        byte[] writeBytes = writeASCII.getBytes(this.commDispatcher.getCharset());
-        this.commDispatcher.write(DispatchMode.SEQUENTIAL, writeBytes, 10, retryCount, timeout, this::callback);
-    }
-
-    public void write(String writeASCII, long timeout, BiConsumer<byte[], byte[]> dataReceived) {
-        byte[] writeBytes = writeASCII.getBytes(this.commDispatcher.getCharset());
-        this.commDispatcher.write(DispatchMode.SEQUENTIAL, writeBytes, 10, 0, timeout, dataReceived);
-    }
-
-    public void write(String writeASCII, BiConsumer<byte[], byte[]> dataReceived) {
-        byte[] writeBytes = writeASCII.getBytes(this.commDispatcher.getCharset());
-        this.commDispatcher.write(DispatchMode.SEQUENTIAL, writeBytes, 10, 0, dataReceived);
-    }
-
-    public void write(String writeASCII, int retryCount, long timeout, BiConsumer<byte[], byte[]> dataReceived) {
-        byte[] writeBytes = writeASCII.getBytes(this.commDispatcher.getCharset());
-        this.commDispatcher.write(DispatchMode.SEQUENTIAL, writeBytes, 10, retryCount, timeout, dataReceived);
-    }
-
-    public void write(byte[] writeBytes, int retryCount, long timeout, BiConsumer<byte[], byte[]> dataReceived) {
+    public final void write(byte[] writeBytes, int retryCount, long timeout, BiConsumer<byte[], byte[]> dataReceived) {
         this.commDispatcher.write(DispatchMode.SEQUENTIAL, writeBytes, 10, retryCount, timeout, dataReceived);
     }
 
     /**
-     * 写入
+     * 写入ASCII码数据
+     *
+     * @param writeASCII
+     */
+    public final void write(String writeASCII) {
+        byte[] bytes = writeASCII.getBytes(this.commDispatcher.getCharset());
+        this.write(bytes);
+    }
+
+    public final void write(String writeASCII, long timeout) {
+        byte[] bytes = writeASCII.getBytes(this.commDispatcher.getCharset());
+        this.write(bytes, timeout);
+    }
+
+    public final void write(String writeASCII, int retryCount, long timeout) {
+        byte[] writeBytes = writeASCII.getBytes(this.commDispatcher.getCharset());
+        this.commDispatcher.write(DispatchMode.SEQUENTIAL, writeBytes, 10, retryCount, timeout, this::callback);
+    }
+
+    public final void write(String writeASCII, long timeout, BiConsumer<byte[], byte[]> dataReceived) {
+        byte[] writeBytes = writeASCII.getBytes(this.commDispatcher.getCharset());
+        this.commDispatcher.write(DispatchMode.SEQUENTIAL, writeBytes, 10, 0, timeout, dataReceived);
+    }
+
+    public final void write(String writeASCII, BiConsumer<byte[], byte[]> dataReceived) {
+        byte[] writeBytes = writeASCII.getBytes(this.commDispatcher.getCharset());
+        this.commDispatcher.write(DispatchMode.SEQUENTIAL, writeBytes, 10, 0, dataReceived);
+    }
+
+    public final void write(String writeASCII, int retryCount, long timeout, BiConsumer<byte[], byte[]> dataReceived) {
+        byte[] writeBytes = writeASCII.getBytes(this.commDispatcher.getCharset());
+        this.commDispatcher.write(DispatchMode.SEQUENTIAL, writeBytes, 10, retryCount, timeout, dataReceived);
+    }
+
+    /**
+     * 写入ascii码字符串
      *
      * @param writeASCII
      * @param dispatchMode 队列策略
@@ -199,23 +216,94 @@ public class DeviceCore {
      * @param timeout      超时时间
      * @param dataReceived 回调业务解析函数
      */
-    public void write(String writeASCII, DispatchMode dispatchMode, int priority, int retryCount, long timeout, BiConsumer<byte[], byte[]> dataReceived) {
+    public final void write(String writeASCII, DispatchMode dispatchMode, int priority, int retryCount, long timeout, BiConsumer<byte[], byte[]> dataReceived) {
         byte[] writeBytes = writeASCII.getBytes(this.commDispatcher.getCharset());
         this.commDispatcher.write(dispatchMode, writeBytes, priority, retryCount, timeout, dataReceived);
     }
 
     /**
-     * 同步写入
+     * 同步写入byte数组
      *
-     * @param frameASCII
-     * @param retryCount
-     * @param timeout 超时时间
-     * @param parser 业务处理回调函数
+     * @param frame      写入的byte数组
+     * @param retryCount 重试次数
+     * @param timeout    超时时间
+     * @param parser     业务处理回调函数
      * @param <T>
      * @return
      * @throws Exception
      */
-    public <T> T writeSync(String frameASCII, int retryCount, long timeout, BiFunction<byte[], byte[], T> parser) throws Exception {
+    public final <T> T writeSync(byte[] frame, int retryCount, long timeout, BiFunction<byte[], byte[], T> parser) throws Exception {
+        CompletableFuture<T> future = new CompletableFuture<>();
+
+        // 创建一个复合包装器
+        CommCallbackWrapper callbackWrapper = new CommCallbackWrapper() {
+            private byte[] lastRead;
+            private byte[] lastWrite;
+
+            @Override
+            public void accept(byte[] readBytes, byte[] writeBytes) {
+                this.lastRead = readBytes;
+                this.lastWrite = writeBytes;
+
+                // 执行业务解析
+                T result = parser.apply(readBytes, writeBytes);
+
+                // 如果业务层返回 null（表示数据非法需要重试），主动抛出异常驱动重试
+                if (result == null) {
+                    throw new RuntimeException("业务处理校验结果返回 null");
+                }
+
+                // 如果解析成功且无异常，立刻使 Future 完结！让主线程无需等待，直接返回
+                future.complete(result);
+            }
+
+            @Override
+            public void notifyFinalResult(boolean success, Exception lastException) {
+                // 当所有的重试轮次全部结束（或者彻底失败）时，CommDispatcher 会调用这个方法
+                if (!success) {
+                    // 如果彻底失败了，把最后一次记录的异常注入到 future 中，唤醒主线程
+                    future.completeExceptionally(lastException != null ? lastException : new RuntimeException("未知通信错误"));
+                } else {
+                    // 安全兜底：确保 future 判定成功
+                    if (!future.isDone()) {
+                        try {
+                            T result = parser.apply(lastRead, lastWrite);
+                            future.complete(result);
+                        } catch (Exception e) {
+                            future.completeExceptionally(e);
+                        }
+                    }
+                }
+            }
+        };
+
+        // 依然调用底层的 write 压入队列
+        this.write(frame, retryCount, timeout, callbackWrapper);
+
+        try {
+            // 主线程等待时间：(重试次数 + 1) * 单次超时 + 退避累加时间 + 缓冲
+            long maxWaitTime = (retryCount + 1) * timeout + (retryCount * 100) + 500;
+            return future.get(maxWaitTime, TimeUnit.MILLISECONDS);
+        } catch (ExecutionException e) {
+            if (e.getCause() != null && e.getCause() instanceof Exception) {
+                throw (Exception) e.getCause(); // 抛出最后一次的真实异常给调用者
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * 同步写入ascii码字符串
+     *
+     * @param frameASCII 写入的ascii码字符串
+     * @param retryCount 重试次数
+     * @param timeout    超时时间
+     * @param parser     业务处理回调函数
+     * @param <T>
+     * @return
+     * @throws Exception
+     */
+    public final <T> T writeSync(String frameASCII, int retryCount, long timeout, BiFunction<byte[], byte[], T> parser) throws Exception {
         CompletableFuture<T> future = new CompletableFuture<>();
 
         // 创建一个复合包装器
@@ -278,77 +366,6 @@ public class DeviceCore {
     /**
      * 同步写入
      *
-     * @param frame
-     * @param retryCount
-     * @param timeout 超时时间
-     * @param parser 业务处理回调函数
-     * @param <T>
-     * @return
-     * @throws Exception
-     */
-    public <T> T writeSync(byte[]frame, int retryCount, long timeout, BiFunction<byte[], byte[], T> parser) throws Exception {
-        CompletableFuture<T> future = new CompletableFuture<>();
-
-        // 创建一个复合包装器
-        CommCallbackWrapper callbackWrapper = new CommCallbackWrapper() {
-            private byte[] lastRead;
-            private byte[] lastWrite;
-
-            @Override
-            public void accept(byte[] readBytes, byte[] writeBytes) {
-                this.lastRead = readBytes;
-                this.lastWrite = writeBytes;
-
-                // 执行业务解析
-                T result = parser.apply(readBytes, writeBytes);
-
-                // 如果业务层返回 null（表示数据非法需要重试），主动抛出异常驱动重试
-                if (result == null) {
-                    throw new RuntimeException("业务校验未通过（数据包不完整或格式错误），触发退避重试");
-                }
-
-                // 如果解析成功且无异常，立刻使 Future 完结！让主线程无需等待，直接返回
-                future.complete(result);
-            }
-
-            @Override
-            public void notifyFinalResult(boolean success, Exception lastException) {
-                // 当所有的重试轮次全部结束（或者彻底失败）时，CommDispatcher 会调用这个方法
-                if (!success) {
-                    // 如果彻底失败了，把最后一次记录的异常注入到 future 中，唤醒主线程
-                    future.completeExceptionally(lastException != null ? lastException : new RuntimeException("未知通信错误"));
-                } else {
-                    // 安全兜底：确保 future 判定成功
-                    if (!future.isDone()) {
-                        try {
-                            T result = parser.apply(lastRead, lastWrite);
-                            future.complete(result);
-                        } catch (Exception e) {
-                            future.completeExceptionally(e);
-                        }
-                    }
-                }
-            }
-        };
-
-        // 依然调用底层的 write 压入队列
-        this.write(frame, retryCount, timeout, callbackWrapper);
-
-        try {
-            // 主线程等待时间：(重试次数 + 1) * 单次超时 + 退避累加时间 + 缓冲
-            long maxWaitTime = (retryCount + 1) * timeout + (retryCount * 100) + 500;
-            return future.get(maxWaitTime, TimeUnit.MILLISECONDS);
-        } catch (ExecutionException e) {
-            if (e.getCause() != null && e.getCause() instanceof Exception) {
-                throw (Exception) e.getCause(); // 抛出最后一次的真实异常给调用者
-            }
-            throw e;
-        }
-    }
-
-    /**
-     * 同步写入
-     *
      * @param frameASCII   写入的ascii字符串
      * @param dispatchMode 队列策略
      * @param priority     优先级
@@ -359,7 +376,7 @@ public class DeviceCore {
      * @return
      * @throws Exception
      */
-    public <T> T writeSync(String frameASCII, DispatchMode dispatchMode, int priority, int retryCount, long timeout, BiFunction<byte[], byte[], T> parser) throws Exception {
+    public final <T> T writeSync(String frameASCII, DispatchMode dispatchMode, int priority, int retryCount, long timeout, BiFunction<byte[], byte[], T> parser) throws Exception {
         CompletableFuture<T> future = new CompletableFuture<>();
 
         // 创建一个复合包装器
@@ -425,12 +442,15 @@ public class DeviceCore {
      * @param rawBytes
      */
     public final void onRawDataReceived(byte[] rawBytes) {
-        List<byte[]> completeFrames = new ArrayList<>();
+
+        List<byte[]> completeFrames;
 
         synchronized (bufferLock) {
             // 灌入缓冲区
             try {
                 receiveBuffer.write(rawBytes);
+                byte[] tmpData = receiveBuffer.toByteArray();
+                System.out.println("[收到设备原始数据 | 当前缓冲区全量数据]：" + HexUtils.bytesToHexString(tmpData));
             } catch (IOException ignored) {
             }
 
@@ -438,7 +458,7 @@ public class DeviceCore {
             completeFrames = splitFrames(receiveBuffer);
         }
 
-        // 3. 跨出锁区，把解析出来的完整帧逐个抛给调度层认领
+        // 跨出锁区，把解析出来的完整帧逐个抛给调度层认领
         if (this.commDispatcher != null && !completeFrames.isEmpty()) {
             for (byte[] frame : completeFrames) {
                 this.commDispatcher.handleCompleteFrame(frame);
@@ -446,6 +466,16 @@ public class DeviceCore {
         }
     }
 
+    /**
+     * 从缓冲区中拆分出完整的协议帧。
+     * <p>
+     * 默认实现为简单处理：将当前缓冲区内的所有数据整体作为一个数据帧提取，并清空缓冲区。
+     * 子类可重写此方法以实现具体的粘包、断包和拆包逻辑（如基于固定长度、特殊帧尾或长度域）。
+     * </p>
+     *
+     * @param buffer 待拆分的字节缓冲区
+     * @return 拆分出的数据帧列表，若缓冲区无数据则返回空列表
+     */
     protected List<byte[]> splitFrames(ByteArrayOutputStream buffer) {
         List<byte[]> frames = new ArrayList<>();
         if (buffer.size() == 0) return frames;
@@ -459,7 +489,7 @@ public class DeviceCore {
         return frames;
     }
 
-    public void clearReceiveBuffer() {
+    public final void clearReceiveBuffer() {
         synchronized (bufferLock) {
             receiveBuffer.reset();
         }
@@ -468,11 +498,12 @@ public class DeviceCore {
 
     /**
      * 基础校验
+     * 验证这串数据是不是一个合法的
      *
      * @param readBytes
      * @return
      */
-    public boolean validate(byte[] readBytes) {
+    protected boolean validate(byte[] readBytes) {
         if (readBytes == null || readBytes.length < 1) {
             return false;
         }
@@ -481,23 +512,22 @@ public class DeviceCore {
 
     /**
      * 强校验
-     *
+     * 如果是多设备共享通信调度层，必须重写该方法，通过(拨码器地址)等设备唯一ID进行匹配
      * @param writeBytes 写入
      * @param readBytes  读取
      * @return
      */
-    public boolean isMatch(byte[] writeBytes, byte[] readBytes) {
+    protected boolean isMatch(byte[] writeBytes, byte[] readBytes) {
         if (readBytes == null || readBytes.length < 1) return false;
         return validate(readBytes);
     }
 
     /**
-     * 接收到设备发过来的数据时调用此方法
-     *
-     * @param readBytes  读取到的设备数据
-     * @param writeBytes 写入到设备的数据
+     * 接收到设备主动上报数据时
+     * 如果是多设备共享通信调度层，必须重写该方法，通过(拨码器地址)等设备唯一ID进行匹配
+     * @param readBytes 读取到的设备完整协议帧数据
      */
-    public void onDeviceReported(byte[] readBytes, byte[] writeBytes) {
+    public void onDeviceReported(byte[] readBytes) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
         String now = LocalDateTime.now().format(formatter);
 

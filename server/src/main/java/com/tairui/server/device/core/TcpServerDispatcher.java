@@ -20,8 +20,8 @@ public class TcpServerDispatcher extends CommDispatcher {
     private TcpServerChannel tcpServerChannel;
 
     @Override
-    public String getName() {
-        return null;
+    public String getConnectionId() {
+        return this.getConnectionId();
     }
 
     @Override

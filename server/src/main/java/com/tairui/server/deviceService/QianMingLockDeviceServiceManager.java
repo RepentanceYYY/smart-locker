@@ -148,7 +148,7 @@ public class QianMingLockDeviceServiceManager {
 
         qianMingLockDeviceService = new QianMingLockDeviceService();
         qianMingLockDeviceService.setCommDispatcher(dispatcher);
-        dispatcher.setDeviceBase(qianMingLockDeviceService);
+        dispatcher.addDevice(qianMingLockDeviceService);
         qianMingLockDeviceService.setSimulationMode(simulationMode);
 
         log.info("硬件控制器初始化完成，真实模式，通讯方式: {}，地址: {}", cabinetConfig.getLockCommType(), commPort);
