@@ -1,4 +1,3 @@
-
 import axios from 'axios'
 
 export interface SystemConfig {
@@ -9,7 +8,8 @@ export interface SystemConfig {
     adminPwd: string
     borrowPeriod: string
     autoReturnTimeoutMinutes: number
-    tempHumidityLogInterval:number
+    tempHumidityLogInterval: number
+    enableFaceCapture: number   // 0-关闭，1-开启
 }
 
 export async function fetchSystemConfig(): Promise<SystemConfig> {

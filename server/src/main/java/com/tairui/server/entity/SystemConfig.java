@@ -80,4 +80,11 @@ public class SystemConfig implements Serializable {
     @TableField("temp_humidity_log_interval")
     private Integer tempHumidityLogInterval;
 
+    /**
+     * 是否开启抓拍人脸：0-关闭，1-开启';
+     */
+    @TableField("enable_face_capture")
+    private Integer enableFaceCapture;
+
+
 }
