@@ -205,7 +205,14 @@ public class ReturnWebSocketHandler extends TextWebSocketHandler {
                     .map(Integer::parseInt)
                     .collect(Collectors.toList());
 
-            Boolean allClosed = qianMingLockDeviceServiceManager.isAllActiveCellsClosed(cabinet.getId(), macList);
+            Boolean allClosed;
+            try{
+                allClosed  = qianMingLockDeviceServiceManager.isAllActiveCellsClosed(cabinet.getId(), macList);
+            } catch (Exception e) {
+                sendResponse(session, "checkAllLockStatus", 501, e.getMessage(), null);
+                return;
+            }
+
             if (allClosed == false) {
                 allCabinetAllClosed = false;
             }

@@ -217,7 +217,7 @@
 <script lang="ts" setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useSystemConfigStore } from '@/stores/systemConfig'
-import {useDehumidifierStore} from '@/stores/useDehumidifier'
+import { useDehumidifierStore } from '@/stores/useDehumidifier'
 import { useRouter } from 'vue-router'
 import { fetchCabinetList } from '@/api/cabinet'
 import BorrowSummaryModal from './BorrowSummaryModal.vue'
@@ -645,7 +645,7 @@ function updateLayout() {
   carouselHeight.value = Math.max(450, available)
 }
 
-const getCabinetStyle = (idx: number):CSSProperties => {
+const getCabinetStyle = (idx: number): CSSProperties => {
   if (totalCount.value === 0) return { display: 'none' }
   const diff = Math.abs(idx - currentIndex.value)
   const isVisible = diff <= 1
@@ -920,7 +920,7 @@ const handleUnLockReply = async (msg: any) => {
       }
       break;
     default:
-      console.warn('未注册消息', msg);
+      addNotification(msgText, 'warning')
   }
   unlocking.value = false;
 }
@@ -978,6 +978,7 @@ const handleCloseAndCheck = async (msg: any) => {
       break;
     case 500:
       // 锁状态查询失败，后续不检测是否储物
+      console.log(`进入500`)
       stopCloseAndCheckPolling()
       addNotification('门锁状态检测失败，请联系管理员', 'warning')
       break;
@@ -998,6 +999,10 @@ const handleCheckAllLockStatus = async (msg: any) => {
         return
       }
       showBorrowSummary.value = true
+      break;
+    case 501:
+      addNotification(msgText, 'warning')
+      startSuccessCountdown(0)
       break;
     default:
       addNotification('尚有柜门未关闭，请先关闭柜门完成领用', 'warning')

@@ -224,7 +224,7 @@ import { useRouter } from 'vue-router'
 import { fetchCabinetList } from '@/api/cabinet'
 import { submitReturnRecords } from '@/api/return'
 import ReturnSummaryModal from './ReturnSummaryModal.vue'
-import {useDehumidifierStore} from '@/stores/useDehumidifier'
+import { useDehumidifierStore } from '@/stores/useDehumidifier'
 import type { CSSProperties } from 'vue'
 
 const dehumidifierStore = useDehumidifierStore()
@@ -578,8 +578,8 @@ const getCabinetStyle = (idx: number): CSSProperties => {
     zIndexVal = 50
   }
   const transform = `translateX(${x}px) translateY(0px) translateZ(${z}px) rotateY(${rotateY}deg) scale(${scaleVal})`
-  return { transform, zIndex: zIndexVal, opacity: 1, visibility: 'visible', pointerEvents: 'auto' } 
-} 
+  return { transform, zIndex: zIndexVal, opacity: 1, visibility: 'visible', pointerEvents: 'auto' }
+}
 
 function rotatePrev() {
   if (currentIndex.value > 0) currentIndex.value--
@@ -678,126 +678,148 @@ const sendMessage = (type: string, data: any) => {
 const handleWebSocketMessage = async (msg: any) => {
   const { type, code, data, message: msgText } = msg
   if (type === 'openLock') {
-    if (code === 200) {
-      // 开锁成功
-      const { cabinetId, cellId, cellNumber, toolName } = data
-      // 找到对应的格口并设置开门状态
+    await handleUnLockReply(msg)
+  } else if (type === 'closeAndCheck') {
+    await handleCloseAndCheck(msg)
+    isWaiting.value = false
+  } else if (type === 'checkAllLockStatus') {
+    handleCheckAllLockStatus(msg)
+  }
+}
+
+const handleUnLockReply = async (msg: any) => {
+
+  const { type, code, data, message: msgText } = msg
+
+  if (code === 200) {
+    // 开锁成功
+    const { cabinetId, cellId, cellNumber, toolName } = data
+    // 找到对应的格口并设置开门状态
+    for (const cab of cabinets.value) {
+      if (cab.id === cabinetId) {
+        const cell = cab.flatCells.find(c => c.type === 'cell' && c.id === cellId && c.number === cellNumber)
+        if (cell) {
+          cell.isDoorOpen = true
+          scannedCellInfo.value = {
+            cabinetId: cab.id,
+            cabinetTitle: cab.title,
+            cellId,
+            cellNumber,
+            toolName: toolName || getToolNameForCell(cell),
+            isEmpty: cell.isEmpty,
+            isOpen: true,
+          }
+          isWaitingForScan.value = false
+          addNotification(`✅ 门锁已开启，请放入物品后关门`, 'success')
+          // 切换到对应的柜子
+          const idx = cabinets.value.findIndex(c => c.id === cabinetId)
+          if (idx !== -1) currentIndex.value = idx
+          // 启动轮询柜门状态和储物状态
+          await new Promise((resolve) => setTimeout(resolve, 1000))
+          startCloseAndCheckPolling(cab.id, cellId, cellNumber, toolName)
+        } else {
+          addNotification('开锁成功但未找到对应格口', 'warning')
+        }
+        break
+      }
+    }
+  } else {
+    addNotification(msgText || '开锁失败', 'warning')
+    resetScanState()
+  }
+}
+
+const handleCloseAndCheck = async (msg: any) => {
+  const { type, code, data, message: msgText } = msg
+  const { cabinetId, cellId, cellNumber, toolName, returnTime } = data
+  switch (code) {
+    case 200:
+      // 关门成功且有物品归还
+      stopCloseAndCheckPolling()
+      // 更新前端状态
       for (const cab of cabinets.value) {
         if (cab.id === cabinetId) {
           const cell = cab.flatCells.find(c => c.type === 'cell' && c.id === cellId && c.number === cellNumber)
           if (cell) {
-            cell.isDoorOpen = true
-            scannedCellInfo.value = {
-              cabinetId: cab.id,
+            cell.isDoorOpen = false
+            cell.isEmpty = false
+            cell.toolName = toolName
+            // 添加到归还记录
+            returnRecords.value.unshift({
+              id: Date.now().toString(),
+              cabinetId,
               cabinetTitle: cab.title,
               cellId,
               cellNumber,
-              toolName: toolName || getToolNameForCell(cell),
-              isEmpty: cell.isEmpty,
-              isOpen: true,
-            }
-            isWaitingForScan.value = false
-            addNotification(`✅ 门锁已开启，请放入物品后关门`, 'success')
-            // 切换到对应的柜子
-            const idx = cabinets.value.findIndex(c => c.id === cabinetId)
-            if (idx !== -1) currentIndex.value = idx
-            // 启动轮询柜门状态和储物状态
-            await new Promise((resolve) => setTimeout(resolve, 1000))
-            startCloseAndCheckPolling(cab.id, cellId, cellNumber, toolName)
-          } else {
-            addNotification('开锁成功但未找到对应格口', 'warning')
+              toolName,
+              returnTime: returnTime || new Date().toLocaleString(),
+            })
+            addNotification(`✅ 工具 ${toolName} 已成功归还`, 'success')
+            // 清空当前扫描信息，回到扫描等待状态
+            scannedCellInfo.value = null
+            isWaitingForScan.value = true
           }
           break
         }
       }
-    } else {
-      addNotification(msgText || '开锁失败', 'warning')
-      resetScanState()
-    }
-  } else if (type === 'closeAndCheck') {
-    const { cabinetId, cellId, cellNumber, toolName, returnTime } = data
-    console.log(data)
-    switch (code) {
-      case 200:
-        // 关门成功且有物品归还
-        stopCloseAndCheckPolling()
-        // 更新前端状态
-        for (const cab of cabinets.value) {
-          if (cab.id === cabinetId) {
-            const cell = cab.flatCells.find(c => c.type === 'cell' && c.id === cellId && c.number === cellNumber)
-            if (cell) {
-              cell.isDoorOpen = false
-              cell.isEmpty = false
-              cell.toolName = toolName
-              // 添加到归还记录
-              returnRecords.value.unshift({
-                id: Date.now().toString(),
-                cabinetId,
-                cabinetTitle: cab.title,
-                cellId,
-                cellNumber,
-                toolName,
-                returnTime: returnTime || new Date().toLocaleString(),
-              })
-              addNotification(`✅ 工具 ${toolName} 已成功归还`, 'success')
-              // 清空当前扫描信息，回到扫描等待状态
-              scannedCellInfo.value = null
-              isWaitingForScan.value = true
-            }
-            break
+      break;
+    case 204:
+      console.log(`✅ ${cellNumber}号格口已关锁，但工具 ${toolName} 未归还`)
+      // 已关锁但没有物品
+      stopCloseAndCheckPolling()
+      // 更新前端状态
+      for (const cab of cabinets.value) {
+        if (cab.id === cabinetId) {
+          const cell = cab.flatCells.find(c => c.type === 'cell' && c.id === cellId && c.number === cellNumber)
+          if (cell) {
+            cell.isDoorOpen = false
+            cell.isEmpty = true
+            cell.toolName = toolName
+            addNotification(`✅ ${cellNumber}号格口已关锁，但工具 ${toolName} 未归还`, 'warning')
+            // 清空当前扫描信息，回到扫描等待状态
+            scannedCellInfo.value = null
+            isWaitingForScan.value = true
           }
+          break
         }
-        break;
-      case 204:
-        console.log(`✅ ${cellNumber}号格口已关锁，但工具 ${toolName} 未归还`)
-        // 已关锁但没有物品
-        stopCloseAndCheckPolling()
-        // 更新前端状态
-        for (const cab of cabinets.value) {
-          if (cab.id === cabinetId) {
-            const cell = cab.flatCells.find(c => c.type === 'cell' && c.id === cellId && c.number === cellNumber)
-            if (cell) {
-              cell.isDoorOpen = false
-              cell.isEmpty = true
-              cell.toolName = toolName
-              addNotification(`✅ ${cellNumber}号格口已关锁，但工具 ${toolName} 未归还`, 'warning')
-              // 清空当前扫描信息，回到扫描等待状态
-              scannedCellInfo.value = null
-              isWaitingForScan.value = true
-            }
-            break
-          }
-        }
-        break;
-      case 400:
-        // 请求数据错误
-        stopCloseAndCheckPolling()
-        addNotification('系统出现小差，请联系管理员', 'warning')
-        break;
-      case 409:
-        // 检测到未关锁 后续不检测是否储物
-        break;
-      case 500:
-        // 锁状态查询失败，后续不检测是否储物
-        stopCloseAndCheckPolling()
-        addNotification('门锁状态检测失败，请联系管理员', 'warning')
-        break;
+      }
+      break;
+    case 400:
+      // 请求数据错误
+      stopCloseAndCheckPolling()
+      addNotification('系统出现小差，请联系管理员', 'warning')
+      break;
+    case 409:
+      // 检测到未关锁 后续不检测是否储物
+      break;
+    case 500:
+      // 锁状态查询失败，后续不检测是否储物
+      stopCloseAndCheckPolling()
+      addNotification('门锁状态检测失败，请联系管理员', 'warning')
+      break;
 
-    }
-    isWaiting.value = false
-  } else if (type === 'checkAllLockStatus') {
-    switch (code) {
-      case 200:
-        if (returnRecords.value.length === 0) {
-          startEmptyReturnCountdown()
-          return
-        }
-        showReturnSummary.value = true
-        break;
-      default:
-        addNotification('尚有柜门未关闭，请先关闭柜门完成归还', 'warning')
-    }
   }
+  isWaiting.value = false
+}
+
+const handleCheckAllLockStatus = (msg: any) => {
+  const { type, code, data, message: msgText } = msg
+  switch (code) {
+    case 200:
+      if (returnRecords.value.length === 0) {
+        startEmptyReturnCountdown()
+        return
+      }
+      showReturnSummary.value = true
+      break;
+    case 501:
+      addNotification(msgText, 'warning')
+      startReturnSuccessCountdown(0)
+      break;
+    default:
+      addNotification('尚有柜门未关闭，请先关闭柜门完成归还', 'warning')
+  }
+
 }
 
 // ================== 核心业务逻辑 ==================

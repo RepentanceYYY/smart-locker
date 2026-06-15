@@ -202,8 +202,13 @@ public class BorrowWebSocketHandler extends TextWebSocketHandler {
                     .filter(s -> s.matches("\\d+"))
                     .map(Integer::parseInt)
                     .collect(Collectors.toList());
-
-            Boolean allClosed = qianMingLockDeviceServiceManager.isAllActiveCellsClosed(cabinet.getId(),macList);
+            Boolean allClosed = false;
+            try {
+                allClosed = qianMingLockDeviceServiceManager.isAllActiveCellsClosed(cabinet.getId(), macList);
+            } catch (Exception e) {
+                sendResponse(session, "checkAllLockStatus", 501, e.getMessage(), null);
+                return;
+            }
             if (allClosed == false) {
                 allCabinetAllClosed = false;
             }

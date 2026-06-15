@@ -304,7 +304,7 @@ public class QianMingLockDeviceServiceManager extends BaseDeviceServiceManager<Q
      * @param activeCellMacAddress
      * @return
      */
-    public Boolean isAllActiveCellsClosed(Integer cabinetConfigId, List<Integer> activeCellMacAddress) {
+    public Boolean isAllActiveCellsClosed(Integer cabinetConfigId, List<Integer> activeCellMacAddress) throws Exception {
 
         try {
             // 通过柜子ID获取设备连接服务
@@ -326,7 +326,7 @@ public class QianMingLockDeviceServiceManager extends BaseDeviceServiceManager<Q
 
         } catch (Exception e) {
             log.error("检查全关状态失败，cabinetConfigId={}, mac={}, 原因: {}", cabinetConfigId, activeCellMacAddress.get(0), e.getMessage());
-            return false;
+            throw e;
         }
     }
 
