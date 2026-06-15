@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>加载中...</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            background: transparent !important;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: wait;
+        }
+
+        /* ========== 融合科技感的主容器 ========== */
+        .wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            
+            width: 95%; 
+            height: 95%;
+            
+            border-radius: 12px; 
+            
+            /* 基底色：深蓝黑 + 径向冷光 */
+            background: #020617 radial-gradient(circle at 50% 50%, rgba(10, 30, 50, 1) 0%, #020617 100%);
+            /* 赛博青色细边框 + 外发光 */
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.15), inset 0 0 15px rgba(0, 255, 255, 0.05);
+            
+            position: relative;
+            overflow: hidden;
+            
+            /* 动画控制 */
+            opacity: 0;
+            transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            -webkit-app-region: drag; /* 允许拖拽 */
+        }
+
+        .wrapper.visible {
+            opacity: 1;
+        }
+
+        /* ========== 背景装饰：科技感网格 ========== */
+        .wrapper::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0, 255, 255, 0.06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 255, 0.06) 1px, transparent 1px);
+            background-size: 30px 30px;
+            background-position: center;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* ========== 背景装饰：慢速动态极光 ========== */
+        .aurora {
+            position: absolute;
+            inset: 0;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(0, 200, 255, 0.1), transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(100, 0, 255, 0.12), transparent 50%);
+            animation: auroraMove 10s ease-in-out infinite alternate;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        @keyframes auroraMove {
+            0% { transform: scale(1) translate(0%, 0%); opacity: 0.6; }
+            100% { transform: scale(1.1) translate(2%, 3%); opacity: 1; }
+        }
+
+        /* ========== 核心组件层级调节 ========== */
+        .content-layer {
+            position: relative;
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            -webkit-app-region: no-drag; /* 核心区域禁止拖拽 */
+        }
+
+        /* ========== 科幻双层能量环 Spinner ========== */
+        .spinner-box {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            margin-bottom: 24px;
+        }
+
+        .spinner-outer {
+            position: absolute;
+            inset: 0;
+            border: 2px dashed rgba(34, 211, 238, 0.3);
+            border-radius: 50%;
+            animation: spin 8s linear infinite;
+        }
+
+        .spinner-inner {
+            position: absolute;
+            inset: 6px;
+            border: 4px solid transparent;
+            border-top: 4px solid #22d3ee;
+            border-right: 4px solid #3b82f6;
+            border-radius: 50%;
+            filter: drop-shadow(0 0 8px #22d3ee);
+            animation: spin 1s cubic-bezier(0.42, 0, 0.58, 1) infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* ========== 科技感文本与呼吸灯特效 ========== */
+        p {
+            font-size: 14px;
+            font-family: "Inter", "Segoe UI", system-ui, "Courier New", monospace;
+            color: #e2e8f0;
+            letter-spacing: 2px;
+            margin: 0;
+            user-select: none;
+            text-align: center;
+            text-shadow: 0 0 8px rgba(34, 211, 238, 0.6);
+            animation: textPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes textPulse {
+            0%, 100% { opacity: 0.7; text-shadow: 0 0 4px rgba(34, 211, 238, 0.4); }
+            50% { opacity: 1; text-shadow: 0 0 12px rgba(34, 211, 238, 0.9), 0 0 20px rgba(59, 130, 246, 0.5); }
+        }
+
+        /* ========== 🛠 新增：从左到右的横向倾斜扫描流光 ========== */
+        .scan-beam {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* 15度倾斜，左右渐变透明的流光束 */
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(0, 255, 255, 0.03) 30%, 
+                rgba(0, 255, 255, 0.25) 50%, 
+                rgba(59, 130, 246, 0.35) 55%, 
+                rgba(0, 255, 255, 0.25) 60%, 
+                transparent 100%);
+            pointer-events: none;
+            z-index: 2;
+            filter: blur(4px);
+            animation: horizontalScan 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+
+        @keyframes horizontalScan {
+            0% { 
+                transform: translateX(-100%) skewX(-15deg); 
+                opacity: 0;
+            }
+            15% {
+                opacity: 1;
+            }
+            85% {
+                opacity: 1;
+            }
+            100% { 
+                transform: translateX(100%) skewX(-15deg); 
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper" id="loaderWrapper">
+        <div class="aurora"></div>
+        <div class="scan-beam"></div>
+        
+        <div class="content-layer">
+            <div class="spinner-box">
+                <div class="spinner-outer"></div>
+                <div class="spinner-inner"></div>
+            </div>
+            <p>正在启动智能格口柜，请稍候...</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                document.getElementById('loaderWrapper').classList.add('visible');
+            }, 50);
+        });
+    </script>
+</body>
+</html>

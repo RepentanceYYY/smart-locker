@@ -1,0 +1,105 @@
+{
+  "name": "Smart-Lockerd",
+  "version": "1.0.0",
+  "description": "智能格口柜",
+  "author": {
+    "name": "深圳泰锐通用科技有限公司",
+    "email": "trdq888@126.com"
+  },
+  "homepage": "http://www.strdq.com",
+  "license": "ISC",
+  "main": "main.js",
+  "scripts": {
+    "dev": "chcp 65001 && electron .",
+    "electron:dev": "chcp 65001 && concurrently -k \"cd ../rfid_cabinet_node/project && npm run dev\" \"ping 127.0.0.1 -n 6 > nul && electron .\"",
+    "build": "electron-builder --win",
+    "electron:build:linux": "electron-builder --linux",
+    "electron:build:all": "electron-builder --win --linux",
+    "postinstall": "electron-builder install-app-deps --arch=x64"
+  },
+  "build": {
+    "appId": "com.sztr.app",
+    "productName": "智能格口柜",
+    "copyright": "Copyright © 2025 深圳",
+    "artifactName": "${productName}-Setup-${version}.${ext}",
+    "directories": {
+      "output": "release",
+      "buildResources": "dist"
+    },
+    "files": [
+      "dist/**/*",
+      "server/**/*",
+      "main.js",
+      "preload.js",
+      "loading.html",
+      "package.json",
+      "node_modules/**/*"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "**/node_modules/serialport/**/*",
+      "**/node_modules/@serialport/**/*",
+      "**/node_modules/@napi-rs/canvas/**/*",
+      "**/node_modules/pino-pretty/**/*",
+      "**/node_modules/pino-roll/**/*",
+      "**/node_modules/pino/**/*"
+    ],
+    "extraResources": [
+      "icon.jpg",
+      "icon.ico",
+      "Key-Cabinet-ConsoleApp.exe"
+    ],
+    "win": {
+      "icon": "icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "linux": {
+      "icon": "icon.ico",
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility",
+      "maintainer": "深圳泰锐通用科技有限公司 <trdq888@126.com>"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true
+    },
+    "electronDownload": {
+      "mirror": "https://mirrors.huaweicloud.com/electron/"
+    }
+  },
+  "dependencies": {
+    "@serialport/parser-delimiter": "^13.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "exceljs": "^4.4.0",
+    "express": "^4.18.2",
+    "multer": "^2.0.2",
+    "mysql2": "^3.6.1",
+    "node-schedule": "^2.1.1",
+    "pino": "^10.3.0",
+    "pino-roll": "^4.0.0",
+    "sequelize": "^6.33.0",
+    "serialport": "^13.0.0",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^3.3.0",
+    "concurrently": "^9.1.2",
+    "electron": "22.3.27",
+    "electron-builder": "^24.13.3",
+    "nodemon": "^3.0.1",
+    "pino-pretty": "^13.1.3",
+    "wait-on": "^8.0.3"
+  }
+}

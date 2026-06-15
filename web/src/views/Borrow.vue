@@ -828,7 +828,7 @@ const stopCloseAndCheckPolling = () => {
   }
 }
 
-const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8080/ws/borrow'
+const wsUrl  = `${import.meta.env.VITE_WS_BASE_URL}/borrow`
 let socket: WebSocket | null = null
 const wsConnected = ref(false)
 

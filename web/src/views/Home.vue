@@ -707,7 +707,7 @@ function onPasswordInput() {
   }
 }
 //websocket - 盘点
-const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8080/ws/inventory'
+const wsUrl  = `${import.meta.env.VITE_WS_BASE_URL}/inventory`
 let socket: WebSocket | null = null
 const wsConnected = ref(false)
 let allowReconnect = true

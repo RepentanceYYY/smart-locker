@@ -3,7 +3,7 @@ import { ref } from "vue";
 
 export const useDehumidifierStore = defineStore('dehumidifier', () => {
     // websocket - 温湿度推送（服务端主动推送）
-    const dehumidifierWsUrl = 'ws://localhost:8080/ws/dehumidifier'
+    const dehumidifierWsUrl = `${import.meta.env.VITE_WS_BASE_URL}/dehumidifier`
     let dehumidifierSocket: WebSocket | null = null
     const dehumidifierWsConnected = ref(false)
     let allowDehumidifierReconnect = true
