@@ -246,9 +246,9 @@ public class CabinetConfigServiceImpl extends ServiceImpl<CabinetConfigMapper, C
 
             // 尝试启动锁板连接
             try {
-                if (lockService.getCommDispatcher() != null && !qianMingLockDeviceServiceManager.getQianmingLockDeviceServiceMap().containsKey(entity.getLockCommPort())) {
+                if (lockService.getCommDispatcher() != null && !qianMingLockDeviceServiceManager.getDeviceServiceMap().containsKey(entity.getLockCommPort())) {
                     lockService.open();
-                    qianMingLockDeviceServiceManager.getQianmingLockDeviceServiceMap().put(entity.getLockCommPort(), lockService);
+                    qianMingLockDeviceServiceManager.getDeviceServiceMap().put(entity.getLockCommPort(), lockService);
                     lockRegistered = true; // 标记锁板已经成功注册并建立了连接
                     log.info("{} 锁板硬件连接成功，并已缓存", entity.getTitle());
                 }
@@ -259,9 +259,9 @@ public class CabinetConfigServiceImpl extends ServiceImpl<CabinetConfigMapper, C
             // 尝试启动除湿机连接
             try {
                 dehumidifierService = dehumidifierDeviceServiceManager.addDeviceServiceByNewCabinetConfig(entity);
-                if (!dehumidifierDeviceServiceManager.getDehumidifierDeviceServiceMap().containsKey(entity.getDehumidifierCommPort())) {
+                if (!dehumidifierDeviceServiceManager.getDeviceServiceMap().containsKey(entity.getDehumidifierCommPort())) {
                     dehumidifierService.open();
-                    dehumidifierDeviceServiceManager.getDehumidifierDeviceServiceMap().put(entity.getDehumidifierCommPort(), dehumidifierService);
+                    dehumidifierDeviceServiceManager.getDeviceServiceMap().put(entity.getDehumidifierCommPort(), dehumidifierService);
                     dehumidifierRegistered = true; // 标记除湿机已经成功注册并建立了连接
                     log.info("{} 除湿机硬件连接成功，并已缓存", entity.getTitle());
                 }

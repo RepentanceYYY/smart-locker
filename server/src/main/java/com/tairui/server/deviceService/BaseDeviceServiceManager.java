@@ -115,7 +115,7 @@ public abstract class BaseDeviceServiceManager<T> {
     /**
      * 通过通信地址删除设备并关闭连接
      */
-    protected void removeDeviceServiceByCommPort(String commPort) {
+    public void removeDeviceServiceByCommPort(String commPort) {
         T remove = deviceServiceMap.remove(commPort);
         if (remove != null) {
             try {
@@ -124,6 +124,13 @@ public abstract class BaseDeviceServiceManager<T> {
                 throw new RuntimeException("关闭设备连接失败", e);
             }
         }
+    }
+
+    /**
+     * 获取设备服务Map（供外部查询使用）
+     */
+    public Map<String, T> getDeviceServiceMap() {
+        return deviceServiceMap;
     }
 
     /**
@@ -217,4 +224,108 @@ public abstract class BaseDeviceServiceManager<T> {
      * 从配置中获取通信类型（用于日志）
      */
     protected abstract String getCommTypeFromConfig(CabinetConfig config);
+
+    // ==================== 通用方法：添加/校验新设备服务 ====================
+
+    /**
+     * 添加/校验新柜子设备服务（供Service层创建/修改柜子时调用）
+     * 1. 如果存在完全相同的通信端口（TCP的IP:Port，或485的COM@Baud），直接返回已有服务
+     * 2. 如果是485，且使用了相同的物理串口名称（如COM1），但波特率不同，则拒绝通过
+     * 3. 校验通过后，仅创建并返回对象，【不打开连接】，【不存入Map】
+     *
+     * @param cabinetConfig   新增或修改后的柜子配置
+     * @param commTypeField   通信类型字段名
+     * @param commPortField   通信端口字段名
+     * @param deviceTitle     设备标题（用于错误提示）
+     * @return 实例化后的设备服务对象
+     */
+    protected T addDeviceServiceByNewCabinetConfig(CabinetConfig cabinetConfig, String commTypeField, String commPortField, String deviceTitle) {
+        String newCommType = getCommType(cabinetConfig, commTypeField);
+        if (!StringUtils.hasText(newCommType)) {
+            throw new RuntimeException(cabinetConfig.getTitle() + deviceTitle + "通信类型未配置");
+        }
+        
+        String newCommPort = getCommPort(cabinetConfig, commPortField);
+        if (!StringUtils.hasText(newCommPort)) {
+            throw new RuntimeException(cabinetConfig.getTitle() + deviceTitle + "通信地址未配置");
+        }
+
+        // 逻辑 1：完全一模一样的配置已存在，直接返回现有服务
+        if (deviceServiceMap.containsKey(newCommPort)) {
+            log.info("{} {}的通信地址 {} 已存在，直接返回现有服务对象。", cabinetConfig.getTitle(), deviceTitle, newCommPort);
+            return deviceServiceMap.get(newCommPort);
+        }
+
+        // 逻辑 2：如果是 485 模式，额外校验"同串口、不同波特率"的冲突情况
+        if ("485".equalsIgnoreCase(newCommType)) {
+            validateSerialPortConflict(newCommPort, deviceTitle);
+        }
+
+        return this.buildPureDeviceService(cabinetConfig, commTypeField, commPortField);
+    }
+
+    /**
+     * 校验485串口冲突：同一物理串口不能使用不同波特率
+     *
+     * @param newCommPort 新的通信端口配置（格式：端口@波特率）
+     * @param deviceTitle 设备标题
+     */
+    protected void validateSerialPortConflict(String newCommPort, String deviceTitle) {
+        String[] newParts = newCommPort.split("@");
+        if (newParts.length != 2) {
+            throw new RuntimeException("串口配置格式错误，应为 端口@波特率，如 com1@115200");
+        }
+        String newPortName = newParts[0].trim();
+        String newBaudRate = newParts[1].trim();
+
+        // 遍历 Map 中现有的设备连接
+        for (String existCommPort : deviceServiceMap.keySet()) {
+            if (existCommPort.contains("@")) {
+                String[] existParts = existCommPort.split("@");
+                String existPortName = existParts[0].trim();
+                String existBaudRate = existParts[1].trim();
+
+                // 如果物理串口名字相同（忽略大小写，如 COM1 和 com1）
+                if (existPortName.equalsIgnoreCase(newPortName)) {
+                    // 物理串口相同，但波特率不同，视为不通过
+                    if (!existBaudRate.equals(newBaudRate)) {
+                        throw new RuntimeException(String.format(
+                                "创建失败！%s串口 [%s] 已被使用，当前配置波特率 [%s] 与已有波特率 [%s] 不一致！",
+                                deviceTitle, newPortName, newBaudRate, existBaudRate
+                        ));
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * 纯粹构建设备对象和基础通道绑定，不触发 open()，不影响全局 map
+     *
+     * @param cabinetConfig 柜子配置
+     * @param commTypeField 通信类型字段名
+     * @param commPortField 通信端口字段名
+     * @return 设备服务对象
+     */
+    protected T buildPureDeviceService(CabinetConfig cabinetConfig, String commTypeField, String commPortField) {
+        String commType = getCommType(cabinetConfig, commTypeField);
+        String commPort = getCommPort(cabinetConfig, commPortField);
+
+        CommDispatcher dispatcher = createDispatcher(commType, commPort);
+        T deviceService = createDeviceServiceWithoutCache(cabinetConfig, commTypeField, commPortField, dispatcher);
+
+        return deviceService;
+    }
+
+    /**
+     * 创建设备服务对象但不缓存（由子类实现具体的设备服务实例化逻辑）
+     * 注意：此方法不会将设备放入 Map，也不会打开连接
+     *
+     * @param cabinetConfig 柜子配置
+     * @param commTypeField 通信类型字段名
+     * @param commPortField 通信端口字段名
+     * @param dispatcher    通信调度器
+     * @return 设备服务对象
+     */
+    protected abstract T createDeviceServiceWithoutCache(CabinetConfig cabinetConfig, String commTypeField, String commPortField, CommDispatcher dispatcher);
 }

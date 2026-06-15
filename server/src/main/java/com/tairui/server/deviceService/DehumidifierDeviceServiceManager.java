@@ -38,6 +38,19 @@ public class DehumidifierDeviceServiceManager extends BaseDeviceServiceManager<D
     }
 
     /**
+     * 添加/校验新柜子除湿机服务（供Service层创建/修改柜子时调用）
+     * 1. 如果存在完全相同的通信端口（TCP的IP:Port，或485的COM@Baud），直接返回已有服务
+     * 2. 如果是485，且使用了相同的物理串口名称（如COM1），但波特率不同，则拒绝通过
+     * 3. 校验通过后，仅创建并返回对象，【不打开连接】，【不存入Map】
+     *
+     * @param cabinetConfig 新增或修改后的柜子配置
+     * @return 实例化后的除湿机服务对象
+     */
+    public DehumidifierDeviceService addDeviceServiceByNewCabinetConfig(CabinetConfig cabinetConfig) {
+        return super.addDeviceServiceByNewCabinetConfig(cabinetConfig, "dehumidifierCommType", "dehumidifierCommPort", "除湿机");
+    }
+
+    /**
      * 通过柜子配置创建设备对象并建立连接
      */
     @Override
@@ -46,14 +59,24 @@ public class DehumidifierDeviceServiceManager extends BaseDeviceServiceManager<D
         String commPort = cabinetConfig.getDehumidifierCommPort();
 
         CommDispatcher dispatcher = createDispatcher(commType, commPort);
+        DehumidifierDeviceService dehumidifierDeviceService = createDeviceServiceWithoutCache(cabinetConfig, commTypeField, commPortField, dispatcher);
+
+        deviceServiceMap.put(commPort, dehumidifierDeviceService);
+        openAndCacheDevice(dehumidifierDeviceService, cabinetConfig, commPort);
+
+        return dehumidifierDeviceService;
+    }
+
+    /**
+     * 创建设备服务对象但不缓存
+     */
+    @Override
+    protected DehumidifierDeviceService createDeviceServiceWithoutCache(CabinetConfig cabinetConfig, String commTypeField, String commPortField, CommDispatcher dispatcher) {
         DehumidifierDeviceService dehumidifierDeviceService = new DehumidifierDeviceService(Integer.parseInt(cabinetConfig.getDehumidifierAddr()));
         dehumidifierDeviceService.setWriteIntervalTime(50L);
         dehumidifierDeviceService.setCommDispatcher(dispatcher);
         dispatcher.addDevice(dehumidifierDeviceService);
 
-        deviceServiceMap.put(commPort, dehumidifierDeviceService);
-        openAndCacheDevice(dehumidifierDeviceService, cabinetConfig, commPort);
-        
         return dehumidifierDeviceService;
     }
 

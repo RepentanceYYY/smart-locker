@@ -57,6 +57,19 @@ public class QianMingLockDeviceServiceManager extends BaseDeviceServiceManager<Q
     }
 
     /**
+     * 添加/校验新柜子锁服务（供Service层创建/修改柜子时调用）
+     * 1. 如果存在完全相同的通信端口（TCP的IP:Port，或485的COM@Baud），直接返回已有服务
+     * 2. 如果是485，且使用了相同的物理串口名称（如COM1），但波特率不同，则拒绝通过
+     * 3. 校验通过后，仅创建并返回对象，【不打开连接】，【不存入Map】
+     *
+     * @param cabinetConfig 新增或修改后的柜子配置
+     * @return 实例化后的锁服务对象
+     */
+    public QianMingLockDeviceService addDeviceServiceByNewCabinetConfig(CabinetConfig cabinetConfig) {
+        return super.addDeviceServiceByNewCabinetConfig(cabinetConfig, "lockCommType", "lockCommPort", "锁板");
+    }
+
+    /**
      * 通过柜子配置创建设备对象并建立连接
      */
     @Override
@@ -65,14 +78,24 @@ public class QianMingLockDeviceServiceManager extends BaseDeviceServiceManager<Q
         String commPort = cabinetConfig.getLockCommPort();
 
         CommDispatcher dispatcher = createDispatcher(commType, commPort);
+        QianMingLockDeviceService qianMingLockDeviceService = createDeviceServiceWithoutCache(cabinetConfig, commTypeField, commPortField, dispatcher);
+
+        deviceServiceMap.put(commPort, qianMingLockDeviceService);
+        openAndCacheDevice(qianMingLockDeviceService, cabinetConfig, commPort);
+
+        return qianMingLockDeviceService;
+    }
+
+    /**
+     * 创建设备服务对象但不缓存
+     */
+    @Override
+    protected QianMingLockDeviceService createDeviceServiceWithoutCache(CabinetConfig cabinetConfig, String commTypeField, String commPortField, CommDispatcher dispatcher) {
         QianMingLockDeviceService qianMingLockDeviceService = new QianMingLockDeviceService();
         qianMingLockDeviceService.setCommDispatcher(dispatcher);
         dispatcher.addDevice(qianMingLockDeviceService);
         qianMingLockDeviceService.setSimulationMode(simulationMode);
 
-        deviceServiceMap.put(commPort, qianMingLockDeviceService);
-        openAndCacheDevice(qianMingLockDeviceService, cabinetConfig, commPort);
-        
         return qianMingLockDeviceService;
     }
 
