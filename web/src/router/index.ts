@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+import { createRouter,createWebHistory, createWebHashHistory, type RouteRecordRaw } from 'vue-router'
 
 // 路由规则数组
 const routes: Array<RouteRecordRaw> = [
@@ -47,6 +47,7 @@ const routes: Array<RouteRecordRaw> = [
 // 创建 router 实例
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
+  // history: createWebHashHistory(), //打包成eletron程序使用这个
   routes
 })
 

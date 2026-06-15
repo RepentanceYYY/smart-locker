@@ -121,7 +121,7 @@
                       :key="cab.id"
                       class="cabinet-item"
                       :class="{ 'center-highlight': idx === currentIndex }"
-                      :style="[getCabinetStyle(idx), { width: cab.width || '280px', height: cab.height || 'auto' }]"
+                      :style="{ ...getCabinetStyle(idx), width: cab.width || '280px', height: cab.height || 'auto' }"
                   >
                     <div class="cabinet-header" @click="advancedSettingsEnabled && openCabinetEdit(cab)">
                       {{ cab.title }}
@@ -685,7 +685,7 @@ import { useCountdown } from '@/composables/useCountdown'
 import VueQr from 'vue-qr'
 // 导入导出工具函数
 import { collectCellData, exportToWord, exportToExcel } from '@/utils/exportUtils'
-
+import type { CSSProperties } from 'vue'
 const router = useRouter()
 
 // ==================== 倒计时功能 ====================
@@ -922,9 +922,9 @@ function updateCabinetEnvData(cab: ProcessedCabinet) {
 }
 
 function processCabinetData(rawData: any[]): ProcessedCabinet[] {
-  return rawData.map(cab => {
-    const rows = cab.rows.map(row => ({
-      cells: row.cells.map(cell => ({
+  return rawData.map((cab: any) => {
+    const rows = cab.rows.map((row: any) => ({
+      cells: row.cells.map((cell: any) => ({
         ...cell,
         columns: cell.columns || '1fr',
         height: cell.height || 'auto',
@@ -1213,7 +1213,7 @@ function stopEnvDataSimulation() {
   if (envDataTimer) { clearInterval(envDataTimer); envDataTimer = null }
 }
 
-const getCabinetStyle = (idx: number) => {
+const getCabinetStyle = (idx: number):CSSProperties => {
   if (totalCount.value === 0) return { display: 'none' }
   const diff = Math.abs(idx - currentIndex.value)
   if (diff > 1) return { transform: 'translateX(0) translateZ(-500px)', opacity: 0, visibility: 'hidden', pointerEvents: 'none', zIndex: -1, transition: 'opacity 0.3s, visibility 0.3s' }

@@ -207,7 +207,7 @@ import CameraModal from './CameraModal.vue'
 import InventoryDialog from './InventoryDialog.vue'
 import { useSystemConfigStore } from '@/stores/systemConfig'
 import { useCountdown } from '@/composables/useCountdown'
-
+import type { CSSProperties } from 'vue'
 const router = useRouter()
 const systemConfigStore = useSystemConfigStore()
 const passwordDialogType = ref<'inventory' | 'settings'>('settings')//操作区分验证按钮颜色
@@ -432,8 +432,8 @@ function updateCabinetEnvData(cab: ProcessedCabinet) {
 
 function processCabinetData(rawData: any[]): ProcessedCabinet[] {
   return rawData.map(cab => {
-    const rows = cab.rows.map(row => ({
-      cells: row.cells.map(cell => ({
+    const rows = cab.rows.map((row: any) => ({
+      cells: row.cells.map((cell:any) => ({
         ...cell,
         columns: cell.columns || '1fr',
         height: cell.height || 'auto',
@@ -566,7 +566,7 @@ function updateLayout() {
 }
 
 // ================== 3D 样式 ==================
-const getCabinetStyle = (idx: number) => {
+const getCabinetStyle = (idx: number):CSSProperties => {
   if (totalCount.value === 0) {
     return { display: 'none' }
   }
@@ -595,7 +595,7 @@ const getCabinetStyle = (idx: number) => {
     zIndexVal = 50
   }
   const transform = `translateX(${x}px) translateY(0px) translateZ(${z}px) rotateY(${rotateY}deg) scale(${scaleVal})`
-  return { transform, zIndex: zIndexVal, opacity: 1, visibility: 'visible', pointerEvents: 'auto' }
+  return { transform, zIndex: zIndexVal, opacity: 1, visibility: 'visible', pointerEvents: 'auto' }  
 }
 
 function rotatePrev() {
@@ -837,6 +837,11 @@ function closeInventoryDialog() {
   isAllowClickButton.value = false
 }
 // ================== 通知列表 ==================
+interface Notification {
+  id: number
+  text: string
+  type: 'info' | 'success' | 'warning'
+}
 const notifications = ref<Notification[]>([])
 let nextNotificationId = 1
 
@@ -922,6 +927,7 @@ watch(currentIndex, (newIdx, oldIdx) => {
 onMounted(async () => {
   await loadCabinets()
   if (!systemConfigStore.loaded && !systemConfigStore.loading) {
+      console.log("3 load config")
     await systemConfigStore.loadConfig()
   }
   await nextTick()

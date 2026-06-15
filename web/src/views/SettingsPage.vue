@@ -464,7 +464,7 @@ async function fetchTempHumidityLogsData() {
 }
 
 // 系统配置
-const configFields = [
+const configFields: { key: keyof SystemConfig; label: string }[] = [
   { key: 'systemName', label: '系统名称' },
   { key: 'engName', label: '英文名称' },
   { key: 'systemCode', label: '系统编号' },

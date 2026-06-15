@@ -184,7 +184,7 @@ async function fetchData() {
                 cabinetTitle: i.cabinetName,
                 cellNumber: i.cellNumber,
                 toolName: i.toolName,
-                status: '柜外',
+                status: '柜外' as const,
                 lastOperationTime: i.borrowTime,
             })),
             ...returnItems.map((i) => ({
@@ -192,7 +192,7 @@ async function fetchData() {
                 cabinetTitle: i.cabinetName,
                 cellNumber: i.cellNumber,
                 toolName: i.toolName,
-                status: '柜内',
+                status: '柜内' as const,
                 lastOperationTime: i.returnTime,
             })),
         ]

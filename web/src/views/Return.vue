@@ -76,10 +76,10 @@
             <div class="carousel-cylinder">
               <div class="carousel-3d" :style="{ minHeight: carouselHeight + 'px' }">
                 <div v-for="(cab, idx) in cabinets" :key="cab.id" class="cabinet-item"
-                  :class="{ 'center-highlight': idx === currentIndex }" :style="[
-                    getCabinetStyle(idx),
-                    { width: cab.width || '280px', height: cab.height || 'auto' },
-                  ]">
+                  :class="{ 'center-highlight': idx === currentIndex }" :style="{
+                    ...getCabinetStyle(idx),
+                    width: cab.width || '280px', height: cab.height || 'auto',
+                  }">
                   <div class="cabinet-header">{{ cab.title }}</div>
                   <div class="cabinet-body">
                     <div class="cabinet-grid" :style="getGridStyle(cab)">
@@ -224,7 +224,7 @@ import { useRouter } from 'vue-router'
 import { fetchCabinetList } from '@/api/cabinet'
 import { submitReturnRecords } from '@/api/return'
 import ReturnSummaryModal from './ReturnSummaryModal.vue'
-
+import type { CSSProperties } from 'vue'
 // ================== 类型定义 ==================
 interface BaseCell {
   type: 'cell' | 'image'
@@ -571,7 +571,7 @@ function updateLayout() {
   carouselHeight.value = Math.max(450, available)
 }
 
-const getCabinetStyle = (idx: number) => {
+const getCabinetStyle = (idx: number): CSSProperties => {
   if (totalCount.value === 0) return { display: 'none' }
   const diff = Math.abs(idx - currentIndex.value)
   const isVisible = diff <= 1
@@ -605,8 +605,8 @@ const getCabinetStyle = (idx: number) => {
     zIndexVal = 50
   }
   const transform = `translateX(${x}px) translateY(0px) translateZ(${z}px) rotateY(${rotateY}deg) scale(${scaleVal})`
-  return { transform, zIndex: zIndexVal, opacity: 1, visibility: 'visible', pointerEvents: 'auto' }
-}
+  return { transform, zIndex: zIndexVal, opacity: 1, visibility: 'visible', pointerEvents: 'auto' } 
+} 
 
 function rotatePrev() {
   if (currentIndex.value > 0) currentIndex.value--

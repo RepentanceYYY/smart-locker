@@ -9,6 +9,7 @@ import com.tairui.server.mapper.ThHistoryMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -19,7 +20,7 @@ import java.util.Map;
  * 定时任务服务
  */
 @Slf4j
-@Service
+@Component
 public class ScheduledTaskService {
 
     @Autowired

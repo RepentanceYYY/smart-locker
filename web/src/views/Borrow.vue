@@ -52,7 +52,7 @@
               <div class="carousel-3d" :style="{ minHeight: carouselHeight + 'px' }">
                 <div v-for="(cab, idx) in cabinets" :key="cab.id" class="cabinet-item"
                   :class="{ 'center-highlight': idx === currentIndex }"
-                  :style="[getCabinetStyle(idx), { width: cab.width || '280px', height: cab.height || 'auto' }]">
+                  :style="{ ...getCabinetStyle(idx), width: cab.width || '280px', height: cab.height || 'auto' }">
                   <div class="cabinet-header">{{ cab.title }}</div>
                   <div class="cabinet-body">
                     <div class="cabinet-grid" :style="getGridStyle(cab)">
@@ -221,6 +221,7 @@ import { useRouter } from 'vue-router'
 import { fetchCabinetList } from '@/api/cabinet'
 import BorrowSummaryModal from './BorrowSummaryModal.vue'
 import { submitBorrowRecords } from '@/api/borrow'
+import type { CSSProperties } from 'vue'
 
 const photoFile = ref<File | null>(null)      // 暂存照片文件
 const photoPreviewUrl = ref<string>('')       // 用于预览的 blob URL
@@ -672,7 +673,7 @@ function updateLayout() {
   carouselHeight.value = Math.max(450, available)
 }
 
-const getCabinetStyle = (idx: number) => {
+const getCabinetStyle = (idx: number):CSSProperties => {
   if (totalCount.value === 0) return { display: 'none' }
   const diff = Math.abs(idx - currentIndex.value)
   const isVisible = diff <= 1
@@ -780,7 +781,7 @@ async function onBorrowSubmit(data: {
       borrowerNumber: data.borrowerNumber,
       expectedReturnTime: data.expectedReturnTime,
       remark: data.remark,
-      photoFile: photoFile.value   // 传递 File 对象
+      photoFile: photoFile.value || undefined   // 传递 File 对象或 undefined
     })
     // 成功后的处理...
     borrowItems.value = []

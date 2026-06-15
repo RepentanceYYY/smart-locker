@@ -89,7 +89,10 @@
 import { ref, watch } from 'vue'
 
 interface ReturnItem {
+  id: string
+  cabinetId: number
   cabinetTitle: string
+  cellId: number
   cellNumber: string
   toolName: string
   returnTime: string
