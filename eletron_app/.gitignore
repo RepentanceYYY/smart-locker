@@ -4,6 +4,7 @@ Thumbs.db
 
 dist/
 release/
+extraResources/
 server/
 *.log
 

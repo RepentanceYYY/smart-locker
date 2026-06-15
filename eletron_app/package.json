@@ -47,7 +47,8 @@
     "extraResources": [
       "icon.jpg",
       "icon.ico",
-      "Key-Cabinet-ConsoleApp.exe"
+      "Key-Cabinet-ConsoleApp.exe",
+      "extraResources/**/*" 
     ],
     "win": {
       "icon": "icon.ico",
