@@ -1,4 +1,4 @@
-import request from '@/utils/request'
+import axios from 'axios'
 
 export interface SystemConfig {
     systemName: string
@@ -8,18 +8,19 @@ export interface SystemConfig {
     adminPwd: string
     borrowPeriod: string
     autoReturnTimeoutMinutes: number
-    tempHumidityLogInterval:number
+    tempHumidityLogInterval: number
+    enableFaceCapture: number   // 0-关闭，1-开启
 }
 
 export async function fetchSystemConfig(): Promise<SystemConfig> {
-    const { data } = await request.get('/api/systemConfig')
+    const { data } = await axios.get('/api/systemConfig')
     return data
 }
 
 export async function updateSystemConfig(config: SystemConfig): Promise<void> {
-    await request.put('/api/systemConfig', config)
+    await axios.put('/api/systemConfig', config)
 }
 
 export async function resetSystemConfig(): Promise<void> {
-    await request.post('/api/systemConfig/reset')
+    await axios.post('/api/systemConfig/reset')
 }

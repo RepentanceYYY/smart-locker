@@ -208,7 +208,7 @@
         </div>
         <div class="modal-body">
           <input
-              v-if="editField !== 'adminPwd' && editField !== 'borrowPeriod' && editField !== 'autoReturnTimeoutMinutes' && editField !== 'tempHumidityLogInterval'"
+              v-if="editField !== 'adminPwd' && editField !== 'borrowPeriod' && editField !== 'autoReturnTimeoutMinutes' && editField !== 'tempHumidityLogInterval' && editField !== 'enableFaceCapture'"
               v-model="editTempValue"
               type="text"
               class="modal-input"
@@ -255,6 +255,16 @@
               @change="confirmEdit"
           >
             <option v-for="option in humidityIntervalOptions" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+          <select
+              v-else-if="editField === 'enableFaceCapture'"
+              v-model="editTempValue"
+              class="modal-select"
+              @change="confirmEdit"
+          >
+            <option v-for="option in faceCaptureOptions" :key="option.value" :value="option.value">
               {{ option.label }}
             </option>
           </select>
@@ -462,7 +472,8 @@ const configFields = [
   { key: 'adminPwd', label: '管理密码' },
   { key: 'borrowPeriod', label: '使用周期' },
   { key: 'autoReturnTimeoutMinutes', label: '长时间不操作返回主页' },
-  { key: 'tempHumidityLogInterval', label: '温湿度记录间隔（分钟）' }
+  { key: 'tempHumidityLogInterval', label: '温湿度记录间隔（分钟）' },
+  { key: 'enableFaceCapture', label: '开启抓拍人脸' }
 ]
 
 const borrowPeriodOptions = ['1天', '3天', '5天', '7天', '15天', '30天']
@@ -480,17 +491,24 @@ const humidityIntervalOptions = [
   { label: '30分钟', value: 30 },
   { label: '60分钟', value: 60 }
 ]
+const faceCaptureOptions = [
+  { label: '关闭', value: 0 },
+  { label: '开启', value: 1 }
+]
 
 function formatDisplayValue(key: keyof SystemConfig): string {
   const val = systemConfigStore.config[key]
   if (key === 'adminPwd') {
-    return val ? '●'.repeat(Math.min(val.length, 8)) : '未设置'
+    return val ? '●'.repeat(Math.min((val as string).length, 8)) : '未设置'
   }
   if (key === 'autoReturnTimeoutMinutes' || key === 'tempHumidityLogInterval') {
     return `${val} 分钟`
   }
   if (key === 'borrowPeriod') {
-    return val && !val.includes('天') ? `${val}天` : (val as string)
+    return val && !(val as string).includes('天') ? `${val}天` : (val as string)
+  }
+  if (key === 'enableFaceCapture') {
+    return val === 1 ? '开启' : '关闭'
   }
   return val as string
 }
@@ -524,6 +542,8 @@ function openEditModal(field: keyof SystemConfig, label: string) {
     editTempValue.value = systemConfigStore.config.autoReturnTimeoutMinutes
   } else if (field === 'tempHumidityLogInterval') {
     editTempValue.value = systemConfigStore.config.tempHumidityLogInterval
+  } else if (field === 'enableFaceCapture') {
+    editTempValue.value = systemConfigStore.config.enableFaceCapture
   } else {
     editTempValue.value = String(systemConfigStore.config[field])
   }
@@ -592,6 +612,13 @@ async function confirmEdit() {
       }
       await systemConfigStore.updateConfigField('tempHumidityLogInterval', newInterval)
       fetchTempHumidityLogsData()
+    } else if (field === 'enableFaceCapture') {
+      const newVal = editTempValue.value as number
+      if (newVal !== 0 && newVal !== 1) {
+        showMessage('请选择有效的选项')
+        return
+      }
+      await systemConfigStore.updateConfigField('enableFaceCapture', newVal)
     } else if (field === 'engName') {
       const newVal = (editTempValue.value as string).trim()
       if (newVal === '') {

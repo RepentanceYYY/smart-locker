@@ -1,185 +1,46 @@
 package com.tairui.server.deviceService;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.tairui.server.device.channel.SerialChannel;
-import com.tairui.server.device.channel.TcpClientChannel;
 import com.tairui.server.device.core.CommDispatcher;
-import com.tairui.server.device.core.SerialDispatcher;
-import com.tairui.server.device.core.TcpClientDispatcher;
 import com.tairui.server.device.qianMingLock.QianMingLockDevice;
 import com.tairui.server.entity.CabinetConfig;
 import com.tairui.server.entity.CellConfig;
-import com.tairui.server.mapper.CabinetConfigMapper;
 import com.tairui.server.mapper.CellConfigMapper;
-import lombok.Getter;
-import lombok.Setter;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
-import jakarta.annotation.PostConstruct;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 千鸣锁设备服务管理
  */
 @Service
 @Log4j2
-public class QianMingLockDeviceServiceManager {
+public class QianMingLockDeviceServiceManager extends BaseDeviceServiceManager<QianMingLockDeviceService> {
     @Autowired
     private CellConfigMapper cellConfigMapper;
-    @Autowired
-    private CabinetConfigMapper cabinetConfigMapper;
     @Value("${lock.simulation.mode:true}")
     private boolean simulationMode;
-    /**
-     * key:通信地址，value:设备服务
-     */
-    @Getter
-    @Setter
-    private final Map<String, QianMingLockDeviceService> qianmingLockDeviceServiceMap = new ConcurrentHashMap<>();
 
     /**
      * 初始化
      */
     @PostConstruct
     public void init() {
-        List<CabinetConfig> cabinetConfigs = cabinetConfigMapper.selectList(null);
-        if (cabinetConfigs.isEmpty()) {
-            log.warn("暂无柜子配置数据，跳过锁板初始化");
-            return;
-        }
-        for (CabinetConfig cabinetConfig : cabinetConfigs) {
-            try {
-                String commPort = cabinetConfig.getLockCommPort();
-                if (!StringUtils.hasText(cabinetConfig.getLockCommType())) {
-                    throw new RuntimeException(cabinetConfig.getTitle() + "锁板通信类型未配置");
-                }
-                if (!StringUtils.hasText(commPort)) {
-                    throw new RuntimeException(cabinetConfig.getTitle() + "锁板通信地址未配置");
-                }
-
-                if (qianmingLockDeviceServiceMap.containsKey(commPort)) {
-                    log.info("{} 锁板的通信地址 {} 已被其他柜子初始化，共享同一连接。", cabinetConfig.getTitle(), commPort);
-                    continue;
-                }
-
-                // 创建并打开连接，并存入全局 Map 缓存
-                this.createDeviceServiceByCabinetConfig(cabinetConfig);
-
-            } catch (Exception e) {
-                log.error("初始化柜子锁板 [{}] 失败: {}", cabinetConfig.getTitle(), e.getMessage());
-            }
-        }
+        super.init("lockCommType", "lockCommPort", "锁板");
     }
 
     /**
      * 通过柜子配置id，获取设备对象
      */
     public QianMingLockDeviceService getDeviceServiceByCabinetId(Integer cabinetId) {
-        CabinetConfig cabinetConfig = cabinetConfigMapper.selectById(cabinetId);
-        if (cabinetConfig == null) {
-            throw new RuntimeException("柜子配置不存在");
-        }
-        if (!StringUtils.hasText(cabinetConfig.getLockCommType())) {
-            throw new RuntimeException(cabinetConfig.getTitle() + "通信类型未配置");
-        }
-        if (!StringUtils.hasText(cabinetConfig.getLockCommPort())) {
-            throw new RuntimeException(cabinetConfig.getTitle() + "通信地址未配置");
-        }
-        return qianmingLockDeviceServiceMap.computeIfAbsent(cabinetConfig.getLockCommPort(), key -> createDeviceServiceByCabinetConfig(cabinetConfig));
-    }
-
-    /**
-     * 添加/校验新柜子锁板服务
-     * 1. 如果存在完全相同的通信端口（TCP的IP:Port，或485的COM@Baud），直接返回已有服务
-     * 2. 如果是485，且使用了相同的物理串口名称（如COM1），但波特率不同，则拒绝通过
-     * 3. 校验通过后，仅创建并返回对象，【不打开连接】，【不存入Map】
-     * * @param cabinetConfig 新增的柜子配置
-     * @return 实例化后的锁板服务对象
-     */
-    public QianMingLockDeviceService addDeviceServiceByNewCabinetConfig(CabinetConfig cabinetConfig) {
-        if (!StringUtils.hasText(cabinetConfig.getLockCommType())) {
-            throw new RuntimeException(cabinetConfig.getTitle() + "通信类型未配置");
-        }
-        String newCommPort = cabinetConfig.getLockCommPort();
-        if (!StringUtils.hasText(newCommPort)) {
-            throw new RuntimeException(cabinetConfig.getTitle() + "通信地址未配置");
-        }
-
-        if (qianmingLockDeviceServiceMap.containsKey(newCommPort)) {
-            log.debug("{} 的通信地址 {} 已存在，直接返回现有服务对象。", cabinetConfig.getTitle(), newCommPort);
-            return qianmingLockDeviceServiceMap.get(newCommPort);
-        }
-
-        // 逻辑 2：如果是 485 模式，需要额外提防“同串口、不同波特率”的冲突情况
-        if ("485".equalsIgnoreCase(cabinetConfig.getLockCommType())) {
-            String[] newParts = newCommPort.split("@");
-            if (newParts.length != 2) {
-                throw new RuntimeException("串口配置格式错误，应为 端口@波特率，如 com1@115200");
-            }
-            String newPortName = newParts[0].trim();
-            String newBaudRate = newParts[1].trim();
-
-            // 遍历已存在的连接，寻找有没有使用相同物理串口（如 COM1）的
-            for (String existCommPort : qianmingLockDeviceServiceMap.keySet()) {
-                if (existCommPort.contains("@")) {
-                    String[] existParts = existCommPort.split("@");
-                    String existPortName = existParts[0].trim();
-                    String existBaudRate = existParts[1].trim();
-
-                    // 如果物理串口名字相同（忽略大小写，防止 com1 和 COM1 冲突）
-                    if (existPortName.equalsIgnoreCase(newPortName)) {
-                        // 物理串口相同，但波特率不同，直接拒绝
-                        if (!existBaudRate.equals(newBaudRate)) {
-                            throw new RuntimeException(String.format(
-                                    "创建失败！串口 [%s] 已被使用，当前配置波特率 [%s] 与已有波特率 [%s] 不一致！",
-                                    newPortName, newBaudRate, existBaudRate
-                            ));
-                        }
-                    }
-                }
-            }
-        }
-        return this.buildPureDeviceService(cabinetConfig);
-    }
-
-    /**
-     * 纯粹构建设备对象和基础绑定，不触发 open()，不影响全局 map
-     */
-    private QianMingLockDeviceService buildPureDeviceService(CabinetConfig cabinetConfig) {
-        CommDispatcher dispatcher;
-        String commPort = cabinetConfig.getLockCommPort();
-
-        if ("485".equalsIgnoreCase(cabinetConfig.getLockCommType())) {
-            String[] parts = commPort.split("@");
-            String portName = parts[0];
-            int baudRate = Integer.parseInt(parts[1]);
-            SerialChannel channel = new SerialChannel(portName, baudRate);
-            dispatcher = new SerialDispatcher(channel);
-        } else if ("TCP".equalsIgnoreCase(cabinetConfig.getLockCommType())) {
-            String[] parts = commPort.split(":");
-            String host = parts[0];
-            int port = Integer.parseInt(parts[1]);
-            TcpClientChannel channel = new TcpClientChannel(host, port);
-            dispatcher = new TcpClientDispatcher(channel);
-        } else {
-            throw new RuntimeException("不支持的锁板通讯类型: " + cabinetConfig.getLockCommType());
-        }
-
-        QianMingLockDeviceService qianMingLockDeviceService = new QianMingLockDeviceService();
-        qianMingLockDeviceService.setCommDispatcher(dispatcher);
-        dispatcher.addDevice(qianMingLockDeviceService);
-        qianMingLockDeviceService.setSimulationMode(simulationMode);
-
-        return qianMingLockDeviceService;
+        return super.getDeviceServiceByCabinetId(cabinetId, "lockCommType", "lockCommPort");
     }
 
     /**
@@ -198,94 +59,60 @@ public class QianMingLockDeviceServiceManager {
     /**
      * 通过柜子配置创建设备对象并建立连接
      */
-    public QianMingLockDeviceService createDeviceServiceByCabinetConfig(CabinetConfig cabinetConfig) {
-        CommDispatcher dispatcher;
-        QianMingLockDeviceService qianMingLockDeviceService;
+    @Override
+    protected QianMingLockDeviceService createDeviceServiceByCabinetConfig(CabinetConfig cabinetConfig, String commTypeField, String commPortField) {
+        String commType = cabinetConfig.getLockCommType();
         String commPort = cabinetConfig.getLockCommPort();
 
-        if ("485".equalsIgnoreCase(cabinetConfig.getLockCommType())) {
-            String[] parts = commPort.split("@");
-            if (parts.length != 2) {
-                throw new RuntimeException("串口配置格式错误，应为 端口@波特率，如 com1@115200");
-            }
-            String portName = parts[0];
-            int baudRate;
-            try {
-                baudRate = Integer.parseInt(parts[1]);
-            } catch (NumberFormatException e) {
-                throw new RuntimeException("波特率格式错误: " + parts[1]);
-            }
-            SerialChannel channel = new SerialChannel(portName, baudRate);
-            dispatcher = new SerialDispatcher(channel);
-        } else if ("TCP".equalsIgnoreCase(cabinetConfig.getLockCommType())) {
-            String[] parts = commPort.split(":");
-            if (parts.length != 2) {
-                throw new RuntimeException("TCP配置格式错误，应为 IP:端口，如 192.168.1.2:8456");
-            }
-            String host = parts[0];
-            int port;
-            try {
-                port = Integer.parseInt(parts[1]);
-            } catch (NumberFormatException e) {
-                throw new RuntimeException("端口号格式错误: " + parts[1]);
-            }
-            TcpClientChannel channel = new TcpClientChannel(host, port);
-            dispatcher = new TcpClientDispatcher(channel);
-        } else {
-            throw new RuntimeException("不支持的锁板通讯类型: " + cabinetConfig.getLockCommType());
-        }
-
-
-
-        qianMingLockDeviceService = new QianMingLockDeviceService();
+        CommDispatcher dispatcher = createDispatcher(commType, commPort);
+        QianMingLockDeviceService qianMingLockDeviceService = new QianMingLockDeviceService();
         qianMingLockDeviceService.setCommDispatcher(dispatcher);
         dispatcher.addDevice(qianMingLockDeviceService);
         qianMingLockDeviceService.setSimulationMode(simulationMode);
 
-        try {
-            qianMingLockDeviceService.open();
-            log.info("{}锁板使用的 {} 打开连接成功", cabinetConfig.getTitle(), commPort);
-
-            qianmingLockDeviceServiceMap.put(commPort, qianMingLockDeviceService);
-
-        } catch (IOException e) {
-            log.error("{}锁板使用的 {} 打开连接失败，原因:{}", cabinetConfig.getTitle(), commPort, e.getMessage());
-            throw new RuntimeException(e.getMessage());
-        }
+        deviceServiceMap.put(commPort, qianMingLockDeviceService);
+        openAndCacheDevice(qianMingLockDeviceService, cabinetConfig, commPort);
+        
         return qianMingLockDeviceService;
+    }
+
+    /**
+     * 关闭设备连接
+     */
+    @Override
+    protected void closeDevice(QianMingLockDeviceService deviceService) throws Exception {
+        deviceService.close();
+    }
+
+    /**
+     * 获取通信类型
+     */
+    @Override
+    protected String getCommType(CabinetConfig config, String fieldName) {
+        return config.getLockCommType();
+    }
+
+    /**
+     * 获取通信端口
+     */
+    @Override
+    protected String getCommPort(CabinetConfig config, String fieldName) {
+        return config.getLockCommPort();
+    }
+
+    /**
+     * 从配置中获取通信类型（用于日志）
+     */
+    @Override
+    protected String getCommTypeFromConfig(CabinetConfig config) {
+        return config.getLockCommType();
     }
 
     /**
      * 删除柜子配置之后
      */
     public void afterDeleteCabinetConfigData(Integer cabinetConfigId, String commPort) {
-        List<CabinetConfig> cabinetConfigs = cabinetConfigMapper.selectList(new LambdaQueryWrapper<CabinetConfig>().eq(CabinetConfig::getLockCommPort, commPort));
-        if (cabinetConfigs.isEmpty()) {
-            removeDeviceServiceByCommPort(commPort);
-            return;
-        }
-        // 使用这个通信地址的其他柜子总数量
-        long count = cabinetConfigs.stream()
-                .filter(x -> !cabinetConfigId.equals(x.getId()))
-                .filter(x -> commPort.equals(x.getLockCommPort()))
-                .count();
-        if (count <= 0) {
-            removeDeviceServiceByCommPort(commPort);
-        }
-    }
-
-    /**
-     * 通过通信地址删除设备并关闭连接
-     */
-    public void removeDeviceServiceByCommPort(String commPort) {
-        QianMingLockDeviceService remove = qianmingLockDeviceServiceMap.remove(commPort);
-        if (remove != null) {
-            try {
-                remove.close();
-            } catch (Exception e) {
-                throw new RuntimeException("关闭锁板设备连接失败", e);
-            }
-        }
+        super.afterDeleteCabinetConfigData(cabinetConfigId, commPort, "lockCommPort");
     }
 
     /**
@@ -343,7 +170,6 @@ public class QianMingLockDeviceServiceManager {
 
     /**
      * 查询指定格口号所在板子所有的格口号的储物状态
-     *
      * @param cellConfigId
      * @param timeout
      * @return
@@ -359,10 +185,9 @@ public class QianMingLockDeviceServiceManager {
 
     /**
      * 查询单个柜子所有有效格口的储物状态
-     *
      * @param cabinetId 柜子id
-     * @param boxNos    有效格口号列表
-     * @param timeout   超时时间
+     * @param boxNos 有效格口号列表
+     * @param timeout 超时时间
      * @return
      * @throws Exception
      */
@@ -383,9 +208,8 @@ public class QianMingLockDeviceServiceManager {
 
     /**
      * 查询单个格口储物状态
-     *
      * @param cellConfigId 格口配置id
-     * @param timeout      超时时间
+     * @param timeout 超时时间
      * @return
      */
     public boolean querySingleGoodsStatusSync(int cellConfigId, long timeout) {
@@ -411,6 +235,7 @@ public class QianMingLockDeviceServiceManager {
             return true;
         }
     }
+
 
 
     /**

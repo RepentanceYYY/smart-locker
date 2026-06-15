@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class App {
 
     public static void main(String[] args) {
-        System.out.println("当前项目的运行目录 (user.dir) 是: " + System.getProperty("user.dir"));
+       /* System.out.println("当前项目的运行目录 (user.dir) 是: " + System.getProperty("user.dir"));*/
         SpringApplication.run(App.class, args);
     }
 
