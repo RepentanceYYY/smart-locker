@@ -206,10 +206,12 @@ import { fetchCabinetList } from '@/api/cabinet'
 import CameraModal from './CameraModal.vue'
 import InventoryDialog from './InventoryDialog.vue'
 import { useSystemConfigStore } from '@/stores/systemConfig'
+import { useDehumidifierStore } from '@/stores/useDehumidifier'
 import { useCountdown } from '@/composables/useCountdown'
 import type { CSSProperties } from 'vue'
 const router = useRouter()
 const systemConfigStore = useSystemConfigStore()
+const dehumidifierStore = useDehumidifierStore();
 const passwordDialogType = ref<'inventory' | 'settings'>('settings')//操作区分验证按钮颜色
 const isAllowClickButton = ref(false)//是否允许点击领用/归还/盘点/设置按钮  
 const showInventoryDialog = ref(false)//盘点弹窗
@@ -433,7 +435,7 @@ function updateCabinetEnvData(cab: ProcessedCabinet) {
 function processCabinetData(rawData: any[]): ProcessedCabinet[] {
   return rawData.map(cab => {
     const rows = cab.rows.map((row: any) => ({
-      cells: row.cells.map((cell:any) => ({
+      cells: row.cells.map((cell: any) => ({
         ...cell,
         columns: cell.columns || '1fr',
         height: cell.height || 'auto',
@@ -489,20 +491,29 @@ const dialogTitle = ref('')
 const dialogData = ref<any>({})
 const selectedCell = ref<any>(null)
 
+// 计算属性：当前柜子温度
 const currentCabinetTemp = computed(() => {
   if (cabinets.value.length === 0) return '--'
+
   const currentCab = cabinets.value[currentIndex.value]
-  const temp = currentCab?.envData?.temperature
-  // 如果温度为0或未定义，显示加载中
-  return (temp === 0 || temp === undefined) ? '--' : temp.toFixed(1)
+  if (!currentCab?.id) return '--'
+
+  const envData = dehumidifierStore.cabinetEnvMap[currentCab.id]
+  const temp = envData?.temperature
+
+  return (temp === 0 || temp === undefined || temp === null) ? '--' : temp.toFixed(1)
 })
 
+// 计算属性：当前柜子湿度
 const currentCabinetHumidity = computed(() => {
   if (cabinets.value.length === 0) return '--'
+
   const currentCab = cabinets.value[currentIndex.value]
-  const humidity = currentCab?.envData?.humidity
-  // 如果湿度为0或未定义，显示加载中
-  return (humidity === 0 || humidity === undefined) ? '--' : humidity
+  if (!currentCab?.id) return '--'
+  const envData = dehumidifierStore.cabinetEnvMap[currentCab.id]
+  const humidity = envData?.humidity
+
+  return (humidity === 0 || humidity === undefined || humidity === null) ? '--' : humidity
 })
 
 const currentCabinetName = computed(() => {
@@ -566,7 +577,7 @@ function updateLayout() {
 }
 
 // ================== 3D 样式 ==================
-const getCabinetStyle = (idx: number):CSSProperties => {
+const getCabinetStyle = (idx: number): CSSProperties => {
   if (totalCount.value === 0) {
     return { display: 'none' }
   }
@@ -595,7 +606,7 @@ const getCabinetStyle = (idx: number):CSSProperties => {
     zIndexVal = 50
   }
   const transform = `translateX(${x}px) translateY(0px) translateZ(${z}px) rotateY(${rotateY}deg) scale(${scaleVal})`
-  return { transform, zIndex: zIndexVal, opacity: 1, visibility: 'visible', pointerEvents: 'auto' }  
+  return { transform, zIndex: zIndexVal, opacity: 1, visibility: 'visible', pointerEvents: 'auto' }
 }
 
 function rotatePrev() {
@@ -701,12 +712,6 @@ let socket: WebSocket | null = null
 const wsConnected = ref(false)
 let allowReconnect = true
 
-// websocket - 温湿度推送（服务端主动推送）
-const dehumidifierWsUrl = 'ws://localhost:8080/ws/dehumidifier'
-let dehumidifierSocket: WebSocket | null = null
-const dehumidifierWsConnected = ref(false)
-let allowDehumidifierReconnect = true
-
 function connectWebSocket() {
   socket = new WebSocket(wsUrl)
   socket.onopen = () => {
@@ -735,34 +740,6 @@ function connectWebSocket() {
   }
 }
 
-// 连接除湿机WebSocket（接收温湿度推送）
-function connectDehumidifierWebSocket() {
-  dehumidifierSocket = new WebSocket(dehumidifierWsUrl)
-  dehumidifierSocket.onopen = () => {
-    console.log('除湿机WebSocket 连接成功')
-    dehumidifierWsConnected.value = true
-    addNotification('温湿度实时监控已连接', 'success', 2000)
-  }
-  dehumidifierSocket.onmessage = async (event) => {
-    try {
-      const message = JSON.parse(event.data)
-      handleDehumidifierMessage(message)
-    } catch (e) {
-      console.error('解析除湿机消息失败', e)
-    }
-  }
-  dehumidifierSocket.onerror = (error) => {
-    console.error('除湿机WebSocket 错误', error)
-  }
-  dehumidifierSocket.onclose = () => {
-    console.log('除湿机WebSocket 连接关闭')
-    dehumidifierWsConnected.value = false
-    // 尝试重连
-    if (allowDehumidifierReconnect) {
-      setTimeout(() => connectDehumidifierWebSocket(), 3000)
-    }
-  }
-}
 // 发送消息
 function sendMessage(type: string, data: any) {
   if (!socket || socket.readyState !== WebSocket.OPEN) {
@@ -771,40 +748,6 @@ function sendMessage(type: string, data: any) {
   }
   socket.send(JSON.stringify({ type, data }))
   return true
-}
-// 处理除湿机推送的消息
-function handleDehumidifierMessage(msg: any) {
-  const { type, code, data } = msg || {}
-
-  if (type === 'pushRealtimeTemperatureHumidity' && code === 200) {
-    const realtimeData = data?.realtimeTemperatureHumidity
-
-    if (realtimeData && typeof realtimeData === 'object') {
-      // 遍历所有柜子的温湿度数据并更新
-      Object.keys(realtimeData).forEach(key => {
-        const cabinetId = parseInt(key)  // 服务端返回的是柜子ID
-        const thData = realtimeData[key]
-
-        // 根据柜子ID查找对应的柜子（注意：cabinets数组中的id字段）
-        const cabinetIndex = cabinets.value.findIndex(cab => cab.id === cabinetId)
-
-        if (cabinetIndex !== -1 && thData) {
-          // 更新对应柜子的温湿度数据
-          cabinets.value[cabinetIndex].envData = {
-            temperature: thData.temperature || 0,
-            humidity: thData.humidity || 0,
-            lastUpdate: new Date().toLocaleTimeString()
-          }
-        } else {
-          console.warn(`未找到ID为${cabinetId}的柜子，当前柜子列表:`, cabinets.value.map(c => c.id))
-        }
-      })
-
-      // 强制触发响应式更新
-      cabinets.value = [...cabinets.value]
-      console.log('已更新温湿度数据:', JSON.stringify(realtimeData))
-    }
-  }
 }
 
 // 盘点发送的消息
@@ -927,14 +870,13 @@ watch(currentIndex, (newIdx, oldIdx) => {
 onMounted(async () => {
   await loadCabinets()
   if (!systemConfigStore.loaded && !systemConfigStore.loading) {
-      console.log("3 load config")
+    console.log("3 load config")
     await systemConfigStore.loadConfig()
   }
   await nextTick()
   updateLayout()
   updateCurrentTime()
   connectWebSocket()
-  connectDehumidifierWebSocket()
   window.addEventListener('resize', handleResize)
   timeInterval = setInterval(updateCurrentTime, 1000)
 })
@@ -950,13 +892,6 @@ onBeforeUnmount(() => {
   if (socket) {
     socket.close()
     socket = null
-  }
-
-  // 关闭除湿机WebSocket
-  allowDehumidifierReconnect = false
-  if (dehumidifierSocket) {
-    dehumidifierSocket.close()
-    dehumidifierSocket = null
   }
 })
 </script>

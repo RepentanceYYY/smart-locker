@@ -686,7 +686,10 @@ import VueQr from 'vue-qr'
 // 导入导出工具函数
 import { collectCellData, exportToWord, exportToExcel } from '@/utils/exportUtils'
 import type { CSSProperties } from 'vue'
+import {useDehumidifierStore} from '@/stores/useDehumidifier'
 const router = useRouter()
+
+const dehumidifierStore = useDehumidifierStore()
 
 // ==================== 倒计时功能 ====================
 const countdown = useCountdown({
@@ -776,7 +779,6 @@ interface ProcessedCabinet extends CabinetConfig {
   colWidths: string[]
   rowHeights: string[]
   gridStyle: any
-  envData: CabinetEnvData
 }
 
 // ================== 辅助函数 ==================
@@ -902,25 +904,6 @@ function getCellPosition(cell: any) {
   }
 }
 
-function generateRandomEnvData(baseTemp?: number, baseHumidity?: number): CabinetEnvData {
-  let temp = baseTemp !== undefined
-      ? Math.min(35, Math.max(10, baseTemp + (Math.random() - 0.5) * 2))
-      : Number((20 + (Math.random() - 0.5) * 6 + Math.random() * 6).toFixed(1))
-  let humidity = baseHumidity !== undefined
-      ? Math.min(85, Math.max(25, baseHumidity + (Math.random() - 0.5) * 8))
-      : Math.floor(40 + (Math.random() - 0.5) * 20 + Math.random() * 30)
-  return {
-    temperature: temp,
-    humidity: Math.min(85, Math.max(25, humidity)),
-    lastUpdate: new Date().toLocaleTimeString()
-  }
-}
-
-function updateCabinetEnvData(cab: ProcessedCabinet) {
-  cab.envData = generateRandomEnvData(cab.initialTemp, cab.initialHumidity)
-  return cab.envData
-}
-
 function processCabinetData(rawData: any[]): ProcessedCabinet[] {
   return rawData.map((cab: any) => {
     const rows = cab.rows.map((row: any) => ({
@@ -939,7 +922,6 @@ function processCabinetData(rawData: any[]): ProcessedCabinet[] {
     }))
 
     const { flatCells, colWidths, rowHeights } = flattenCells({ ...cab, rows })
-    const initialEnvData = generateRandomEnvData(cab.initialTemp, cab.initialHumidity)
 
     return {
       ...cab,
@@ -950,7 +932,6 @@ function processCabinetData(rawData: any[]): ProcessedCabinet[] {
       colWidths,
       rowHeights,
       gridStyle: getGridTemplate({ colWidths, rowHeights }),
-      envData: initialEnvData
     } as ProcessedCabinet
   })
 }
@@ -1051,14 +1032,29 @@ const radius = ref(320)
 const carouselHeight = ref(600)
 const maxScale = ref(1.4)
 
+// 计算属性：当前柜子温度
 const currentCabinetTemp = computed(() => {
   if (cabinets.value.length === 0) return '--'
-  return cabinets.value[currentIndex.value]?.envData?.temperature?.toFixed(1) || '--'
+
+  const currentCab = cabinets.value[currentIndex.value]
+  if (!currentCab?.id) return '--'
+
+  const envData = dehumidifierStore.cabinetEnvMap[currentCab.id]
+  const temp = envData?.temperature
+
+  return (temp === 0 || temp === undefined || temp === null) ? '--' : temp.toFixed(1)
 })
 
+// 计算属性：当前柜子湿度
 const currentCabinetHumidity = computed(() => {
   if (cabinets.value.length === 0) return '--'
-  return cabinets.value[currentIndex.value]?.envData?.humidity || '--'
+
+  const currentCab = cabinets.value[currentIndex.value]
+  if (!currentCab?.id) return '--'
+  const envData = dehumidifierStore.cabinetEnvMap[currentCab.id]
+  const humidity = envData?.humidity
+
+  return (humidity === 0 || humidity === undefined || humidity === null) ? '--' : humidity
 })
 
 const currentCabinetName = computed(() => {
@@ -1105,7 +1101,6 @@ const errors = ref({
 const showToast = ref(false)
 const toastText = ref('')
 let toastTimer: ReturnType<typeof setTimeout> | null = null
-let envDataTimer: ReturnType<typeof setInterval> | null = null
 
 const settingsDropdownVisible = ref(false)
 const advancedSettingsEnabled = ref(false)
@@ -1198,19 +1193,6 @@ function showMessage(text: string) {
   toastText.value = text
   showToast.value = true
   toastTimer = setTimeout(() => { showToast.value = false }, 2000)
-}
-
-function updateAllCabinetsEnvData() {
-  cabinets.value.forEach(cab => updateCabinetEnvData(cab))
-  cabinets.value = [...cabinets.value]
-}
-
-function startEnvDataSimulation() {
-  envDataTimer = setInterval(() => updateAllCabinetsEnvData(), 5000)
-}
-
-function stopEnvDataSimulation() {
-  if (envDataTimer) { clearInterval(envDataTimer); envDataTimer = null }
 }
 
 const getCabinetStyle = (idx: number):CSSProperties => {
@@ -2180,7 +2162,6 @@ onMounted(() => {
   fetchData()
   updateLayout()
   window.addEventListener('resize', handleResize)
-  startEnvDataSimulation()
   document.addEventListener('click', handleClickOutside)
   document.addEventListener('click', handleGlobalClick)
 })
@@ -2188,7 +2169,6 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResize)
   if (resizeTimer) clearTimeout(resizeTimer)
-  stopEnvDataSimulation()
   if (toastTimer) clearTimeout(toastTimer)
   document.removeEventListener('click', handleClickOutside)
   document.removeEventListener('click', handleGlobalClick)

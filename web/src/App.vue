@@ -13,10 +13,13 @@
 
   <!-- 顶部标题栏：增强科技感 -->
   <header
-      class="fixed top-0 left-0 w-full h-28 bg-gradient-to-r from-black/90 via-slate-900/90 to-black/90 backdrop-blur-xl border-b-2 border-cyan-400 shadow-[0_8px_32px_rgba(0,255,255,0.2)] z-50 flex items-center justify-center overflow-hidden"
-  >
-    <div class="absolute inset-0 pointer-events-none border-b-2 border-cyan-500/60 shadow-[inset_0_-1px_0_rgba(0,255,255,0.5)]"></div>
-    <div class="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_center,_rgba(0,255,255,0.15)_0%,_transparent_70%)]"></div>
+    class="fixed top-0 left-0 w-full h-28 bg-gradient-to-r from-black/90 via-slate-900/90 to-black/90 backdrop-blur-xl border-b-2 border-cyan-400 shadow-[0_8px_32px_rgba(0,255,255,0.2)] z-50 flex items-center justify-center overflow-hidden">
+    <div
+      class="absolute inset-0 pointer-events-none border-b-2 border-cyan-500/60 shadow-[inset_0_-1px_0_rgba(0,255,255,0.5)]">
+    </div>
+    <div
+      class="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_center,_rgba(0,255,255,0.15)_0%,_transparent_70%)]">
+    </div>
 
     <div class="absolute left-6 flex gap-3">
       <div class="w-4 h-4 rounded-full bg-cyan-400 shadow-[0_0_16px_#22d3ee] animate-ping"></div>
@@ -27,8 +30,12 @@
       <div class="w-4 h-4 rounded-full bg-cyan-400 shadow-[0_0_16px_#22d3ee] animate-ping"></div>
     </div>
 
-    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-16 border border-cyan-400/60 rounded-full blur-md animate-pulse"></div>
-    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-20 bg-gradient-to-r from-cyan-500/30 via-blue-500/30 to-cyan-500/30 rounded-full blur-2xl"></div>
+    <div
+      class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-16 border border-cyan-400/60 rounded-full blur-md animate-pulse">
+    </div>
+    <div
+      class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-20 bg-gradient-to-r from-cyan-500/30 via-blue-500/30 to-cyan-500/30 rounded-full blur-2xl">
+    </div>
 
     <div class="title-scan-enhanced"></div>
   </header>
@@ -60,8 +67,8 @@
   width: 100%;
   height: 100%;
   background-image:
-      linear-gradient(rgba(0, 255, 255, 0.1) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0, 255, 255, 0.1) 1px, transparent 1px);
+    linear-gradient(rgba(0, 255, 255, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 255, 0.1) 1px, transparent 1px);
   background-size: 40px 40px;
   pointer-events: none;
 }
@@ -73,13 +80,11 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: repeating-linear-gradient(
-      0deg,
+  background: repeating-linear-gradient(0deg,
       rgba(0, 255, 255, 0.03) 0px,
       rgba(0, 255, 255, 0.03) 2px,
       transparent 2px,
-      transparent 8px
-  );
+      transparent 8px);
   pointer-events: none;
 }
 
@@ -92,16 +97,27 @@
   height: 100%;
   z-index: -1;
   background:
-      radial-gradient(circle at 30% 40%, rgba(0, 200, 255, 0.15), transparent 60%),
-      radial-gradient(circle at 70% 80%, rgba(100, 0, 255, 0.15), transparent 60%);
+    radial-gradient(circle at 30% 40%, rgba(0, 200, 255, 0.15), transparent 60%),
+    radial-gradient(circle at 70% 80%, rgba(100, 0, 255, 0.15), transparent 60%);
   animation: auroraMove 20s ease-in-out infinite alternate;
   pointer-events: none;
 }
 
 @keyframes auroraMove {
-  0% { opacity: 0.4; transform: scale(1) translate(0%, 0%); }
-  50% { opacity: 0.8; transform: scale(1.1) translate(2%, 1%); }
-  100% { opacity: 0.4; transform: scale(1) translate(-1%, -2%); }
+  0% {
+    opacity: 0.4;
+    transform: scale(1) translate(0%, 0%);
+  }
+
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1) translate(2%, 1%);
+  }
+
+  100% {
+    opacity: 0.4;
+    transform: scale(1) translate(-1%, -2%);
+  }
 }
 
 /* ========== 数据流射线 ========== */
@@ -116,34 +132,112 @@
   z-index: 0;
 }
 
-.data-stream-1 { top: 20%; left: -10%; transform: rotate(25deg); animation: streamMove1 8s linear infinite; }
-.data-stream-2 { bottom: 30%; right: -10%; transform: rotate(-30deg); animation: streamMove2 10s linear infinite; }
-.data-stream-3 { top: 60%; left: -15%; transform: rotate(-15deg); animation: streamMove3 12s linear infinite; }
-.data-stream-4 { bottom: 15%; right: -5%; transform: rotate(40deg); animation: streamMove4 7s linear infinite; }
+.data-stream-1 {
+  top: 20%;
+  left: -10%;
+  transform: rotate(25deg);
+  animation: streamMove1 8s linear infinite;
+}
+
+.data-stream-2 {
+  bottom: 30%;
+  right: -10%;
+  transform: rotate(-30deg);
+  animation: streamMove2 10s linear infinite;
+}
+
+.data-stream-3 {
+  top: 60%;
+  left: -15%;
+  transform: rotate(-15deg);
+  animation: streamMove3 12s linear infinite;
+}
+
+.data-stream-4 {
+  bottom: 15%;
+  right: -5%;
+  transform: rotate(40deg);
+  animation: streamMove4 7s linear infinite;
+}
 
 @keyframes streamMove1 {
-  0% { left: -10%; opacity: 0; }
-  20% { opacity: 0.8; }
-  80% { opacity: 0.8; }
-  100% { left: 110%; opacity: 0; }
+  0% {
+    left: -10%;
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 0.8;
+  }
+
+  80% {
+    opacity: 0.8;
+  }
+
+  100% {
+    left: 110%;
+    opacity: 0;
+  }
 }
+
 @keyframes streamMove2 {
-  0% { right: -10%; opacity: 0; }
-  20% { opacity: 0.8; }
-  80% { opacity: 0.8; }
-  100% { right: 110%; opacity: 0; }
+  0% {
+    right: -10%;
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 0.8;
+  }
+
+  80% {
+    opacity: 0.8;
+  }
+
+  100% {
+    right: 110%;
+    opacity: 0;
+  }
 }
+
 @keyframes streamMove3 {
-  0% { left: -15%; opacity: 0; }
-  20% { opacity: 0.6; }
-  80% { opacity: 0.6; }
-  100% { left: 115%; opacity: 0; }
+  0% {
+    left: -15%;
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 0.6;
+  }
+
+  80% {
+    opacity: 0.6;
+  }
+
+  100% {
+    left: 115%;
+    opacity: 0;
+  }
 }
+
 @keyframes streamMove4 {
-  0% { right: -5%; opacity: 0; }
-  20% { opacity: 0.7; }
-  80% { opacity: 0.7; }
-  100% { right: 105%; opacity: 0; }
+  0% {
+    right: -5%;
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 0.7;
+  }
+
+  80% {
+    opacity: 0.7;
+  }
+
+  100% {
+    right: 105%;
+    opacity: 0;
+  }
 }
 
 /* ========== 鼠标跟随光晕 ========== */
@@ -168,49 +262,77 @@
   width: 100%;
   height: 100%;
   background: linear-gradient(90deg,
-  transparent,
-  rgba(0, 255, 255, 0.4),
-  rgba(59, 130, 246, 0.6),
-  rgba(0, 255, 255, 0.4),
-  transparent);
+      transparent,
+      rgba(0, 255, 255, 0.4),
+      rgba(59, 130, 246, 0.6),
+      rgba(0, 255, 255, 0.4),
+      transparent);
   animation: titleScanEnhanced 2s linear infinite;
   pointer-events: none;
   filter: blur(2px);
 }
 
 @keyframes titleScanEnhanced {
-  0% { transform: translateX(-100%) skewX(-15deg); opacity: 0; }
-  20% { opacity: 1; }
-  80% { opacity: 1; }
-  100% { transform: translateX(100%) skewX(-15deg); opacity: 0; }
+  0% {
+    transform: translateX(-100%) skewX(-15deg);
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 1;
+  }
+
+  80% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(100%) skewX(-15deg);
+    opacity: 0;
+  }
 }
 
 /* ========== 标题动画 ========== */
 @keyframes titleGlowEnhanced {
-  0% { text-shadow: 0 0 5px rgba(34, 211, 238, 0.5), 0 0 15px rgba(59, 130, 246, 0.3); }
-  50% { text-shadow: 0 0 25px rgba(34, 211, 238, 1), 0 0 45px rgba(59, 130, 246, 0.8), 0 0 10px white; }
-  100% { text-shadow: 0 0 5px rgba(34, 211, 238, 0.5), 0 0 15px rgba(59, 130, 246, 0.3); }
+  0% {
+    text-shadow: 0 0 5px rgba(34, 211, 238, 0.5), 0 0 15px rgba(59, 130, 246, 0.3);
+  }
+
+  50% {
+    text-shadow: 0 0 25px rgba(34, 211, 238, 1), 0 0 45px rgba(59, 130, 246, 0.8), 0 0 10px white;
+  }
+
+  100% {
+    text-shadow: 0 0 5px rgba(34, 211, 238, 0.5), 0 0 15px rgba(59, 130, 246, 0.3);
+  }
 }
-.animate-title-glow-enhanced { animation: titleGlowEnhanced 1.8s ease-in-out infinite; }
+
+.animate-title-glow-enhanced {
+  animation: titleGlowEnhanced 1.8s ease-in-out infinite;
+}
 
 /* ========== 整体滚动区域（科技感滚动条，明显可见） ========== */
 .main-scroll-area {
   scrollbar-width: thin;
   scrollbar-color: #22d3ee #0a1a1f;
 }
+
 .main-scroll-area::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
+
 .main-scroll-area::-webkit-scrollbar-track {
   background: #0a1a1f;
   border-radius: 10px;
 }
+
 .main-scroll-area::-webkit-scrollbar-thumb {
   background: #22d3ee;
   border-radius: 10px;
-  box-shadow: inset 0 0 3px rgba(0,0,0,0.3);
+  box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.3);
 }
+
 .main-scroll-area::-webkit-scrollbar-thumb:hover {
   background: #0ff;
   box-shadow: 0 0 6px cyan;
@@ -221,6 +343,7 @@
 :deep(.router-view-fade-leave-active) {
   transition: opacity 0.3s ease;
 }
+
 :deep(.router-view-fade-enter-from),
 :deep(.router-view-fade-leave-to) {
   opacity: 0;
@@ -237,14 +360,18 @@ body {
   cursor: default;
   overflow: hidden;
 }
-html { scroll-behavior: smooth; }
+
+html {
+  scroll-behavior: smooth;
+}
 </style>
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useSystemConfigStore } from './stores/systemConfig'
+import { useDehumidifierStore } from '@/stores/useDehumidifier'
 const systemConfigStore = useSystemConfigStore()
-
+const dehumidifierStore = useDehumidifierStore()
 
 const mouseGlow = ref<HTMLElement | null>(null)
 const handleMouseMove = (e: MouseEvent) => {
@@ -253,8 +380,9 @@ const handleMouseMove = (e: MouseEvent) => {
   }
 }
 
-onMounted(async() => {
+onMounted(async () => {
   window.addEventListener('mousemove', handleMouseMove)
+  dehumidifierStore.connectDehumidifierWebSocket()
   try {
     await systemConfigStore.loadConfig()
   } catch (error) {
@@ -263,6 +391,7 @@ onMounted(async() => {
 })
 
 onBeforeUnmount(() => {
+  dehumidifierStore.closeDehumidifierWebSocket()
   window.removeEventListener('mousemove', handleMouseMove)
 })
 </script>

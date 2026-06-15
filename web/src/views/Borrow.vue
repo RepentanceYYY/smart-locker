@@ -217,6 +217,7 @@
 <script lang="ts" setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useSystemConfigStore } from '@/stores/systemConfig'
+import {useDehumidifierStore} from '@/stores/useDehumidifier'
 import { useRouter } from 'vue-router'
 import { fetchCabinetList } from '@/api/cabinet'
 import BorrowSummaryModal from './BorrowSummaryModal.vue'
@@ -226,6 +227,7 @@ import type { CSSProperties } from 'vue'
 const photoFile = ref<File | null>(null)      // 暂存照片文件
 const photoPreviewUrl = ref<string>('')       // 用于预览的 blob URL
 const systemStore = useSystemConfigStore()
+const dehumidifierStore = useDehumidifierStore()
 // ================== 类型定义 ==================
 interface BaseCell {
   type: 'cell' | 'image'
@@ -256,12 +258,6 @@ interface RowConfig {
   cells: CellConfig[]
 }
 
-interface CabinetEnvData {
-  temperature: number
-  humidity: number
-  lastUpdate: string
-}
-
 interface CabinetConfig {
   id: number
   title: string
@@ -278,7 +274,6 @@ interface ProcessedCabinet extends CabinetConfig {
   colWidths: string[]
   rowHeights: string[]
   gridStyle: any
-  envData: CabinetEnvData
 }
 
 interface BorrowItem {
@@ -414,27 +409,6 @@ function getCellPosition(cell: any) {
   }
 }
 
-// ================== 温湿度模拟 ==================
-function generateRandomEnvData(baseTemp?: number, baseHumidity?: number): CabinetEnvData {
-  const tempOffset = (Math.random() - 0.5) * 6
-  const humidityOffset = (Math.random() - 0.5) * 20
-  let temp: number, humidity: number
-  if (baseTemp !== undefined) temp = Math.min(35, Math.max(10, baseTemp + (Math.random() - 0.5) * 2))
-  else temp = Number((20 + tempOffset + Math.random() * 6).toFixed(1))
-  if (baseHumidity !== undefined) humidity = Math.min(85, Math.max(25, baseHumidity + (Math.random() - 0.5) * 8))
-  else humidity = Math.floor(40 + humidityOffset + Math.random() * 30)
-  return {
-    temperature: temp,
-    humidity: Math.min(85, Math.max(25, humidity)),
-    lastUpdate: new Date().toLocaleTimeString(),
-  }
-}
-
-function updateCabinetEnvData(cab: ProcessedCabinet) {
-  cab.envData = generateRandomEnvData(cab.initialTemp, cab.initialHumidity)
-  return cab.envData
-}
-
 function processCabinetData(rawData: any[]): ProcessedCabinet[] {
   return rawData.map((cab) => {
     const rows = cab.rows.map((row: any) => ({
@@ -452,7 +426,6 @@ function processCabinetData(rawData: any[]): ProcessedCabinet[] {
       })),
     }))
     const { flatCells, colWidths, rowHeights } = flattenCells({ ...cab, rows })
-    const initialEnvData = generateRandomEnvData(cab.initialTemp, cab.initialHumidity)
     return {
       ...cab,
       width: cab.width || '280px',
@@ -462,7 +435,6 @@ function processCabinetData(rawData: any[]): ProcessedCabinet[] {
       colWidths,
       rowHeights,
       gridStyle: getGridTemplate({ colWidths, rowHeights }),
-      envData: initialEnvData,
     } as ProcessedCabinet
   })
 }
@@ -559,34 +531,34 @@ const successCountdown = ref(10)
 const successBorrowCount = ref(0)
 let successTimer: ReturnType<typeof setInterval> | null = null
 
+// 计算属性：当前柜子温度
 const currentCabinetTemp = computed(() => {
   if (cabinets.value.length === 0) return '--'
-  return cabinets.value[currentIndex.value]?.envData?.temperature?.toFixed(1) || '--'
+
+  const currentCab = cabinets.value[currentIndex.value]
+  if (!currentCab?.id) return '--'
+
+  const envData = dehumidifierStore.cabinetEnvMap[currentCab.id]
+  const temp = envData?.temperature
+
+  return (temp === 0 || temp === undefined || temp === null) ? '--' : temp.toFixed(1)
 })
 
+// 计算属性：当前柜子湿度
 const currentCabinetHumidity = computed(() => {
   if (cabinets.value.length === 0) return '--'
-  return cabinets.value[currentIndex.value]?.envData?.humidity || '--'
+
+  const currentCab = cabinets.value[currentIndex.value]
+  if (!currentCab?.id) return '--'
+  const envData = dehumidifierStore.cabinetEnvMap[currentCab.id]
+  const humidity = envData?.humidity
+
+  return (humidity === 0 || humidity === undefined || humidity === null) ? '--' : humidity
 })
 
 const isCompleteDisabled = computed(() => {
   return loading.value || showBorrowSummary.value || showUnclosedModal.value || showEmptyDataModal.value || showSuccessModal.value
 })
-
-let timerInterval: ReturnType<typeof setInterval> | null = null
-
-function updateAllCabinetsEnvData() {
-  cabinets.value.forEach((cab) => updateCabinetEnvData(cab))
-  cabinets.value = [...cabinets.value]
-}
-
-function startTempHumiditySimulation() {
-  timerInterval = setInterval(() => updateAllCabinetsEnvData(), 5000)
-}
-
-function stopTempHumiditySimulation() {
-  if (timerInterval) clearInterval(timerInterval)
-}
 
 function startEmptyDataCountdown() {
   if (emptyDataTimer) clearInterval(emptyDataTimer)
@@ -1046,7 +1018,6 @@ onMounted(() => {
   loadCabinets()
   updateLayout()
   window.addEventListener('resize', handleResize)
-  startTempHumiditySimulation()
   connectWebSocket()
 })
 
@@ -1054,7 +1025,6 @@ onBeforeUnmount(() => {
   if (photoPreviewUrl.value) URL.revokeObjectURL(photoPreviewUrl.value)
   window.removeEventListener('resize', handleResize)
   if (resizeTimer) clearTimeout(resizeTimer)
-  stopTempHumiditySimulation()
   clearEmptyDataTimer()
   clearSuccessTimer()
   stopCloseAndCheckPolling()

@@ -224,7 +224,11 @@ import { useRouter } from 'vue-router'
 import { fetchCabinetList } from '@/api/cabinet'
 import { submitReturnRecords } from '@/api/return'
 import ReturnSummaryModal from './ReturnSummaryModal.vue'
+import {useDehumidifierStore} from '@/stores/useDehumidifier'
 import type { CSSProperties } from 'vue'
+
+const dehumidifierStore = useDehumidifierStore()
+
 // ================== 类型定义 ==================
 interface BaseCell {
   type: 'cell' | 'image'
@@ -256,12 +260,6 @@ interface RowConfig {
   cells: CellConfig[]
 }
 
-interface CabinetEnvData {
-  temperature: number
-  humidity: number
-  lastUpdate: string
-}
-
 interface CabinetConfig {
   id: number
   title: string
@@ -278,7 +276,6 @@ interface ProcessedCabinet extends CabinetConfig {
   colWidths: string[]
   rowHeights: string[]
   gridStyle: any
-  envData: CabinetEnvData
 }
 
 interface Notification {
@@ -395,28 +392,6 @@ function getCellPosition(cell: any) {
   }
 }
 
-function generateRandomEnvData(baseTemp?: number, baseHumidity?: number): CabinetEnvData {
-  const tempOffset = (Math.random() - 0.5) * 6
-  const humidityOffset = (Math.random() - 0.5) * 20
-  let temp: number, humidity: number
-  if (baseTemp !== undefined)
-    temp = Math.min(35, Math.max(10, baseTemp + (Math.random() - 0.5) * 2))
-  else temp = Number((20 + tempOffset + Math.random() * 6).toFixed(1))
-  if (baseHumidity !== undefined)
-    humidity = Math.min(85, Math.max(25, baseHumidity + (Math.random() - 0.5) * 8))
-  else humidity = Math.floor(40 + humidityOffset + Math.random() * 30)
-  return {
-    temperature: temp,
-    humidity: Math.min(85, Math.max(25, humidity)),
-    lastUpdate: new Date().toLocaleTimeString(),
-  }
-}
-
-function updateCabinetEnvData(cab: ProcessedCabinet) {
-  cab.envData = generateRandomEnvData(cab.initialTemp, cab.initialHumidity)
-  return cab.envData
-}
-
 function processCabinetData(rawData: any[]): ProcessedCabinet[] {
   return rawData.map(cab => {
     const rows = cab.rows.map((row: any) => ({
@@ -435,7 +410,6 @@ function processCabinetData(rawData: any[]): ProcessedCabinet[] {
       })),
     }))
     const { flatCells, colWidths, rowHeights } = flattenCells({ ...cab, rows })
-    const initialEnvData = generateRandomEnvData(cab.initialTemp, cab.initialHumidity)
     return {
       ...cab,
       width: cab.width || '280px',
@@ -445,7 +419,6 @@ function processCabinetData(rawData: any[]): ProcessedCabinet[] {
       colWidths,
       rowHeights,
       gridStyle: getGridTemplate({ colWidths, rowHeights }),
-      envData: initialEnvData,
     } as ProcessedCabinet
   })
 }
@@ -514,30 +487,30 @@ const isCompleteDisabled = computed(() => {
 const targetCabinetName = ref('')
 const targetCellNumber = ref('')
 
-// 温湿度
+// 计算属性：当前柜子温度
 const currentCabinetTemp = computed(() => {
   if (cabinets.value.length === 0) return '--'
-  return cabinets.value[currentIndex.value]?.envData?.temperature?.toFixed(1) || '--'
+
+  const currentCab = cabinets.value[currentIndex.value]
+  if (!currentCab?.id) return '--'
+
+  const envData = dehumidifierStore.cabinetEnvMap[currentCab.id]
+  const temp = envData?.temperature
+
+  return (temp === 0 || temp === undefined || temp === null) ? '--' : temp.toFixed(1)
 })
+
+// 计算属性：当前柜子湿度
 const currentCabinetHumidity = computed(() => {
   if (cabinets.value.length === 0) return '--'
-  return cabinets.value[currentIndex.value]?.envData?.humidity || '--'
+
+  const currentCab = cabinets.value[currentIndex.value]
+  if (!currentCab?.id) return '--'
+  const envData = dehumidifierStore.cabinetEnvMap[currentCab.id]
+  const humidity = envData?.humidity
+
+  return (humidity === 0 || humidity === undefined || humidity === null) ? '--' : humidity
 })
-
-let timerInterval: ReturnType<typeof setInterval> | null = null
-
-function updateAllCabinetsEnvData() {
-  cabinets.value.forEach(cab => updateCabinetEnvData(cab))
-  cabinets.value = [...cabinets.value]
-}
-
-function startTempHumiditySimulation() {
-  timerInterval = setInterval(() => updateAllCabinetsEnvData(), 5000)
-}
-
-function stopTempHumiditySimulation() {
-  if (timerInterval) clearInterval(timerInterval)
-}
 
 async function loadCabinets() {
   loading.value = true
@@ -912,30 +885,6 @@ const processScannedQRCode = async (content: string) => {
   await requestOpenLock(cabinet.id, cell.id, cell.number)
 }
 
-async function handleCellClick(cab: ProcessedCabinet, cell: NormalCell) {
-  if (!cell.isDoorOpen) return
-
-  if (!cell.isEmpty) {
-    addNotification(`格口 ${cell.number} 已被占用，无法归还`, 'warning')
-    resetScanState()
-    return
-  }
-
-  // 发送关门并检测物品指令
-  if (!wsConnected.value) {
-    addNotification('服务器未连接，请稍后重试', 'warning')
-    return
-  }
-  sendMessage('closeAndCheck', {
-    cabinetId: cab.id,
-    cellId: cell.id,
-    cellNumber: cell.number,
-    toolName: getToolNameForCell(cell)
-  })
-  addNotification(`正在关闭柜门并检测物品...`, 'info')
-  // 结果通过 WebSocket 消息返回
-}
-
 function resetScanState() {
   const anyOpen = cabinets.value.some(cab =>
     cab.flatCells.some(cell => cell.type === 'cell' && cell.isDoorOpen === true)
@@ -1159,7 +1108,6 @@ onMounted(() => {
   updateLayout()
   window.addEventListener('resize', handleResize)
   window.addEventListener('keydown', onGlobalKeydown)
-  startTempHumiditySimulation()
   connectWebSocket()
 
   addNotification('请使用扫描枪扫描格口二维码或手动输入进行归还', 'info', 8000)
@@ -1169,7 +1117,6 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResize)
   window.removeEventListener('keydown', onGlobalKeydown)
   if (resizeTimer) clearTimeout(resizeTimer)
-  stopTempHumiditySimulation()
   clearEmptyReturnTimer()
   clearReturnSuccessTimer()
   if (scannerTimer.value) clearTimeout(scannerTimer.value)
