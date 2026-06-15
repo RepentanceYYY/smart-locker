@@ -3,6 +3,7 @@ package com.tairui.server.webSocket;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tairui.server.device.dehumidifier.ThData;
 import com.tairui.server.deviceService.DehumidifierDeviceServiceManager;
+import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,9 +32,9 @@ public class DehumidifierWebSocketHandler extends TextWebSocketHandler {
     // 定时任务执行器，用于定期推送数据给前端
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
-    public DehumidifierWebSocketHandler() {
-        // 启动定时推送任务，每2秒推送一次数据给所有连接的前端
-        scheduler.scheduleAtFixedRate(this::pushDataToAllClients, 0, 2, TimeUnit.SECONDS);
+    @PostConstruct
+    public void init() {
+        scheduler.scheduleAtFixedRate(this::pushDataToAllClients, 2, 2, TimeUnit.SECONDS);
     }
 
     @Override
@@ -80,12 +81,13 @@ public class DehumidifierWebSocketHandler extends TextWebSocketHandler {
      */
     private void pushDataToAllClients() {
         try {
-            // 直接从设备获取最新数据
-            Map<Integer, ThData> latestThData = dehumidifierDeviceServiceManager.getRealtimeTemperatureHumidity();
-            
             if (sessions.isEmpty()) {
                 return; // 没有客户端连接，无需推送
             }
+            // 直接从设备获取最新数据
+            Map<Integer, ThData> latestThData = dehumidifierDeviceServiceManager.getRealtimeTemperatureHumidity();
+            
+
             
             Map<String, Object> result = Map.of(
                     "realtimeTemperatureHumidity", latestThData

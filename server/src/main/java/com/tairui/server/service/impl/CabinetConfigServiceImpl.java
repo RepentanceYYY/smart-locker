@@ -103,25 +103,41 @@ public class CabinetConfigServiceImpl extends ServiceImpl<CabinetConfigMapper, C
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void updateCabinet(Integer id, CabinetUpdateDTO updateDTO) {
-        // 1. 检查柜子是否存在
+        // 检查柜子是否存在
         CabinetConfig existing = this.getById(id);
         if (existing == null) {
-            throw new RuntimeException("柜子不存在，id=" + id);
+            throw new ClientException("柜子不存在，id=" + id);
         }
 
-        // 2. 检查名称唯一性（排除自身）
+        // 保存旧的端口信息，用于后续比对和硬件回滚
+        String oldLockCommPort = existing.getLockCommPort();
+        String oldDehumidifierCommPort = existing.getDehumidifierCommPort();
+
+        // 检查名称及设备的唯一性（排除自身）
         if (updateDTO.getTitle() != null && !updateDTO.getTitle().equals(existing.getTitle())) {
             LambdaQueryWrapper<CabinetConfig> wrapper = new LambdaQueryWrapper<>();
             wrapper.eq(CabinetConfig::getTitle, updateDTO.getTitle());
-            long count = this.count(wrapper);
-            if (count > 0) {
-                throw new RuntimeException("柜子名称已存在，请使用唯一名称");
+            if (this.count(wrapper) > 0) {
+                throw new ClientException("柜子名称已存在，请使用唯一名称");
             }
         }
 
-        // 3. 构建更新实体（必须设置 id）
+        // 检查新除湿机端口+地址是否与别的柜子冲突
+        String targetDehumidifierPort = updateDTO.getDehumidifierCommPort() != null ? updateDTO.getDehumidifierCommPort() : existing.getDehumidifierCommPort();
+        String targetDehumidifierAddr = updateDTO.getDehumidifierAddr() != null ? updateDTO.getDehumidifierAddr() : existing.getDehumidifierAddr();
+        if (!targetDehumidifierPort.equals(oldDehumidifierCommPort) || !targetDehumidifierAddr.equals(oldDehumidifierCommPort)) {
+            LambdaQueryWrapper<CabinetConfig> dehumidifierWrapper = new LambdaQueryWrapper<>();
+            dehumidifierWrapper.ne(CabinetConfig::getId, id)
+                    .eq(CabinetConfig::getDehumidifierCommPort, targetDehumidifierPort)
+                    .eq(CabinetConfig::getDehumidifierAddr, targetDehumidifierAddr);
+            if (this.count(dehumidifierWrapper) > 0) {
+                throw new ClientException(String.format("其他柜子已占用通信端口[%s]下的除湿机地址[%s]", targetDehumidifierPort, targetDehumidifierAddr));
+            }
+        }
+
+        // 构建并执行数据库更新
         CabinetConfig updateEntity = new CabinetConfig();
-        updateEntity.setId(id);   // 关键：设置要更新的记录 ID
+        updateEntity.setId(id);
         if (updateDTO.getTitle() != null) updateEntity.setTitle(updateDTO.getTitle());
         if (updateDTO.getWidth() != null) updateEntity.setWidth(updateDTO.getWidth());
         if (updateDTO.getHeight() != null) updateEntity.setHeight(updateDTO.getHeight());
@@ -141,29 +157,139 @@ public class CabinetConfigServiceImpl extends ServiceImpl<CabinetConfigMapper, C
         if (updateDTO.getLockCommPort() != null) updateEntity.setLockCommPort(updateDTO.getLockCommPort());
         if (updateDTO.getLockBoardAddr() != null) updateEntity.setLockBoardAddr(updateDTO.getLockBoardAddr());
 
-        // 4. 执行更新
         boolean updated = this.updateById(updateEntity);
         if (!updated) {
-            throw new RuntimeException("更新柜子配置失败");
+            throw new ServerException("更新柜子配置失败");
         }
 
-        // 5. 如果当前柜子被设置为默认柜子，将其他柜子的 isDefault 设为 false
+        // 默认柜子排他性更新
         if (updateDTO.getIsDefault() != null && updateDTO.getIsDefault()) {
-            LambdaQueryWrapper<CabinetConfig> wrapper = new LambdaQueryWrapper<>();
-            wrapper.ne(CabinetConfig::getId, id);
-            wrapper.eq(CabinetConfig::getIsDefault, "true");
-            List<CabinetConfig> otherDefaults = this.list(wrapper);
-            for (CabinetConfig cab : otherDefaults) {
-                cab.setIsDefault("false");
-                this.updateById(cab);
+            LambdaUpdateWrapper<CabinetConfig> updateWrapper = new LambdaUpdateWrapper<>();
+            updateWrapper.ne(CabinetConfig::getId, id)
+                    .eq(CabinetConfig::getIsDefault, "true")
+                    .set(CabinetConfig::getIsDefault, "false");
+            this.update(updateWrapper);
+        }
+
+        // 硬件连接平滑更新与回滚
+        // 获取更新后的完整最新配置实体，用于传入硬件 ServiceManager
+        CabinetConfig fullLatestEntity = this.getById(id);
+
+        // 判断锁板和除湿机端口是否发生改变
+        boolean isLockPortChanged = updateDTO.getLockCommPort() != null && !updateDTO.getLockCommPort().equals(oldLockCommPort);
+        boolean isDehumidifierPortChanged = updateDTO.getDehumidifierCommPort() != null && !updateDTO.getDehumidifierCommPort().equals(oldDehumidifierCommPort);
+
+        // 状态记录：用于在 catch 中识别哪些“新动作”成功了，需要做逆向清除
+        boolean newLockRegistered = false;
+        boolean newDehumidifierRegistered = false;
+
+        // 状态记录：用于暂存被断开的老设备实例，若新逻辑失败，需要将它们“死灰复燃”
+        QianMingLockDeviceService oldLockServiceBackup = null;
+        DehumidifierDeviceService oldDehumidifierServiceBackup = null;
+
+        try {
+            // 锁板链路更新
+            if (isLockPortChanged) {
+                log.info("检测到锁板端口变更: {} -> {}", oldLockCommPort, fullLatestEntity.getLockCommPort());
+
+                // 暂存并断开旧的连接（注意：为了防止新端口占用冲突，必须先断开老连接释放物理串口）
+                if (oldLockCommPort != null) {
+                    oldLockServiceBackup = qianMingLockDeviceServiceManager.getDeviceServiceMap().remove(oldLockCommPort);
+                    if (oldLockServiceBackup != null) {
+                        try {
+                            oldLockServiceBackup.close();
+                        } catch (Exception e) {
+                            log.warn("断开老锁板连接时发生异常(忽略): ", e);
+                        }
+                    }
+                }
+
+                // 建立新连接
+                QianMingLockDeviceService newLockService = qianMingLockDeviceServiceManager.addDeviceServiceByNewCabinetConfig(fullLatestEntity);
+                if (newLockService.getCommDispatcher() != null && !qianMingLockDeviceServiceManager.getDeviceServiceMap().containsKey(fullLatestEntity.getLockCommPort())) {
+                    newLockService.open();
+                    qianMingLockDeviceServiceManager.getDeviceServiceMap().put(fullLatestEntity.getLockCommPort(), newLockService);
+                    newLockRegistered = true;
+                    log.info("{} 新锁板硬件连接成功并缓存", fullLatestEntity.getTitle());
+                }
             }
+
+            // 除湿机链路更新
+            if (isDehumidifierPortChanged) {
+                log.info("检测到除湿机端口变更: {} -> {}", oldDehumidifierCommPort, fullLatestEntity.getDehumidifierCommPort());
+
+                // 暂存并断开旧的连接
+                if (oldDehumidifierCommPort != null) {
+                    oldDehumidifierServiceBackup = dehumidifierDeviceServiceManager.getDeviceServiceMap().remove(oldDehumidifierCommPort);
+                    if (oldDehumidifierServiceBackup != null) {
+                        try {
+                            oldDehumidifierServiceBackup.close();
+                        } catch (Exception e) {
+                            log.warn("断开老除湿机连接时发生异常(忽略): ", e);
+                        }
+                    }
+                }
+
+                // 建立新连接
+                DehumidifierDeviceService newDehumidifierService = dehumidifierDeviceServiceManager.addDeviceServiceByNewCabinetConfig(fullLatestEntity);
+                if (!dehumidifierDeviceServiceManager.getDeviceServiceMap().containsKey(fullLatestEntity.getDehumidifierCommPort())) {
+                    newDehumidifierService.open();
+                    dehumidifierDeviceServiceManager.getDeviceServiceMap().put(fullLatestEntity.getDehumidifierCommPort(), newDehumidifierService);
+                    newDehumidifierRegistered = true;
+                    log.info("{} 新除湿机硬件连接成功并缓存", fullLatestEntity.getTitle());
+                }
+            }
+
+        } catch (Exception e) {
+            log.error("==== 硬件链路更新失败！开始执行人工补偿机制（硬件回滚） ====");
+
+            // 【新连接的清理】
+            if (newLockRegistered) {
+                try {
+                    qianMingLockDeviceServiceManager.removeDeviceServiceByCommPort(fullLatestEntity.getLockCommPort());
+                    log.warn("【更新回滚】已强制关闭并清理新锁板连接: {}", fullLatestEntity.getLockCommPort());
+                } catch (Exception ex) {
+                    log.error("回滚新锁板连接次生异常: ", ex);
+                }
+            }
+            if (newDehumidifierRegistered) {
+                try {
+                    dehumidifierDeviceServiceManager.removeDeviceServiceByCommPort(fullLatestEntity.getDehumidifierCommPort());
+                    log.warn("【更新回滚】已强制关闭并清理新除湿机连接: {}", fullLatestEntity.getDehumidifierCommPort());
+                } catch (Exception ex) {
+                    log.error("回滚新除湿机连接次生异常: ", ex);
+                }
+            }
+
+            // 老连接的盲滚/恢复
+            if (isLockPortChanged && oldLockServiceBackup != null && oldLockCommPort != null) {
+                try {
+                    oldLockServiceBackup.open();
+                    qianMingLockDeviceServiceManager.getDeviceServiceMap().put(oldLockCommPort, oldLockServiceBackup);
+                    log.info("【更新回滚】已成功恢复原锁板物理连接及缓存: {}", oldLockCommPort);
+                } catch (Exception ex) {
+                    log.error("关键错误：恢复原锁板物理连接失败！老链路已断开！", ex);
+                }
+            }
+            if (isDehumidifierPortChanged && oldDehumidifierServiceBackup != null && oldDehumidifierCommPort != null) {
+                try {
+                    oldDehumidifierServiceBackup.open();
+                    dehumidifierDeviceServiceManager.getDeviceServiceMap().put(oldDehumidifierCommPort, oldDehumidifierServiceBackup);
+                    log.info("【更新回滚】已成功恢复原除湿机物理连接及缓存: {}", oldDehumidifierCommPort);
+                } catch (Exception ex) {
+                    log.error("关键错误：恢复原除湿机物理连接失败！老链路已断开！", ex);
+                }
+            }
+
+            // 抛出异常触发 Spring 数据库回滚
+            throw new ClientException("更新柜子硬件连接失败：" + e.getMessage());
         }
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void createCabinet(CabinetUpdateDTO createDTO) {
-        // ==================== 1. 参数校验 ====================
+        // 参数校验
         if (createDTO.getTitle() == null || createDTO.getTitle().trim().isEmpty()) {
             throw new ClientException("柜子名称不能为空");
         }
@@ -183,7 +309,7 @@ public class CabinetConfigServiceImpl extends ServiceImpl<CabinetConfigMapper, C
             throw new ClientException("锁板通讯端口不能为空");
         }
 
-        // ==================== 2. 业务唯一性检查 ====================
+        // 业务唯一性检查
         LambdaQueryWrapper<CabinetConfig> titleWrapper = new LambdaQueryWrapper<>();
         titleWrapper.eq(CabinetConfig::getTitle, createDTO.getTitle());
         if (this.count(titleWrapper) > 0) {
@@ -198,7 +324,7 @@ public class CabinetConfigServiceImpl extends ServiceImpl<CabinetConfigMapper, C
                     createDTO.getDehumidifierCommPort(), createDTO.getDehumidifierAddr()));
         }
 
-        // ==================== 3. 构建并保存数据库 ====================
+        // 构建并保存数据库
         CabinetConfig entity = new CabinetConfig();
         entity.setTitle(createDTO.getTitle());
         entity.setWidth(createDTO.getWidth());
@@ -231,8 +357,6 @@ public class CabinetConfigServiceImpl extends ServiceImpl<CabinetConfigMapper, C
             this.update(updateWrapper);
         }
 
-        // ==================== 4. 核心变化：硬件连接精细化控制 ====================
-
         // 用于记录两端设备最终是否有成功执行过逻辑放入过 Map 缓存，以便回滚清理
         boolean lockRegistered = false;
         boolean dehumidifierRegistered = false;
@@ -241,7 +365,7 @@ public class CabinetConfigServiceImpl extends ServiceImpl<CabinetConfigMapper, C
         DehumidifierDeviceService dehumidifierService = null;
 
         try {
-            // Step 4.1: 获取锁板纯净对象（此时未 open，未入 Map）
+            // 获取锁板纯净对象（此时未 open，未入 Map）
             lockService = qianMingLockDeviceServiceManager.addDeviceServiceByNewCabinetConfig(entity);
 
             // 尝试启动锁板连接
@@ -276,13 +400,13 @@ public class CabinetConfigServiceImpl extends ServiceImpl<CabinetConfigMapper, C
             if (lockRegistered) {
                 try {
                     qianMingLockDeviceServiceManager.removeDeviceServiceByCommPort(entity.getLockCommPort());
-                    log.warn("【系统回滚】由于后续设备初始化失败，已强制关闭并清理锁板连接: {}", entity.getLockCommPort());
+                    log.warn("[系统回滚]由于后续设备初始化失败，已强制关闭并清理锁板连接: {}", entity.getLockCommPort());
                 } catch (Exception ex) {
                     log.error("回滚锁板连接时发生次生异常: ", ex);
                 }
             }
 
-            // 补偿机制：如果除湿机注册成功了（虽然顺序在后，作为防御性代码也加上）
+            // 补偿机制：如果除湿机注册成功了
             if (dehumidifierRegistered) {
                 try {
                     dehumidifierDeviceServiceManager.removeDeviceServiceByCommPort(entity.getDehumidifierCommPort());

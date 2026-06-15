@@ -1,7 +1,5 @@
 package com.tairui.server.deviceService;
 
-import com.tairui.server.device.channel.SerialChannel;
-import com.tairui.server.device.channel.TcpClientChannel;
 import com.tairui.server.device.core.CommDispatcher;
 import com.tairui.server.device.dehumidifier.DehumidifierRunParam;
 import com.tairui.server.device.dehumidifier.ThData;
@@ -9,7 +7,6 @@ import com.tairui.server.entity.CabinetConfig;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
 import java.util.List;

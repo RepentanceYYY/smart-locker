@@ -1,4 +1,4 @@
-import axios from 'axios'
+import request from '@/utils/request'
 
 export interface SystemConfig {
     systemName: string
@@ -13,14 +13,14 @@ export interface SystemConfig {
 }
 
 export async function fetchSystemConfig(): Promise<SystemConfig> {
-    const { data } = await axios.get('/api/systemConfig')
+    const { data } = await request.get('/api/systemConfig')
     return data
 }
 
 export async function updateSystemConfig(config: SystemConfig): Promise<void> {
-    await axios.put('/api/systemConfig', config)
+    await request.put('/api/systemConfig', config)
 }
 
 export async function resetSystemConfig(): Promise<void> {
-    await axios.post('/api/systemConfig/reset')
+    await request.post('/api/systemConfig/reset')
 }
