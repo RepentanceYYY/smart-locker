@@ -55,18 +55,22 @@
 
             <div class="carousel-cylinder">
               <div class="carousel-3d" :style="{ minHeight: carouselHeight + 'px' }">
-                <div v-for="(cab, idx) in cabinets" :key="cab.id" class="cabinet-item"
-                  :class="{ 'center-highlight': idx === currentIndex }"
-                  :style="[getCabinetStyle(idx), { width: cab.width || '280px', height: cab.height || 'auto' }]">
+                <div
+                    v-for="(cab, idx) in cabinets"
+                    :key="cab.id"
+                    class="cabinet-item"
+                    :class="{ 'center-highlight': idx === currentIndex }"
+                    :style="[cabinetStyles[idx], { width: cab.width || '280px', height: cab.height || 'auto' }]"
+                >
                   <div class="cabinet-header">
                     {{ cab.title }}
                   </div>
                   <div class="cabinet-body">
-                    <div class="cabinet-grid" :style="getGridStyle(cab)">
+                    <div class="cabinet-grid" v-memo="[cab.id]" :style="getGridStyle(cab)">
                       <template v-for="(cell, cellIdx) in cab.flatCells" :key="cellIdx">
                         <div v-if="cell.type === 'cell'" class="cell-container"
-                          :style="[getCellPosition(cell), cell.cellStyle]" :class="{ 'empty-door': cell.isEmpty }"
-                          @click="showCellDetail(cell)">
+                             :style="[getCellPosition(cell), cell.cellStyle]" :class="{ 'empty-door': cell.isEmpty }"
+                             @click="showCellDetail(cell)">
                           <div class="cell-inner"></div>
                           <div class="cabinet-cell" :class="{ 'empty-door': cell.isEmpty }">
                             <div class="hinge"></div>
@@ -76,7 +80,7 @@
                           </div>
                         </div>
                         <div v-else-if="cell.type === 'image'" class="custom-image-cell"
-                          :style="[getCellPosition(cell), cell.cellStyle]">
+                             :style="[getCellPosition(cell), cell.cellStyle]">
                           <img :src="formatImageUrl(cell.imageUrl)" :alt="cell.label || '图标'" />
                           <span v-if="cell.label" class="image-label">{{ truncateText(cell.label, 10) }}</span>
                         </div>
@@ -104,7 +108,6 @@
               <span class="btn-icon">🔄</span>
               <span class="btn-label">归还</span>
             </button>
-            <!-- 新增盘点按钮 -->
             <button :disabled="isAllowClickButton" class="big-action-btn inventory-btn" @click="handleInventory">
               <span class="btn-icon">📋</span>
               <span class="btn-label">盘点</span>
@@ -161,7 +164,7 @@
     <CameraModal v-model:visible="showCameraModal" :isBorrow="isBorrowMode" @confirm="handlePhotoConfirm" />
 
     <InventoryDialog :visible="showInventoryDialog" :inventoryResult="inventoryDialogResult"
-      @close="closeInventoryDialog" @cancel="closeInventoryDialog" @confirm="closeInventoryDialog" />
+                     @close="closeInventoryDialog" @cancel="closeInventoryDialog" @confirm="closeInventoryDialog" />
 
     <!-- 密码弹窗（设置验证） -->
     <div v-if="showPasswordDialog" class="dialog-overlay" @click="closePasswordDialog">
@@ -179,7 +182,7 @@
           </div>
           <div class="password-input-group">
             <input ref="passwordInputRef" type="password" v-model="passwordInput" placeholder="请输入管理员密码" class="password-input"
-              @keyup.enter="verifyPassword" @input="onPasswordInput" autofocus />
+                   @keyup.enter="verifyPassword" @input="onPasswordInput" autofocus />
             <div v-if="passwordError" class="password-error">
               ❌ {{ passwordError }}
             </div>
@@ -209,25 +212,25 @@ import { useSystemConfigStore } from '@/stores/systemConfig'
 import { useDehumidifierStore } from '@/stores/useDehumidifier'
 import { useCountdown } from '@/composables/useCountdown'
 import type { CSSProperties } from 'vue'
-import {formatImageUrl} from '@/utils/fileUtils'
+import { formatImageUrl } from '@/utils/fileUtils'
+
 const router = useRouter()
 const systemConfigStore = useSystemConfigStore()
 const dehumidifierStore = useDehumidifierStore();
-const passwordDialogType = ref<'inventory' | 'settings'>('settings')//操作区分验证按钮颜色
-const isAllowClickButton = ref(false)//是否允许点击领用/归还/盘点/设置按钮  
-const showInventoryDialog = ref(false)//盘点弹窗
-const inventoryDialogResult = ref<any>(null)//盘点结果数据
+
+const passwordDialogType = ref<'inventory' | 'settings'>('settings')
+const isAllowClickButton = ref(false)
+const showInventoryDialog = ref(false)
+const inventoryDialogResult = ref<any>(null)
 const passwordInputRef = ref<HTMLInputElement | null>(null)
-// 相机相关
+
 const showCameraModal = ref(false)
 const isBorrowMode = ref(true)
 
-// 密码弹窗相关
 const showPasswordDialog = ref(false)
 const passwordInput = ref('')
 const passwordError = ref('')
 
-// 使用通用倒计时（统一60秒配置）
 const {
   secondsLeft: passwordSecondsLeft,
   reset: resetPasswordCountdown,
@@ -239,7 +242,6 @@ const {
   }
 })
 
-// 标题栏相关
 const headerRef = ref<HTMLElement | null>(null)
 const currentTime = ref('')
 
@@ -318,6 +320,7 @@ function expandHeight(height: string, count: number): string[] {
   }
   return parts
 }
+
 function flattenCells(cab: CabinetConfig) {
   const flatCells: any[] = []
   const rowHeights: string[] = []
@@ -428,12 +431,6 @@ function generateRandomEnvData(baseTemp?: number, baseHumidity?: number): Cabine
   }
 }
 
-function updateCabinetEnvData(cab: ProcessedCabinet) {
-  const newData = generateRandomEnvData(cab.initialTemp, cab.initialHumidity)
-  cab.envData = newData
-  return newData
-}
-
 function processCabinetData(rawData: any[]): ProcessedCabinet[] {
   return rawData.map(cab => {
     const rows = cab.rows.map((row: any) => ({
@@ -452,7 +449,6 @@ function processCabinetData(rawData: any[]): ProcessedCabinet[] {
     }))
 
     const { flatCells, colWidths, rowHeights } = flattenCells({ ...cab, rows })
-    // 初始化为空值，等待WebSocket推送真实数据
     const initialEnvData: CabinetEnvData = {
       temperature: 0,
       humidity: 0,
@@ -496,25 +492,20 @@ const selectedCell = ref<any>(null)
 // 计算属性：当前柜子温度
 const currentCabinetTemp = computed(() => {
   if (cabinets.value.length === 0) return '--'
-
   const currentCab = cabinets.value[currentIndex.value]
   if (!currentCab?.id) return '--'
-
   const envData = dehumidifierStore.cabinetEnvMap[currentCab.id]
   const temp = envData?.temperature
-
   return (temp === 0 || temp === undefined || temp === null) ? '--' : temp.toFixed(1)
 })
 
 // 计算属性：当前柜子湿度
 const currentCabinetHumidity = computed(() => {
   if (cabinets.value.length === 0) return '--'
-
   const currentCab = cabinets.value[currentIndex.value]
   if (!currentCab?.id) return '--'
   const envData = dehumidifierStore.cabinetEnvMap[currentCab.id]
   const humidity = envData?.humidity
-
   return (humidity === 0 || humidity === undefined || humidity === null) ? '--' : humidity
 })
 
@@ -523,70 +514,13 @@ const currentCabinetName = computed(() => {
   return cabinets.value[currentIndex.value]?.title || '--'
 })
 
-let timerInterval: ReturnType<typeof setInterval> | null = null
-
-function updateAllCabinetsEnvData() {
-  cabinets.value.forEach(cab => {
-    updateCabinetEnvData(cab)
-  })
-  cabinets.value = [...cabinets.value]
-}
-
-function startTempHumiditySimulation() {
-  timerInterval = setInterval(() => {
-    updateAllCabinetsEnvData()
-  }, 5000)
-}
-
-function stopTempHumiditySimulation() {
-  if (timerInterval) {
-    clearInterval(timerInterval)
-    timerInterval = null
-  }
-}
-
-// ================== 数据加载 ==================
-async function loadCabinets() {
-  loading.value = true
-  try {
-    const rawData = await fetchCabinetList()
-    console.log(rawData)
-    const processed = processCabinetData(rawData)
-    cabinets.value = processed
-    const defaultIdx = processed.findIndex(cab => cab.isDefault === true)
-    currentIndex.value = defaultIdx !== -1 ? defaultIdx : 0
-  } catch (error) {
-    console.error('加载柜子配置失败:', error)
-    cabinets.value = []
-  } finally {
-    loading.value = false
-  }
-}
-
-// ================== 布局 ==================
-function updateLayout() {
-  if (typeof window === 'undefined') return
-  const width = window.innerWidth
-  const height = window.innerHeight
-
-  const headerHeight = headerRef.value ? headerRef.value.offsetHeight : 60
-  const bottomHeight = 350
-
-  const upperAreaHeight = height - bottomHeight - headerHeight
-  carouselHeight.value = Math.max(450, upperAreaHeight - 55)
-  radius.value = Math.min(width * 0.45, 380)
-  maxScale.value = Math.min(2, Math.max(1.2, width / 220))
-}
-
-// ================== 3D 样式 ==================
+// ================== 性能优化：只渲染当前及相邻柜子的样式 ==================
 const getCabinetStyle = (idx: number): CSSProperties => {
-  if (totalCount.value === 0) {
-    return { display: 'none' }
-  }
+  if (totalCount.value === 0) return { display: 'none' }
   const diff = Math.abs(idx - currentIndex.value)
-  const isVisible = diff <= 1
-  if (!isVisible) {
-    return { transform: 'translateX(0) translateZ(-500px)', opacity: 0, visibility: 'hidden', pointerEvents: 'none', zIndex: -1, transition: 'opacity 0.3s, visibility 0.3s' }
+  // 只显示当前及左右相邻的柜子（共3个）
+  if (diff > 1) {
+    return { display: 'none' }
   }
   const angleStep = (Math.PI * 2) / totalCount.value
   let angle = idx * angleStep
@@ -610,6 +544,11 @@ const getCabinetStyle = (idx: number): CSSProperties => {
   const transform = `translateX(${x}px) translateY(0px) translateZ(${z}px) rotateY(${rotateY}deg) scale(${scaleVal})`
   return { transform, zIndex: zIndexVal, opacity: 1, visibility: 'visible', pointerEvents: 'auto' }
 }
+
+// 使用计算属性缓存所有柜子的样式，避免重复计算
+const cabinetStyles = computed(() => {
+  return cabinets.value.map((_, idx) => getCabinetStyle(idx))
+})
 
 function rotatePrev() {
   if (currentIndex.value > 0) {
@@ -668,23 +607,15 @@ function handleReturn() {
   showCameraModal.value = true
 }
 
-// 新增盘点功能
 function handleInventory() {
   if (isAllowClickButton.value) {
     addNotification('盘点中，稍后再试', 'warning')
     return
   }
-  // 可根据实际需求替换为：打开相机并设置盘点模式、跳转到盘点页面、或直接调用盘点接口
-  // 示例：弹出提示框，未来可接入 CameraModal 并传递盘点标识
-  // alert('盘点功能开发中，敬请期待！')
-  // 若要使用相机并传递盘点模式，可参考以下代码（需扩展 CameraModal 支持盘点类型）：
-  // isInventoryMode.value = true
-  // showCameraModal.value = true
   passwordDialogType.value = 'inventory'
   openPasswordDialog('inventory')
 }
 
-// 密码弹窗相关方法
 function openPasswordDialog(type: 'inventory' | 'settings') {
   passwordDialogType.value = type
   passwordInput.value = ''
@@ -693,8 +624,6 @@ function openPasswordDialog(type: 'inventory' | 'settings') {
 
   nextTick(() => {
     resetPasswordCountdown()
-
-    // 自动聚焦输入框
     passwordInputRef.value?.focus()
   })
 }
@@ -712,8 +641,9 @@ function onPasswordInput() {
     }
   }
 }
-//websocket - 盘点
-const wsUrl  = `${import.meta.env.VITE_WS_BASE_URL}/inventory`
+
+// WebSocket - 盘点
+const wsUrl = `${import.meta.env.VITE_WS_BASE_URL}/inventory`
 let socket: WebSocket | null = null
 const wsConnected = ref(false)
 let allowReconnect = true
@@ -739,14 +669,12 @@ function connectWebSocket() {
   socket.onclose = () => {
     console.log('WebSocket 连接关闭')
     wsConnected.value = false
-    // 尝试重连
     if (allowReconnect) {
       setTimeout(() => connectWebSocket(), 3000)
     }
   }
 }
 
-// 发送消息
 function sendMessage(type: string, data: any) {
   if (!socket || socket.readyState !== WebSocket.OPEN) {
     addNotification('网络连接异常，请稍后重试', 'warning')
@@ -756,14 +684,13 @@ function sendMessage(type: string, data: any) {
   return true
 }
 
-// 盘点发送的消息
 async function handleWebSocketMessage(msg: any) {
   const { type } = msg || {}
   if (type === 'inventory') {
     handleInventoryReply(msg)
   }
 }
-// 处理盘点结果的消息
+
 function handleInventoryReply(msg: any) {
   const { code, data, message: msgText } = msg || {}
   if (code === 200) {
@@ -785,6 +712,7 @@ function closeInventoryDialog() {
   inventoryDialogResult.value = null
   isAllowClickButton.value = false
 }
+
 // ================== 通知列表 ==================
 interface Notification {
   id: number
@@ -849,7 +777,16 @@ function handlePhotoConfirm(imageData: string) {
   }
 }
 
-// 更新时间显示
+// ================== 性能优化：温湿度更新只改当前柜子 ==================
+function updateCurrentCabinetEnv() {
+  const cab = cabinets.value[currentIndex.value]
+  if (!cab) return
+  const newData = generateRandomEnvData(cab.initialTemp, cab.initialHumidity)
+  // 直接修改响应式对象的属性，触发最小更新
+  cab.envData = newData
+}
+
+// ================== 时间更新 ==================
 function updateCurrentTime() {
   const now = new Date()
   const hours = now.getHours().toString().padStart(2, '0')
@@ -857,9 +794,22 @@ function updateCurrentTime() {
   currentTime.value = `${hours}:${minutes}`
 }
 
-let timeInterval: ReturnType<typeof setInterval> | null = null
-let resizeTimer: number | null = null
+// ================== 布局更新 ==================
+function updateLayout() {
+  if (typeof window === 'undefined') return
+  const width = window.innerWidth
+  const height = window.innerHeight
 
+  const headerHeight = headerRef.value ? headerRef.value.offsetHeight : 60
+  const bottomHeight = 350
+
+  const upperAreaHeight = height - bottomHeight - headerHeight
+  carouselHeight.value = Math.max(450, upperAreaHeight - 55)
+  radius.value = Math.min(width * 0.45, 380)
+  maxScale.value = Math.min(2, Math.max(1.2, width / 220))
+}
+
+let resizeTimer: number | null = null
 function handleResize() {
   if (resizeTimer) clearTimeout(resizeTimer)
   resizeTimer = window.setTimeout(() => {
@@ -867,12 +817,51 @@ function handleResize() {
   }, 100)
 }
 
+// ================== 合并定时器到 requestAnimationFrame ==================
+let rafId: number | null = null
+let lastEnvUpdate = 0
+const ENV_UPDATE_INTERVAL = 10000 // 10秒更新一次温湿度
+
+function frameLoop(time: number) {
+  // 更新时间（每秒更新）
+  updateCurrentTime()
+
+  // 温湿度更新（间隔10秒）
+  if (time - lastEnvUpdate >= ENV_UPDATE_INTERVAL) {
+    updateCurrentCabinetEnv()
+    lastEnvUpdate = time
+  }
+
+  rafId = requestAnimationFrame(frameLoop)
+}
+
+// ================== 加载数据 ==================
+async function loadCabinets() {
+  loading.value = true
+  try {
+    const rawData = await fetchCabinetList()
+    console.log(rawData)
+    const processed = processCabinetData(rawData)
+    cabinets.value = processed
+    const defaultIdx = processed.findIndex(cab => cab.isDefault === true)
+    currentIndex.value = defaultIdx !== -1 ? defaultIdx : 0
+  } catch (error) {
+    console.error('加载柜子配置失败:', error)
+    cabinets.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
 watch(currentIndex, (newIdx, oldIdx) => {
   if (newIdx !== oldIdx) {
     console.log(`切换到柜子 ${newIdx + 1}，温度：${currentCabinetTemp.value}℃，湿度：${currentCabinetHumidity.value}%`)
+    // 切换时立即更新一次该柜子的温湿度（可选）
+    updateCurrentCabinetEnv()
   }
 })
 
+// ================== 生命周期 ==================
 onMounted(async () => {
   await loadCabinets()
   if (!systemConfigStore.loaded && !systemConfigStore.loading) {
@@ -883,15 +872,24 @@ onMounted(async () => {
   updateLayout()
   updateCurrentTime()
   connectWebSocket()
+
   window.addEventListener('resize', handleResize)
-  timeInterval = setInterval(updateCurrentTime, 1000)
+
+  // 使用 requestAnimationFrame 驱动更新
+  lastEnvUpdate = performance.now()
+  rafId = requestAnimationFrame(frameLoop)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResize)
   if (resizeTimer) clearTimeout(resizeTimer)
   cleanupPasswordCountdown()
-  if (timeInterval) clearInterval(timeInterval)
+
+  // 取消 requestAnimationFrame
+  if (rafId) {
+    cancelAnimationFrame(rafId)
+    rafId = null
+  }
 
   // 关闭盘点WebSocket
   allowReconnect = false
@@ -972,7 +970,6 @@ body,
   0% {
     left: -100%;
   }
-
   100% {
     left: 200%;
   }
@@ -990,7 +987,6 @@ body,
   filter: blur(2px);
 }
 
-/* 悬浮提升效果 */
 .app-header:hover {
   background: rgba(8, 20, 26, 0.85);
   border-bottom-color: rgba(34, 211, 238, 0.7);
@@ -1020,7 +1016,6 @@ body,
   transform: scale(1.05) rotate(4deg);
 }
 
-/* 状态指示点 */
 .status-dot {
   position: absolute;
   bottom: 0;
@@ -1039,7 +1034,6 @@ body,
     opacity: 0.6;
     transform: scale(0.9);
   }
-
   100% {
     opacity: 1;
     transform: scale(1.2);
@@ -1240,6 +1234,7 @@ body,
   overflow: visible;
 }
 
+/* ========== 性能优化：GPU加速、减少重绘 ========== */
 .cabinet-item {
   position: absolute;
   background: #f1f4f9;
@@ -1247,11 +1242,12 @@ body,
   box-shadow: 0 20px 30px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.9);
   border: 1px solid #d0d8e4;
   transform-style: preserve-3d;
-  transition: transform 0.5s cubic-bezier(0.2, 0.85, 0.35, 1), opacity 0.4s ease;
+  transition: transform 0.3s ease, opacity 0.25s ease; /* 缩短过渡时间 */
   display: flex;
   flex-direction: column;
   min-width: 0;
-  will-change: transform;
+  will-change: transform, opacity; /* 启用GPU加速 */
+  backface-visibility: hidden; /* 减少闪烁 */
   max-width: 88vw;
 }
 
@@ -1392,7 +1388,6 @@ body,
   box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
 }
 
-/* 新增盘点按钮样式 */
 .inventory-btn {
   background: linear-gradient(135deg, rgba(139, 92, 246, 0.9), rgba(109, 40, 217, 0.9));
   border: 1px solid rgba(167, 139, 250, 0.6);
@@ -1626,7 +1621,6 @@ body,
     opacity: 0;
     transform: translateY(30px) scale(0.95);
   }
-
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -1753,15 +1747,8 @@ body,
 }
 
 @keyframes pulseWarning {
-
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.6;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }
 
 .password-input-group {
@@ -1835,9 +1822,7 @@ body,
 }
 
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
 /* 响应式调整 */
@@ -1846,71 +1831,56 @@ body,
     height: 56px;
     padding: 0 16px;
   }
-
   .logo-icon {
     font-size: 24px;
   }
-
   .title-text {
     font-size: 16px;
   }
-
   .title-sub {
     display: none;
   }
-
   .time-wrapper {
     padding: 4px 12px;
     gap: 6px;
   }
-
   .header-time {
     font-size: 16px;
     min-width: 55px;
   }
-
   .time-icon {
     font-size: 12px;
   }
-
   .temp-card,
   .humidity-card {
     padding: 3px 10px;
     top: 8px;
   }
-
   .card-icon {
     font-size: 14px;
   }
-
   .card-value {
     font-size: 14px;
     min-width: 35px;
   }
-
   .card-label {
     font-size: 9px;
     padding: 1px 4px;
   }
-
   .nav-btn-left,
   .nav-btn-right {
     padding: 8px 16px;
   }
-
   .btn-icon {
     font-size: 24px;
   }
-
   .btn-label {
     font-size: 14px;
   }
-
   .big-action-btn {
     padding: 12px 6px;
     min-height: 60px;
   }
-
   .dialog-content {
     width: 90%;
   }
@@ -1920,67 +1890,53 @@ body,
   .app-header {
     padding: 0 12px;
   }
-
   .header-time {
     font-size: 14px;
     min-width: 48px;
   }
-
   .title-text {
     font-size: 14px;
     letter-spacing: 1px;
   }
-
   .logo-icon {
     font-size: 20px;
   }
-
   .time-wrapper {
     padding: 2px 10px;
   }
-
   .cabinet-item {
     width: 260px !important;
   }
-
   .nav-btn-left,
   .nav-btn-right {
     padding: 6px 12px;
   }
-
   .btn-icon {
     font-size: 20px;
   }
-
   .btn-label {
     font-size: 12px;
   }
-
   .big-action-btn {
     padding: 10px 4px;
     min-height: 55px;
   }
-
   .big-buttons-container {
     gap: 10px;
   }
-
   .temp-card,
   .humidity-card {
     padding: 2px 8px;
     gap: 4px;
     top: 6px;
   }
-
   .card-icon {
     font-size: 12px;
   }
-
   .card-value {
     font-size: 12px;
     min-width: 30px;
   }
-
   .card-label {
     font-size: 8px;
   }
