@@ -763,15 +763,14 @@ onMounted(() => {
   overflow: hidden;
 }
 
-/* 新增外框：占满容器，内部滚动，带边框和圆角 */
+/* ---------- 外框 – 无模糊 ---------- */
 .outer-frame {
   width: 100%;
   height: 100%;
-  background: rgba(15, 25, 35, 0.6);
-  backdrop-filter: blur(8px);
+  background: rgba(15, 25, 35, 0.7);
   border: 2px solid rgba(34, 211, 238, 0.4);
   border-radius: 32px;
-  box-shadow: 0 0 30px rgba(34, 211, 238, 0.1), inset 0 0 20px rgba(34, 211, 238, 0.05);
+  box-shadow: 0 0 20px rgba(34, 211, 238, 0.08), inset 0 0 12px rgba(34, 211, 238, 0.03);
   overflow-y: auto;
   overflow-x: hidden;
   padding: 20px 24px;
@@ -779,7 +778,6 @@ onMounted(() => {
   scrollbar-width: thin;
 }
 
-/* 外框滚动条样式 */
 .outer-frame::-webkit-scrollbar {
   width: 6px;
 }
@@ -792,6 +790,7 @@ onMounted(() => {
   border-radius: 4px;
 }
 
+/* ---------- 头部 ---------- */
 .settings-header {
   display: flex;
   align-items: center;
@@ -800,12 +799,12 @@ onMounted(() => {
   margin: 0 auto 30px;
   padding: 0 10px;
 }
+
 .back-btn {
   display: flex;
   align-items: center;
   gap: 8px;
   background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(10px);
   border: 1px solid rgba(34, 211, 238, 0.5);
   border-radius: 60px;
   padding: 10px 20px;
@@ -813,29 +812,29 @@ onMounted(() => {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
 }
 .back-btn:hover {
   background: rgba(34, 211, 238, 0.2);
   border-color: #22d3ee;
-  transform: translateY(-1px);
 }
-.back-btn:active { transform: scale(0.96); }
+.back-btn:active {
+  /* 无 scale */
+}
 .back-icon { font-size: 18px; }
+
 .settings-title {
   color: #c2f0e0;
   font-size: 24px;
-  text-shadow: 0 0 10px rgba(34, 211, 238, 0.3);
+  text-shadow: 0 0 8px rgba(34, 211, 238, 0.25);
 }
 .placeholder { width: 80px; }
 
-/* 倒计时显示 */
+/* ---------- 倒计时 – 无动画 ---------- */
 .countdown-display {
   display: flex;
   align-items: center;
   gap: 8px;
   background: rgba(34, 211, 238, 0.15);
-  backdrop-filter: blur(10px);
   border: 1px solid rgba(34, 211, 238, 0.5);
   border-radius: 60px;
   padding: 8px 16px;
@@ -843,7 +842,7 @@ onMounted(() => {
   font-size: 14px;
   font-weight: 500;
   white-space: nowrap;
-  animation: pulse 1s ease-in-out infinite;
+  /* 删除 animation */
 }
 .countdown-icon { font-size: 16px; }
 .countdown-time {
@@ -853,11 +852,8 @@ onMounted(() => {
   letter-spacing: 1px;
 }
 .countdown-text { font-size: 12px; opacity: 0.8; }
-@keyframes pulse {
-  0%, 100% { opacity: 1; border-color: rgba(34, 211, 238, 0.5); }
-  50% { opacity: 0.8; border-color: rgba(34, 211, 238, 0.8); box-shadow: 0 0 8px rgba(34, 211, 238, 0.3); }
-}
 
+/* ---------- 内容区 ---------- */
 .settings-content {
   max-width: 1000px;
   margin: 0 auto;
@@ -865,19 +861,20 @@ onMounted(() => {
   flex-direction: column;
   gap: 24px;
 }
+
+/* ---------- 信息卡片 – 无模糊、无过渡 ---------- */
 .info-card {
   background: rgba(15, 25, 35, 0.7);
-  backdrop-filter: blur(12px);
   border-radius: 28px;
   border: 1px solid rgba(34, 211, 238, 0.2);
   padding: 24px;
-  transition: all 0.3s ease;
   cursor: pointer;
 }
 .info-card:hover {
   border-color: rgba(34, 211, 238, 0.4);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
+
 .card-header {
   display: flex;
   align-items: center;
@@ -898,6 +895,7 @@ onMounted(() => {
   font-size: 20px;
   margin: 0;
 }
+
 .detail-btn {
   background: rgba(34, 211, 238, 0.1);
   border: 1px solid rgba(34, 211, 238, 0.4);
@@ -907,13 +905,15 @@ onMounted(() => {
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
 }
 .detail-btn:hover {
   background: rgba(34, 211, 238, 0.2);
   border-color: #22d3ee;
 }
-.detail-btn:active { transform: scale(0.96); }
+.detail-btn:active {
+  /* 无 scale */
+}
+
 .reset-btn {
   background: rgba(239, 68, 68, 0.15);
   border: 1px solid rgba(239, 68, 68, 0.5);
@@ -923,15 +923,17 @@ onMounted(() => {
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
 }
 .reset-btn:hover {
   background: rgba(239, 68, 68, 0.3);
   border-color: #ef4444;
   color: #fecaca;
-  transform: translateY(-1px);
 }
-.reset-btn:active { transform: scale(0.96); }
+.reset-btn:active {
+  /* 无 scale */
+}
+
+/* ---------- 统计行 ---------- */
 .stats-row {
   display: flex;
   gap: 24px;
@@ -948,13 +950,14 @@ onMounted(() => {
   font-weight: 700;
   color: #22d3ee;
   line-height: 1.2;
-  text-shadow: 0 0 8px rgba(34, 211, 238, 0.3);
+  text-shadow: 0 0 6px rgba(34, 211, 238, 0.25);
 }
 .stat-label {
   font-size: 13px;
   color: #94a3b8;
   margin-top: 6px;
 }
+
 .section-title {
   color: #cbd5e1;
   font-size: 15px;
@@ -963,63 +966,36 @@ onMounted(() => {
   padding-left: 4px;
   border-left: 3px solid #22d3ee;
 }
+
+/* ---------- 滚动容器 – 无模糊 ---------- */
 .unreturned-scroll-wrapper,
-
 .temp-table-wrapper {
-
   max-height: 360px;
-
   overflow-y: auto;
-
   border-radius: 16px;
-
   background: rgba(0, 0, 0, 0.2);
-
   padding: 4px;
-
-  /* 跨浏览器滚动条样式 */
-
   scrollbar-width: thin;
-
   scrollbar-color: #22d3ee rgba(0, 0, 0, 0.4);
-
 }
 
 .unreturned-scroll-wrapper::-webkit-scrollbar,
-
 .temp-table-wrapper::-webkit-scrollbar {
-
   width: 6px;
-
 }
-
 .unreturned-scroll-wrapper::-webkit-scrollbar-track,
-
 .temp-table-wrapper::-webkit-scrollbar-track {
-
   background: rgba(0, 0, 0, 0.4);
-
   border-radius: 4px;
-
 }
-
 .unreturned-scroll-wrapper::-webkit-scrollbar-thumb,
-
 .temp-table-wrapper::-webkit-scrollbar-thumb {
-
   background: #22d3ee;
-
   border-radius: 4px;
-
 }
+/* 删除 hover 滚动条样式变化 */
 
-.unreturned-scroll-wrapper::-webkit-scrollbar-thumb:hover,
-
-.temp-table-wrapper::-webkit-scrollbar-thumb:hover {
-
-  background: #67e8f9;
-
-}
+/* ---------- 表格 – 无过渡、无位移 ---------- */
 .unreturned-table {
   width: 100%;
   min-width: 700px;
@@ -1041,18 +1017,17 @@ onMounted(() => {
   margin-bottom: 6px;
   position: sticky;
   top: 0;
-  backdrop-filter: blur(4px);
 }
 .table-row {
   background: rgba(0, 0, 0, 0.3);
   margin-bottom: 6px;
   border-radius: 12px;
-  transition: all 0.2s;
 }
 .table-row:hover {
   background: rgba(34, 211, 238, 0.1);
-  transform: translateX(4px);
+  /* 无 translateX */
 }
+
 .cell {
   font-size: 13px;
   color: #cbd5e1;
@@ -1067,6 +1042,7 @@ onMounted(() => {
   color: #22d3ee;
 }
 .tool { color: #94a3b8; }
+
 .borrow-photo {
   width: 40px;
   height: 40px;
@@ -1074,11 +1050,10 @@ onMounted(() => {
   border-radius: 8px;
   cursor: pointer;
   border: 1px solid rgba(34, 211, 238, 0.3);
-  transition: transform 0.2s;
 }
 .borrow-photo:hover {
-  transform: scale(1.1);
   border-color: #22d3ee;
+  /* 无 scale */
 }
 .no-photo {
   color: #5b6e8c;
@@ -1089,6 +1064,37 @@ onMounted(() => {
   font-size: 12px;
   color: #7e8a98;
 }
+
+/* ---------- 温湿度表格专用 ---------- */
+.temp-header,
+.temp-row {
+  display: grid;
+  grid-template-columns: 1.5fr 0.8fr 0.8fr 1.5fr;
+  gap: 12px;
+  padding: 10px 16px;
+  align-items: center;
+}
+.temp-header {
+  background: rgba(34, 211, 238, 0.1);
+  color: #22d3ee;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 12px;
+  margin-bottom: 6px;
+  position: sticky;
+  top: 0;
+}
+.temp-row {
+  background: rgba(0, 0, 0, 0.3);
+  margin-bottom: 6px;
+  border-radius: 12px;
+}
+.temp-row:hover {
+  background: rgba(34, 211, 238, 0.1);
+  /* 无 translateX */
+}
+
+/* ---------- 信息行 ---------- */
 .info-row {
   display: flex;
   gap: 20px;
@@ -1105,6 +1111,8 @@ onMounted(() => {
   color: #cbd5e1;
   font-weight: 500;
 }
+
+/* ---------- 系统配置网格 ---------- */
 .config-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -1117,7 +1125,6 @@ onMounted(() => {
   background: rgba(0, 0, 0, 0.3);
   padding: 12px 18px;
   border-radius: 20px;
-  transition: all 0.2s;
 }
 .config-item:hover {
   background: rgba(34, 211, 238, 0.08);
@@ -1156,14 +1163,14 @@ onMounted(() => {
   font-size: 16px;
   padding: 4px 6px;
   border-radius: 20px;
-  transition: all 0.2s;
   color: #6b8cae;
 }
 .edit-icon:hover {
   background: rgba(34, 211, 238, 0.2);
-  transform: scale(1.05);
   color: #22d3ee;
+  /* 无 scale */
 }
+
 .config-footer-tip {
   margin-top: 18px;
   font-size: 12px;
@@ -1172,13 +1179,14 @@ onMounted(() => {
   border-top: 1px dashed rgba(34,211,238,0.2);
   padding-top: 14px;
 }
+
+/* ---------- Toast – 无动画 ---------- */
 .toast-message {
   position: fixed;
   bottom: 30px;
   left: 50%;
   transform: translateX(-50%);
   background: rgba(0, 0, 0, 0.9);
-  backdrop-filter: blur(12px);
   color: #22d3ee;
   padding: 12px 24px;
   border-radius: 60px;
@@ -1186,13 +1194,11 @@ onMounted(() => {
   font-weight: 500;
   border: 1px solid #22d3ee;
   z-index: 100000;
-  animation: fadeInUp 0.3s ease;
   white-space: nowrap;
+  /* 删除 animation */
 }
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
-  to { opacity: 1; transform: translateX(-50%) translateY(0); }
-}
+
+/* ---------- 图片预览 ---------- */
 .preview-modal {
   position: fixed;
   top: 0;
@@ -1211,8 +1217,10 @@ onMounted(() => {
   max-height: 90vh;
   object-fit: contain;
   border-radius: 12px;
-  box-shadow: 0 0 30px rgba(34, 211, 238, 0.5);
+  box-shadow: 0 0 20px rgba(34, 211, 238, 0.4);
 }
+
+/* ---------- 模态框 – 无模糊 ---------- */
 .modal-mask {
   position: fixed;
   top: 0;
@@ -1220,7 +1228,6 @@ onMounted(() => {
   width: 100%;
   height: 100%;
   background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1232,9 +1239,8 @@ onMounted(() => {
   border: 1px solid rgba(34, 211, 238, 0.4);
   width: 400px;
   max-width: 90%;
-  box-shadow: 0 20px 35px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.5);
   overflow: hidden;
-  backdrop-filter: blur(12px);
 }
 .modal-header {
   display: flex;
@@ -1256,9 +1262,9 @@ onMounted(() => {
   font-size: 24px;
   cursor: pointer;
   color: #94a3b8;
-  transition: color 0.2s;
 }
 .modal-close:hover { color: #22d3ee; }
+
 .modal-body {
   padding: 24px 20px;
 }
@@ -1271,11 +1277,10 @@ onMounted(() => {
   color: #e2e8f0;
   font-size: 14px;
   outline: none;
-  transition: all 0.2s;
 }
 .modal-input:focus {
   border-color: #22d3ee;
-  box-shadow: 0 0 8px rgba(34, 211, 238, 0.3);
+  box-shadow: 0 0 6px rgba(34, 211, 238, 0.25);
 }
 .modal-select {
   width: 100%;
@@ -1287,12 +1292,12 @@ onMounted(() => {
   font-size: 14px;
   outline: none;
   cursor: pointer;
-  transition: all 0.2s;
 }
 .modal-select:focus {
   border-color: #22d3ee;
-  box-shadow: 0 0 8px rgba(34, 211, 238, 0.3);
+  box-shadow: 0 0 6px rgba(34, 211, 238, 0.25);
 }
+
 .password-input-wrapper {
   position: relative;
   width: 100%;
@@ -1311,11 +1316,11 @@ onMounted(() => {
   cursor: pointer;
   padding: 4px;
   color: #94a3b8;
-  transition: color 0.2s;
 }
 .password-toggle:hover {
   color: #22d3ee;
 }
+
 .modal-footer {
   display: flex;
   justify-content: flex-end;
@@ -1328,7 +1333,6 @@ onMounted(() => {
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
   border: none;
 }
 .modal-btn.cancel {
@@ -1354,6 +1358,8 @@ onMounted(() => {
 .modal-btn.confirm.danger:hover {
   background: rgba(239, 68, 68, 0.4);
 }
+
+/* ---------- 重置确认 ---------- */
 .reset-warning {
   margin-bottom: 20px;
   color: #cbd5e1;
@@ -1373,6 +1379,8 @@ onMounted(() => {
   font-size: 12px;
   text-align: center;
 }
+
+/* ---------- 加载 / 错误占位 – 保留 spin 动画（仅初始化） ---------- */
 .loading-placeholder,
 .error-placeholder {
   display: flex;
@@ -1394,6 +1402,7 @@ onMounted(() => {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
 .retry-btn {
   background: rgba(34, 211, 238, 0.2);
   border: 1px solid #22d3ee;
@@ -1402,11 +1411,11 @@ onMounted(() => {
   color: #22d3ee;
   cursor: pointer;
   font-size: 13px;
-  transition: all 0.2s;
 }
 .retry-btn:hover {
   background: rgba(34, 211, 238, 0.3);
 }
+
 .empty-tip {
   text-align: center;
   padding: 40px 20px;
@@ -1414,44 +1423,7 @@ onMounted(() => {
   font-size: 14px;
 }
 
-/* 温湿度日志专用样式 */
-.temp-header,
-.temp-row {
-  display: grid;
-  grid-template-columns: 1.5fr 0.8fr 0.8fr 1.5fr;
-  gap: 12px;
-  padding: 10px 16px;
-  align-items: center;
-}
-.temp-header {
-  background: rgba(34, 211, 238, 0.1);
-  color: #22d3ee;
-  font-size: 13px;
-  font-weight: 600;
-  border-radius: 12px;
-  margin-bottom: 6px;
-  position: sticky;
-  top: 0;
-  backdrop-filter: blur(4px);
-}
-.temp-row {
-  background: rgba(0, 0, 0, 0.3);
-  margin-bottom: 6px;
-  border-radius: 12px;
-  transition: all 0.2s;
-}
-.temp-row:hover {
-  background: rgba(34, 211, 238, 0.1);
-  transform: translateX(4px);
-}
-.temp-value.warning,
-.humidity-value.warning {
-  color: #f87171;
-  font-weight: bold;
-}
-
-/* 内嵌滚动条（未归还列表和温湿度表格）已在上方定义 */
-/* 响应式 */
+/* ---------- 响应式 – 无动画 ---------- */
 @media (max-width: 900px) {
   .outer-frame {
     padding: 15px 20px;
@@ -1469,6 +1441,7 @@ onMounted(() => {
   .countdown-time { font-size: 14px; }
   .temp-header, .temp-row { grid-template-columns: 1.5fr 0.8fr 0.8fr; gap: 8px; }
 }
+
 @media (max-width: 700px) {
   .outer-frame {
     padding: 12px 16px;
@@ -1489,6 +1462,7 @@ onMounted(() => {
   .countdown-text { display: none; }
   .temp-header, .temp-row { grid-template-columns: 1.2fr 0.7fr 0.7fr; gap: 6px; }
 }
+
 @media (max-width: 480px) {
   .settings-header {
     flex-direction: column;

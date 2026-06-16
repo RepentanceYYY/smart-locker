@@ -38,7 +38,7 @@
           <!-- 手动输入后门 -->
           <div class="manual-input-area">
             <input type="text" v-model="manualQRCode" placeholder="手动输入二维码号" @keyup.enter="submitManualQRCode"
-              class="manual-input" />
+                   class="manual-input" />
             <button @click="submitManualQRCode" class="manual-submit-btn">提交</button>
           </div>
 
@@ -76,7 +76,7 @@
             <div class="carousel-cylinder">
               <div class="carousel-3d" :style="{ minHeight: carouselHeight + 'px' }">
                 <div v-for="(cab, idx) in cabinets" :key="cab.id" class="cabinet-item"
-                  :class="{ 'center-highlight': idx === currentIndex }" :style="{
+                     :class="{ 'center-highlight': idx === currentIndex }" :style="{
                     ...getCabinetStyle(idx),
                     width: cab.width || '280px', height: cab.height || 'auto',
                   }">
@@ -86,7 +86,7 @@
                       <template v-for="(cell, cellIdx) in cab.flatCells" :key="cellIdx">
                         <!-- 普通格口 -->
                         <div v-if="cell.type === 'cell'" class="cell-container"
-                          :style="[getCellPosition(cell), cell.cellStyle]">
+                             :style="[getCellPosition(cell), cell.cellStyle]">
                           <div class="cell-inner"></div>
                           <div class="cabinet-cell" :class="{
                             'empty-door': cell.isEmpty,
@@ -98,11 +98,11 @@
                         </div>
                         <!-- 图片格口 -->
                         <div v-else-if="cell.type === 'image'" class="custom-image-cell"
-                          :style="[getCellPosition(cell), cell.cellStyle]">
+                             :style="[getCellPosition(cell), cell.cellStyle]">
                           <img :src="formatImageUrl(cell.imageUrl)" :alt="cell.label || '图标'" />
                           <span v-if="cell.label" class="image-label">{{
-                            truncateText(cell.label, 10)
-                          }}</span>
+                              truncateText(cell.label, 10)
+                            }}</span>
                         </div>
                       </template>
                     </div>
@@ -173,7 +173,7 @@
 
     <!-- 归还汇总模态框 -->
     <ReturnSummaryModal v-model:visible="showReturnSummary" :return-items="returnRecords" :photo-data="photoData"
-      @submit="onReturnSubmit" />
+                        @submit="onReturnSubmit" />
 
     <!-- 无归还记录提示模态框 -->
     <Teleport to="body">
@@ -856,7 +856,7 @@ function findCellByQRCodeContent(
 }
 /**
  * 获取单元格的工具名称
- * @param cell 
+ * @param cell
  */
 function getToolNameForCell(cell: NormalCell): string {
   if (cell.toolName && cell.toolName.trim() !== '') {
@@ -875,7 +875,7 @@ function getToolNameForCell(cell: NormalCell): string {
 }
 /**
  * 处理扫描的二维码
- * @param content 
+ * @param content
  */
 const processScannedQRCode = async (content: string) => {
   const trimmedContent = content.trim()
@@ -1169,46 +1169,30 @@ body,
   position: relative;
 }
 
-/* 扫描提示区 */
+/* ---------- 扫描提示区 – 无模糊、无动画 ---------- */
 .scanner-prompt {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
   padding: 8px 20px;
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 20, 25, 0.8));
-  backdrop-filter: blur(10px);
+  background: rgba(0, 0, 0, 0.7);
   border-bottom: 1px solid rgba(34, 211, 238, 0.3);
   border-radius: 0 0 20px 20px;
   margin: 0 20px;
   z-index: 100;
-  transition: all 0.3s ease;
 }
 
 .scanner-prompt.active {
-  background: linear-gradient(135deg, rgba(0, 30, 40, 0.9), rgba(0, 40, 50, 0.9));
+  background: rgba(0, 30, 40, 0.9);
   border-bottom-color: #22d3ee;
-  box-shadow: 0 4px 15px rgba(34, 211, 238, 0.2);
+  box-shadow: 0 4px 12px rgba(34, 211, 238, 0.15);
 }
 
 .scanner-icon {
   font-size: 24px;
   filter: drop-shadow(0 0 4px #22d3ee);
-  animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-
-  0%,
-  100% {
-    opacity: 0.6;
-    transform: scale(1);
-  }
-
-  50% {
-    opacity: 1;
-    transform: scale(1.1);
-  }
+  /* 删除动画 */
 }
 
 .scanner-text {
@@ -1237,12 +1221,11 @@ body,
   color: white;
   font-size: 12px;
   cursor: pointer;
-  transition: all 0.2s;
 }
 
 .reset-scan-btn:hover {
   background: #f59e0b;
-  transform: scale(1.02);
+  /* 无 scale */
 }
 
 /* 手动输入区域 */
@@ -1266,7 +1249,7 @@ body,
 
 .manual-input:focus {
   border-color: #22d3ee;
-  box-shadow: 0 0 5px rgba(34, 211, 238, 0.5);
+  box-shadow: 0 0 4px rgba(34, 211, 238, 0.4);
 }
 
 .manual-submit-btn {
@@ -1277,7 +1260,6 @@ body,
   color: #22d3ee;
   cursor: pointer;
   font-size: 12px;
-  transition: all 0.2s;
 }
 
 .manual-submit-btn:hover {
@@ -1285,7 +1267,7 @@ body,
   color: #0a1a1f;
 }
 
-/* 通知样式 */
+/* ---------- 通知 – 无模糊、无动画 ---------- */
 .notification-container {
   position: fixed;
   top: 90px;
@@ -1305,14 +1287,13 @@ body,
   font-size: 16px;
   font-weight: 600;
   line-height: 1.4;
-  backdrop-filter: blur(12px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-  animation: slideInRight 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   pointer-events: auto;
   white-space: normal;
   word-break: break-word;
   overflow-wrap: break-word;
   max-width: 100%;
+  /* 删除动画 */
 }
 
 .notification.info,
@@ -1328,18 +1309,6 @@ body,
   border-left: 4px solid #fde68a;
 }
 
-@keyframes slideInRight {
-  from {
-    opacity: 0;
-    transform: translateX(100%);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
 .full-layout {
   display: flex;
   flex-direction: column;
@@ -1348,7 +1317,7 @@ body,
   overflow: hidden;
 }
 
-/* 页面标题 */
+/* ---------- 页面标题 ---------- */
 .page-header {
   display: flex;
   align-items: center;
@@ -1356,15 +1325,14 @@ body,
   gap: 12px;
   height: 60px;
   background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(8px);
   border-bottom: 1px solid rgba(34, 211, 238, 0.3);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   flex-shrink: 0;
 }
 
 .title-icon {
   font-size: 28px;
-  filter: drop-shadow(0 0 6px #22d3ee);
+  filter: drop-shadow(0 0 4px #22d3ee);
 }
 
 .page-header h1 {
@@ -1375,11 +1343,11 @@ body,
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
-  text-shadow: 0 0 8px rgba(34, 211, 238, 0.3);
+  text-shadow: 0 0 6px rgba(34, 211, 238, 0.3);
   letter-spacing: 2px;
 }
 
-/* 上部区域 */
+/* ---------- 上部区域 ---------- */
 .upper-area {
   height: calc(100vh - 350px - 60px - 50px);
   flex-shrink: 0;
@@ -1400,7 +1368,7 @@ body,
   padding: 10px 0;
 }
 
-/* 温湿度卡片 */
+/* ---------- 温湿度卡片 – 无模糊、无过渡 ---------- */
 .temp-card,
 .humidity-card {
   position: absolute;
@@ -1408,13 +1376,12 @@ body,
   display: flex;
   align-items: center;
   gap: 6px;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(12px);
+  background: rgba(0, 0, 0, 0.6);
   border-radius: 40px;
   padding: 5px 14px;
   z-index: 500;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
 .temp-card {
@@ -1440,10 +1407,12 @@ body,
 
 .temp-card .card-value {
   color: #f87171;
+  text-shadow: 0 0 4px rgba(248, 113, 113, 0.3);
 }
 
 .humidity-card .card-value {
   color: #4ade80;
+  text-shadow: 0 0 4px rgba(74, 222, 128, 0.3);
 }
 
 .card-label {
@@ -1454,7 +1423,13 @@ body,
   border-radius: 20px;
 }
 
-/* 3D轮播 */
+.temp-card:hover,
+.humidity-card:hover {
+  background: rgba(0, 0, 0, 0.8);
+  /* 仅背景变深，无位移 */
+}
+
+/* ---------- 3D轮播 – 无过渡 ---------- */
 .carousel-cylinder {
   width: 100%;
   max-width: 1400px;
@@ -1482,24 +1457,25 @@ body,
   position: absolute;
   background: #f1f4f9;
   border-radius: 20px;
-  box-shadow: 0 20px 30px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
   border: 1px solid #d0d8e4;
   transform-style: preserve-3d;
-  transition: transform 0.5s cubic-bezier(0.2, 0.85, 0.35, 1), opacity 0.4s ease;
+  /* 恢复过渡，只针对合成层属性，0.25s 平滑且性能友好 */
+  transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.4, 1), opacity 0.25s ease;
   display: flex;
   flex-direction: column;
   min-width: 0;
-  will-change: transform;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
   max-width: 88vw;
 }
-
 .cabinet-item.center-highlight {
-  filter: drop-shadow(0 0 12px rgba(100, 220, 160, 0.6));
-  border: 1px solid #6fcf97;
+  border: 2px solid #6fcf97;
+  box-shadow: 0 0 12px rgba(100, 220, 160, 0.5);
 }
 
 .cabinet-header {
-  background: linear-gradient(135deg, #eef2f7 0%, #e3e9f0 100%);
+  background: linear-gradient(135deg, #eef2f7, #e3e9f0);
   border-radius: 20px 20px 0 0;
   padding: 8px 10px;
   text-align: center;
@@ -1533,8 +1509,7 @@ body,
 }
 
 .indicator-text {
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.6);
   padding: 4px 16px;
   border-radius: 40px;
   font-size: 0.85rem;
@@ -1548,31 +1523,29 @@ body,
   height: 2px;
   margin: 4px auto;
   background: linear-gradient(90deg, transparent, #22d3ee, #3b82f6, #22d3ee, transparent);
-  box-shadow: 0 0 6px rgba(34, 211, 238, 0.6);
   border-radius: 4px;
   flex-shrink: 0;
 }
 
-/* 格口样式 */
+/* ---------- 格口样式 – 无过渡动画 ---------- */
 .cell-container {
   position: relative;
   background: #f9fbfe;
   border: 1px solid #cfdde6;
   border-radius: 12px;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7), 0 4px 12px rgba(0, 0, 0, 0.02);
-  transition: all 0.2s ease;
-  overflow: visible;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7), 0 2px 8px rgba(0, 0, 0, 0.02);
   cursor: pointer;
   box-sizing: border-box;
   height: 100%;
 }
 
 .cell-container:active {
-  transform: scale(0.98);
+  /* 无 scale */
 }
 
 .cell-container:hover {
-  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+  border-color: #22d3ee;
+  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.7);
 }
 
 .custom-image-cell {
@@ -1582,8 +1555,8 @@ body,
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(8px);
   border: 1px solid rgba(34, 211, 238, 0.5);
+  box-shadow: 0 0 8px rgba(0, 255, 255, 0.15);
   overflow: hidden;
   cursor: default;
 }
@@ -1623,15 +1596,12 @@ body,
   border: 1.5px solid rgba(70, 150, 110, 0.8);
   border-radius: 10px;
   transform: translateZ(6px);
-  backdrop-filter: blur(1px);
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
-  transform-origin: left center;
-  will-change: transform;
   box-sizing: border-box;
+  /* 删除 transition，开门瞬间旋转 */
 }
 
 .cabinet-cell.door-open {
@@ -1640,8 +1610,7 @@ body,
 }
 
 .cabinet-cell.empty-door {
-  background: rgba(255, 255, 245, 0.55);
-  backdrop-filter: blur(4px);
+  background: rgba(255, 255, 245, 0.6);
   border-color: rgba(140, 180, 160, 0.6);
 }
 
@@ -1679,7 +1648,7 @@ body,
   display: none;
 }
 
-/* 导航按钮 */
+/* ---------- 导航按钮 – 无过渡、无模糊 ---------- */
 .nav-btn-left,
 .nav-btn-right {
   position: absolute;
@@ -1690,16 +1659,14 @@ body,
   gap: 8px;
   padding: 12px 24px;
   background: rgba(10, 25, 30, 0.85);
-  backdrop-filter: blur(12px);
   border: 1.5px solid rgba(34, 211, 238, 0.7);
   border-radius: 60px;
   color: #e0f2fe;
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
   z-index: 400;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
   white-space: nowrap;
 }
 
@@ -1726,17 +1693,16 @@ body,
   background: rgba(14, 165, 233, 0.9);
   border-color: #7dd3fc;
   color: #0a1a1f;
-  transform: translateY(-50%) scale(1.05);
+  /* 无 scale/位移 */
 }
 
 .nav-btn-left.disabled,
 .nav-btn-right.disabled {
   opacity: 0.35;
   cursor: not-allowed;
-  filter: grayscale(0.2);
 }
 
-/* 下部区域 */
+/* ---------- 下部区域 ---------- */
 .bottom-section {
   height: 350px;
   flex-shrink: 0;
@@ -1787,7 +1753,6 @@ body,
   bottom: 8px;
   right: 8px;
   background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
   padding: 4px 8px;
   border-radius: 20px;
   font-size: 10px;
@@ -1812,15 +1777,14 @@ body,
   color: #94a3b8;
 }
 
-/* 归还信息表格区域 */
+/* ---------- 归还信息表格 – 无模糊 ---------- */
 .info-area {
   flex: 0 0 auto;
   width: 450px;
   min-width: 0;
   display: flex;
   align-items: center;
-  background: rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.4);
   border-radius: 20px;
   padding: 8px 12px;
   border: 1px solid rgba(34, 211, 238, 0.2);
@@ -1876,7 +1840,6 @@ body,
   padding: 8px 8px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   font-size: 12px;
-  transition: background 0.2s;
   flex-shrink: 0;
 }
 
@@ -1922,29 +1885,26 @@ body,
   border-radius: 32px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.25s ease;
   background: linear-gradient(135deg, #f59e0b, #d97706);
   border: 1px solid rgba(245, 158, 11, 0.6);
   color: white;
-  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
   min-height: 100px;
   min-width: 140px;
 }
 
 .complete-btn:hover:not(:disabled) {
   background: linear-gradient(135deg, #fbbf24, #f59e0b);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
+  /* 仅颜色变化，无位移/阴影变化 */
 }
 
 .complete-btn:active:not(:disabled) {
-  transform: translateY(1px);
+  /* 无位移 */
 }
 
 .complete-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
 }
 
 .complete-btn .btn-icon {
@@ -1957,7 +1917,7 @@ body,
   font-weight: 700;
 }
 
-/* 加载 & 空状态 */
+/* ---------- 加载 & 空状态 – 保留旋转动画（仅初始化出现） ---------- */
 .loading-mask {
   position: fixed;
   top: 0;
@@ -1965,7 +1925,6 @@ body,
   width: 100%;
   height: 100%;
   background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(4px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1985,9 +1944,7 @@ body,
 }
 
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
 .empty-state {
@@ -1996,12 +1953,11 @@ body,
   background: rgba(0, 0, 0, 0.6);
   padding: 50px;
   border-radius: 30px;
-  backdrop-filter: blur(10px);
   margin: auto;
   width: fit-content;
 }
 
-/* 模态框通用样式（与 Borrow 保持一致） */
+/* ---------- 模态框 – 无模糊、无动画 ---------- */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -2009,12 +1965,10 @@ body,
   width: 100%;
   height: 100%;
   background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(5px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 20000;
-  animation: fadeIn 0.2s ease;
 }
 
 .modal-overlay.no-close {
@@ -2029,8 +1983,7 @@ body,
   max-height: 80vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 25px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(34, 211, 238, 0.3);
-  animation: slideUp 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(34, 211, 238, 0.3);
   overflow: hidden;
 }
 
@@ -2059,14 +2012,12 @@ body,
   font-size: 1.6rem;
   cursor: pointer;
   color: #94a3b8;
-  transition: all 0.2s;
   line-height: 1;
   padding: 0 8px;
 }
 
 .close-btn:hover {
   color: #f87171;
-  transform: scale(1.1);
 }
 
 .modal-body {
@@ -2094,14 +2045,11 @@ body,
   font-size: 1rem;
   color: white;
   cursor: pointer;
-  transition: all 0.2s;
   box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
 }
 
 .confirm-btn:hover {
-  transform: translateY(-2px);
   background: linear-gradient(135deg, #0fba7a, #048a5a);
-  box-shadow: 0 6px 14px rgba(16, 185, 129, 0.4);
 }
 
 .cancel-btn {
@@ -2113,15 +2061,13 @@ body,
   font-size: 1rem;
   color: white;
   cursor: pointer;
-  transition: all 0.2s;
 }
 
 .cancel-btn:hover {
   background: rgba(71, 85, 105, 0.9);
-  transform: translateY(-2px);
 }
 
-/* 信息模态框（空归还记录） */
+/* ---------- 信息模态框 ---------- */
 .info-modal .modal-container {
   border-left: 4px solid #22d3ee;
 }
@@ -2151,7 +2097,7 @@ body,
   margin: 0 4px;
 }
 
-/* 成功模态框 */
+/* ---------- 成功模态框 ---------- */
 .success-modal .modal-container {
   border-left: 4px solid #10b981;
 }
@@ -2172,213 +2118,49 @@ body,
   font-size: 1.3rem;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* 响应式适配 */
+/* ---------- 响应式 – 无动画 ---------- */
 @media (max-width: 680px) {
-  .page-header {
-    height: 50px;
-    gap: 8px;
-  }
-
-  .title-icon {
-    font-size: 22px;
-  }
-
-  .page-header h1 {
-    font-size: 20px;
-  }
-
-  .upper-area {
-    height: calc(100vh - 350px - 50px - 50px);
-  }
-
-  .info-area {
-    width: 320px;
-    padding: 8px;
-  }
-
-  .info-header,
-  .info-row {
-    grid-template-columns: 1fr 0.7fr 1fr 1.3fr;
-    gap: 8px;
-  }
-
-  .header-item,
-  .row-item {
-    font-size: 10px;
-  }
-
-  .complete-btn .btn-icon {
-    font-size: 28px;
-  }
-
-  .complete-btn .btn-label {
-    font-size: 14px;
-  }
-
-  .complete-btn {
-    padding: 16px 12px;
-    min-height: 80px;
-  }
-
-  .temp-card,
-  .humidity-card {
-    padding: 3px 10px;
-    top: 4px;
-  }
-
-  .card-value {
-    font-size: 14px;
-    min-width: 35px;
-  }
-
-  .scanner-prompt {
-    padding: 6px 12px;
-    margin: 0 12px;
-  }
-
-  .scanner-text {
-    font-size: 11px;
-  }
-
-  .manual-input {
-    width: 120px;
-    font-size: 11px;
-    padding: 4px 8px;
-  }
-
-  .manual-submit-btn {
-    padding: 3px 8px;
-    font-size: 10px;
-  }
+  .page-header { height: 50px; gap: 8px; }
+  .title-icon { font-size: 22px; }
+  .page-header h1 { font-size: 20px; }
+  .upper-area { height: calc(100vh - 350px - 50px - 50px); }
+  .info-area { width: 320px; padding: 8px; }
+  .info-header, .info-row { grid-template-columns: 1fr 0.7fr 1fr 1.3fr; gap: 8px; }
+  .header-item, .row-item { font-size: 10px; }
+  .complete-btn .btn-icon { font-size: 28px; }
+  .complete-btn .btn-label { font-size: 14px; }
+  .complete-btn { padding: 16px 12px; min-height: 80px; }
+  .temp-card, .humidity-card { padding: 3px 10px; top: 4px; }
+  .card-value { font-size: 14px; min-width: 35px; }
+  .scanner-prompt { padding: 6px 12px; margin: 0 12px; }
+  .scanner-text { font-size: 11px; }
+  .manual-input { width: 120px; font-size: 11px; padding: 4px 8px; }
+  .manual-submit-btn { padding: 3px 8px; font-size: 10px; }
 }
 
 @media (max-width: 480px) {
-  .page-header h1 {
-    font-size: 18px;
-  }
-
-  .title-icon {
-    font-size: 20px;
-  }
-
-  .cabinet-item {
-    width: 260px !important;
-  }
-
-  .bottom-container {
-    gap: 8px;
-  }
-
-  .info-area {
-    width: 260px;
-    padding: 6px;
-  }
-
-  .info-header,
-  .info-row {
-    grid-template-columns: 1fr 0.6fr 0.9fr 1.2fr;
-    gap: 6px;
-  }
-
-  .header-item,
-  .row-item {
-    font-size: 9px;
-  }
-
-  .info-row {
-    padding: 6px 4px;
-  }
-
-  .complete-btn .btn-icon {
-    font-size: 24px;
-  }
-
-  .complete-btn .btn-label {
-    font-size: 12px;
-  }
-
-  .complete-btn {
-    padding: 12px 8px;
-    min-height: 70px;
-    gap: 6px;
-  }
-
-  .placeholder-icon {
-    width: 24px;
-    height: 24px;
-  }
-
-  .photo-placeholder span {
-    font-size: 9px;
-  }
-
-  .temp-card,
-  .humidity-card {
-    padding: 2px 8px;
-    gap: 4px;
-  }
-
-  .card-icon {
-    font-size: 12px;
-  }
-
-  .card-value {
-    font-size: 12px;
-    min-width: 30px;
-  }
-
-  .card-label {
-    font-size: 8px;
-  }
-
-  .scanner-prompt {
-    padding: 4px 8px;
-  }
-
-  .scanner-icon {
-    font-size: 18px;
-  }
-
-  .scanner-text {
-    font-size: 10px;
-  }
-
-  .reset-scan-btn {
-    font-size: 10px;
-    padding: 2px 8px;
-  }
-
-  .manual-input {
-    width: 100px;
-    font-size: 10px;
-    padding: 3px 6px;
-  }
-
-  .manual-submit-btn {
-    padding: 2px 6px;
-    font-size: 9px;
-  }
+  .page-header h1 { font-size: 18px; }
+  .title-icon { font-size: 20px; }
+  .cabinet-item { width: 260px !important; }
+  .bottom-container { gap: 8px; }
+  .info-area { width: 260px; padding: 6px; }
+  .info-header, .info-row { grid-template-columns: 1fr 0.6fr 0.9fr 1.2fr; gap: 6px; }
+  .header-item, .row-item { font-size: 9px; }
+  .info-row { padding: 6px 4px; }
+  .complete-btn .btn-icon { font-size: 24px; }
+  .complete-btn .btn-label { font-size: 12px; }
+  .complete-btn { padding: 12px 8px; min-height: 70px; gap: 6px; }
+  .placeholder-icon { width: 24px; height: 24px; }
+  .photo-placeholder span { font-size: 9px; }
+  .temp-card, .humidity-card { padding: 2px 8px; gap: 4px; }
+  .card-icon { font-size: 12px; }
+  .card-value { font-size: 12px; min-width: 30px; }
+  .card-label { font-size: 8px; }
+  .scanner-prompt { padding: 4px 8px; }
+  .scanner-icon { font-size: 18px; }
+  .scanner-text { font-size: 10px; }
+  .reset-scan-btn { font-size: 10px; padding: 2px 8px; }
+  .manual-input { width: 100px; font-size: 10px; padding: 3px 6px; }
+  .manual-submit-btn { padding: 2px 6px; font-size: 9px; }
 }
 </style>

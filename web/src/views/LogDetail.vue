@@ -120,153 +120,149 @@
     </div>
 
     <!-- 详情模态框 -->
-    <Transition name="modal-fade">
-      <div v-if="detailVisible" class="detail-modal" @click="detailVisible = false">
-        <div class="detail-card" @click.stop>
-          <div class="card-glow"></div>
-          <div class="detail-header">
-            <div class="header-left">
-              <span class="header-icon">📋</span>
-              <h3>借还详情</h3>
-              <span :class="['status-badge', getStatusClass(currentDetail)]" class="header-status">
-                {{ getStatusText(currentDetail) }}
-              </span>
-            </div>
-            <button class="close-btn" @click="detailVisible = false">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-            </button>
+    <div v-if="detailVisible" class="detail-modal" @click="detailVisible = false">
+      <div class="detail-card" @click.stop>
+        <div class="card-glow"></div>
+        <div class="detail-header">
+          <div class="header-left">
+            <span class="header-icon">📋</span>
+            <h3>借还详情</h3>
+            <span :class="['status-badge', getStatusClass(currentDetail)]" class="header-status">
+              {{ getStatusText(currentDetail) }}
+            </span>
           </div>
-          <div class="detail-body">
-            <div class="info-card tool-info">
-              <div class="card-title">
-                <span class="title-icon">🔧</span>
-                <span>工具信息</span>
-              </div>
-              <div class="info-grid grid-2col">
-                <div class="info-field">
-                  <span class="field-label">柜子名称</span>
-                  <span class="field-value">{{ currentDetail?.cabinetTitle || '-' }}</span>
-                </div>
-                <div class="info-field">
-                  <span class="field-label">格口号</span>
-                  <span class="field-value">{{ currentDetail?.cellNumber || '-' }}</span>
-                </div>
-                <div class="info-field">
-                  <span class="field-label">工具名称</span>
-                  <span class="field-value highlight">{{ currentDetail?.toolName || '-' }}</span>
-                </div>
-                <div class="info-field">
-                  <span class="field-label">预计归还</span>
-                  <span class="field-value">{{ formatDateTime(currentDetail?.expectedReturnTime) }}</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="borrow-return-wrapper">
-              <div class="info-card borrow-card">
-                <div class="card-title">
-                  <span class="title-icon">📤</span>
-                  <span>借出信息</span>
-                </div>
-                <div class="info-list">
-                  <div class="info-field">
-                    <span class="field-label">👤 借用人</span>
-                    <span class="field-value">{{ currentDetail?.borrowerName || '-' }}</span>
-                  </div>
-                  <div class="info-field">
-                    <span class="field-label">🆔 工号/卡号</span>
-                    <span class="field-value">{{ currentDetail?.borrowerNumber || '-' }}</span>
-                  </div>
-                  <div class="info-field">
-                    <span class="field-label">⏱️ 借用时间</span>
-                    <span class="field-value">{{ formatDateTime(currentDetail?.borrowTime) }}</span>
-                  </div>
-                  <div class="info-field">
-                    <span class="field-label">📝 借用说明</span>
-                    <span class="field-value">{{ currentDetail?.borrowRemark || '无' }}</span>
-                  </div>
-                  <div class="info-field photo-field">
-                    <span class="field-label">📷 借用照片</span>
-                    <div class="photo-wrapper">
-                      <img
-                          v-if="currentDetail?.borrowerPhoto"
-                          :src="formatImageUrl(currentDetail.borrowerPhoto)"
-                          class="detail-photo"
-                          @click.stop="previewImage(currentDetail.borrowerPhoto)"
-                          @error="handleImageError"
-                      />
-                      <span v-else class="no-photo">无照片</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="info-card return-card">
-                <div class="card-title">
-                  <span class="title-icon">📥</span>
-                  <span>归还信息</span>
-                </div>
-                <div v-if="currentDetail?.returnTime" class="info-list">
-                  <div class="info-field">
-                    <span class="field-label">👤 归还人</span>
-                    <span class="field-value">{{ currentDetail?.returnName || '-' }}</span>
-                  </div>
-                  <div class="info-field">
-                    <span class="field-label">🆔 工号/卡号</span>
-                    <span class="field-value">{{ currentDetail?.returnNumber || '-' }}</span>
-                  </div>
-                  <div class="info-field">
-                    <span class="field-label">⏱️ 归还时间</span>
-                    <span class="field-value">{{ formatDateTime(currentDetail?.returnTime) }}</span>
-                  </div>
-                  <div class="info-field">
-                    <span class="field-label">📝 归还说明</span>
-                    <span class="field-value">{{ currentDetail?.returnRemark || '无' }}</span>
-                  </div>
-                  <div class="info-field photo-field">
-                    <span class="field-label">📷 归还照片</span>
-                    <div class="photo-wrapper">
-                      <img
-                          v-if="currentDetail?.returnPhoto"
-                          :src="formatImageUrl(currentDetail.returnPhoto)"
-                          class="detail-photo"
-                          @click.stop="previewImage(currentDetail.returnPhoto)"
-                          @error="handleImageError"
-                      />
-                      <span v-else class="no-photo">无照片</span>
-                    </div>
-                  </div>
-                </div>
-                <div v-else class="unreturned-state">
-                  <div class="unreturned-icon">⏳</div>
-                  <div class="unreturned-text">尚未归还</div>
-                  <div class="unreturned-desc">该工具仍在借用中</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="detail-footer">
-            <button class="footer-btn" @click="detailVisible = false">关 闭</button>
-          </div>
-        </div>
-      </div>
-    </Transition>
-
-    <!-- 图片预览模态框 -->
-    <Transition name="preview-fade">
-      <div v-if="previewVisible" class="preview-modal" @click="previewVisible = false">
-        <div class="preview-container" @click.stop>
-          <img :src="formatImageUrl(previewUrl)" class="preview-image" />
-          <button class="preview-close" @click="previewVisible = false">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M18 6L6 18M6 6L18 18" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          <button class="close-btn" @click="detailVisible = false">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             </svg>
           </button>
         </div>
+        <div class="detail-body">
+          <div class="info-card tool-info">
+            <div class="card-title">
+              <span class="title-icon">🔧</span>
+              <span>工具信息</span>
+            </div>
+            <div class="info-grid grid-2col">
+              <div class="info-field">
+                <span class="field-label">柜子名称</span>
+                <span class="field-value">{{ currentDetail?.cabinetTitle || '-' }}</span>
+              </div>
+              <div class="info-field">
+                <span class="field-label">格口号</span>
+                <span class="field-value">{{ currentDetail?.cellNumber || '-' }}</span>
+              </div>
+              <div class="info-field">
+                <span class="field-label">工具名称</span>
+                <span class="field-value highlight">{{ currentDetail?.toolName || '-' }}</span>
+              </div>
+              <div class="info-field">
+                <span class="field-label">预计归还</span>
+                <span class="field-value">{{ formatDateTime(currentDetail?.expectedReturnTime) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="borrow-return-wrapper">
+            <div class="info-card borrow-card">
+              <div class="card-title">
+                <span class="title-icon">📤</span>
+                <span>借出信息</span>
+              </div>
+              <div class="info-list">
+                <div class="info-field">
+                  <span class="field-label">👤 借用人</span>
+                  <span class="field-value">{{ currentDetail?.borrowerName || '-' }}</span>
+                </div>
+                <div class="info-field">
+                  <span class="field-label">🆔 工号/卡号</span>
+                  <span class="field-value">{{ currentDetail?.borrowerNumber || '-' }}</span>
+                </div>
+                <div class="info-field">
+                  <span class="field-label">⏱️ 借用时间</span>
+                  <span class="field-value">{{ formatDateTime(currentDetail?.borrowTime) }}</span>
+                </div>
+                <div class="info-field">
+                  <span class="field-label">📝 借用说明</span>
+                  <span class="field-value">{{ currentDetail?.borrowRemark || '无' }}</span>
+                </div>
+                <div class="info-field photo-field">
+                  <span class="field-label">📷 借用照片</span>
+                  <div class="photo-wrapper">
+                    <img
+                        v-if="currentDetail?.borrowerPhoto"
+                        :src="formatImageUrl(currentDetail.borrowerPhoto)"
+                        class="detail-photo"
+                        @click.stop="previewImage(currentDetail.borrowerPhoto)"
+                        @error="handleImageError"
+                    />
+                    <span v-else class="no-photo">无照片</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="info-card return-card">
+              <div class="card-title">
+                <span class="title-icon">📥</span>
+                <span>归还信息</span>
+              </div>
+              <div v-if="currentDetail?.returnTime" class="info-list">
+                <div class="info-field">
+                  <span class="field-label">👤 归还人</span>
+                  <span class="field-value">{{ currentDetail?.returnName || '-' }}</span>
+                </div>
+                <div class="info-field">
+                  <span class="field-label">🆔 工号/卡号</span>
+                  <span class="field-value">{{ currentDetail?.returnNumber || '-' }}</span>
+                </div>
+                <div class="info-field">
+                  <span class="field-label">⏱️ 归还时间</span>
+                  <span class="field-value">{{ formatDateTime(currentDetail?.returnTime) }}</span>
+                </div>
+                <div class="info-field">
+                  <span class="field-label">📝 归还说明</span>
+                  <span class="field-value">{{ currentDetail?.returnRemark || '无' }}</span>
+                </div>
+                <div class="info-field photo-field">
+                  <span class="field-label">📷 归还照片</span>
+                  <div class="photo-wrapper">
+                    <img
+                        v-if="currentDetail?.returnPhoto"
+                        :src="formatImageUrl(currentDetail.returnPhoto)"
+                        class="detail-photo"
+                        @click.stop="previewImage(currentDetail.returnPhoto)"
+                        @error="handleImageError"
+                    />
+                    <span v-else class="no-photo">无照片</span>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="unreturned-state">
+                <div class="unreturned-icon">⏳</div>
+                <div class="unreturned-text">尚未归还</div>
+                <div class="unreturned-desc">该工具仍在借用中</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="detail-footer">
+          <button class="footer-btn" @click="detailVisible = false">关 闭</button>
+        </div>
       </div>
-    </Transition>
+    </div>
+
+    <!-- 图片预览模态框 -->
+    <div v-if="previewVisible" class="preview-modal" @click="previewVisible = false">
+      <div class="preview-container" @click.stop>
+        <img :src="formatImageUrl(previewUrl)" class="preview-image" />
+        <button class="preview-close" @click="previewVisible = false">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M18 6L6 18M6 6L18 18" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
 
     <!-- Toast -->
     <div v-if="showToast" class="toast-message">{{ toastText }}</div>
@@ -457,14 +453,14 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
+/* ---------- 外框 – 无模糊 ---------- */
 .outer-frame {
   width: 100%;
   height: 100%;
-  background: rgba(15, 25, 35, 0.6);
-  backdrop-filter: blur(8px);
+  background: rgba(15, 25, 35, 0.7);
   border: 2px solid rgba(34, 211, 238, 0.4);
   border-radius: 32px;
-  box-shadow: 0 0 30px rgba(34, 211, 238, 0.1), inset 0 0 20px rgba(34, 211, 238, 0.05);
+  box-shadow: 0 0 20px rgba(34, 211, 238, 0.08), inset 0 0 12px rgba(34, 211, 238, 0.03);
   overflow-y: auto;
   overflow-x: hidden;
   padding: 20px 24px;
@@ -475,17 +471,16 @@ onUnmounted(() => {
 .outer-frame::-webkit-scrollbar {
   width: 6px;
 }
-
 .outer-frame::-webkit-scrollbar-track {
   background: rgba(0, 0, 0, 0.3);
   border-radius: 4px;
 }
-
 .outer-frame::-webkit-scrollbar-thumb {
   background: #22d3ee;
   border-radius: 4px;
 }
 
+/* ---------- 头部 ---------- */
 .log-detail-header {
   display: flex;
   align-items: center;
@@ -500,7 +495,6 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(10px);
   border: 1px solid rgba(34, 211, 238, 0.5);
   border-radius: 60px;
   padding: 10px 20px;
@@ -508,18 +502,14 @@ onUnmounted(() => {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
 }
-
 .back-btn:hover {
   background: rgba(34, 211, 238, 0.2);
   border-color: #22d3ee;
 }
-
 .back-btn:active {
-  transform: scale(0.96);
+  /* 无 scale */
 }
-
 .back-icon {
   font-size: 18px;
 }
@@ -527,15 +517,15 @@ onUnmounted(() => {
 .page-title {
   color: #c2f0e0;
   font-size: 24px;
-  text-shadow: 0 0 10px rgba(34, 211, 238, 0.3);
+  text-shadow: 0 0 8px rgba(34, 211, 238, 0.25);
 }
 
+/* ---------- 倒计时 – 无动画 ---------- */
 .countdown-display {
   display: flex;
   align-items: center;
   gap: 8px;
   background: rgba(34, 211, 238, 0.15);
-  backdrop-filter: blur(10px);
   border: 1px solid rgba(34, 211, 238, 0.5);
   border-radius: 60px;
   padding: 8px 16px;
@@ -543,45 +533,31 @@ onUnmounted(() => {
   font-size: 14px;
   font-weight: 500;
   white-space: nowrap;
-  animation: pulse 1s ease-in-out infinite;
+  /* 删除 animation */
 }
-
 .countdown-icon {
   font-size: 16px;
 }
-
 .countdown-time {
   font-size: 18px;
   font-weight: 700;
   font-family: monospace;
   letter-spacing: 1px;
 }
-
 .countdown-text {
   font-size: 12px;
   opacity: 0.8;
 }
 
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-    border-color: rgba(34, 211, 238, 0.5);
-  }
-  50% {
-    opacity: 0.8;
-    border-color: rgba(34, 211, 238, 0.8);
-    box-shadow: 0 0 8px rgba(34, 211, 238, 0.3);
-  }
-}
-
+/* ---------- 内容区 ---------- */
 .log-content {
   max-width: 1400px;
   margin: 0 auto;
 }
 
+/* ---------- 过滤栏 – 无模糊 ---------- */
 .filter-bar {
   background: rgba(15, 25, 35, 0.7);
-  backdrop-filter: blur(12px);
   border-radius: 20px;
   border: 1px solid rgba(34, 211, 238, 0.2);
   padding: 20px;
@@ -602,12 +578,10 @@ onUnmounted(() => {
   flex: 1 0 auto;
   min-width: 140px;
 }
-
 .filter-item label {
   font-size: 12px;
   color: #94a3b8;
 }
-
 .filter-item input,
 .filter-item select {
   background: rgba(0, 0, 0, 0.4);
@@ -617,13 +591,12 @@ onUnmounted(() => {
   color: #e2e8f0;
   font-size: 13px;
   outline: none;
-  transition: all 0.2s;
   width: 100%;
 }
-
 .filter-item input:focus,
 .filter-item select:focus {
   border-color: #22d3ee;
+  box-shadow: 0 0 4px rgba(34, 211, 238, 0.2);
 }
 
 .date-range {
@@ -632,12 +605,10 @@ onUnmounted(() => {
   gap: 8px;
   width: 100%;
 }
-
 .date-range input {
   flex: 1;
   min-width: 0;
 }
-
 .date-range span {
   color: #94a3b8;
   font-size: 12px;
@@ -657,31 +628,27 @@ onUnmounted(() => {
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
   border: none;
   white-space: nowrap;
 }
-
 .search-btn {
   background: #22d3ee;
   color: #051016;
 }
-
 .search-btn:hover {
   background: #1cb5cc;
-  transform: translateY(-1px);
+  /* 无 translateY */
 }
-
 .reset-btn {
   background: rgba(255, 255, 255, 0.1);
   color: #cbd5e1;
   border: 1px solid rgba(34, 211, 238, 0.3);
 }
-
 .reset-btn:hover {
   background: rgba(255, 255, 255, 0.2);
 }
 
+/* ---------- 响应式过滤栏 ---------- */
 @media (max-width: 700px) {
   .filter-row {
     display: grid;
@@ -689,68 +656,27 @@ onUnmounted(() => {
     gap: 12px;
     align-items: start;
   }
-  .filter-item:nth-child(1) {
-    grid-column: 1 / 2;
-    grid-row: 1;
-  }
-  .filter-item:nth-child(2) {
-    grid-column: 2 / 3;
-    grid-row: 1;
-  }
-  .filter-item:nth-child(3) {
-    grid-column: 3 / 4;
-    grid-row: 1;
-  }
-  .filter-item.date-filter {
-    grid-column: 1 / 3;
-    grid-row: 2;
-    margin: 0;
-  }
-  .filter-actions {
-    grid-column: 3 / 4;
-    grid-row: 2;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 8px;
-    margin: 0;
-  }
-  .filter-item {
-    min-width: auto;
-  }
-  .date-range {
-    flex-wrap: nowrap;
-  }
-  .date-range input {
-    min-width: 0;
-    width: auto;
-  }
-  .search-btn,
-  .reset-btn {
-    padding: 8px 12px;
-    font-size: 12px;
-  }
+  .filter-item:nth-child(1) { grid-column: 1 / 2; grid-row: 1; }
+  .filter-item:nth-child(2) { grid-column: 2 / 3; grid-row: 1; }
+  .filter-item:nth-child(3) { grid-column: 3 / 4; grid-row: 1; }
+  .filter-item.date-filter { grid-column: 1 / 3; grid-row: 2; margin: 0; }
+  .filter-actions { grid-column: 3 / 4; grid-row: 2; display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin: 0; }
+  .filter-item { min-width: auto; }
+  .date-range { flex-wrap: nowrap; }
+  .date-range input { min-width: 0; width: auto; }
+  .search-btn, .reset-btn { padding: 8px 12px; font-size: 12px; }
 }
 
 @media (max-width: 560px) {
-  .filter-row {
-    gap: 10px;
-  }
-  .date-range span {
-    padding: 0 2px;
-  }
-  .filter-actions {
-    gap: 6px;
-  }
-  .search-btn,
-  .reset-btn {
-    padding: 6px 10px;
-  }
+  .filter-row { gap: 10px; }
+  .date-range span { padding: 0 2px; }
+  .filter-actions { gap: 6px; }
+  .search-btn, .reset-btn { padding: 6px 10px; }
 }
 
+/* ---------- 表格 – 无模糊、无过渡 ---------- */
 .table-wrapper {
   background: rgba(15, 25, 35, 0.7);
-  backdrop-filter: blur(12px);
   border-radius: 20px;
   border: 1px solid rgba(34, 211, 238, 0.2);
   overflow: hidden;
@@ -765,29 +691,27 @@ onUnmounted(() => {
   border-collapse: collapse;
   font-size: 13px;
 }
-
 .log-table th,
 .log-table td {
   padding: 14px 12px;
   text-align: left;
   border-bottom: 1px solid rgba(34, 211, 238, 0.1);
 }
-
 .log-table th {
   background: rgba(34, 211, 238, 0.1);
   color: #22d3ee;
   font-weight: 600;
   font-size: 13px;
 }
-
 .log-table td {
   color: #cbd5e1;
 }
-
 .log-table tr:hover td {
   background: rgba(34, 211, 238, 0.05);
+  /* 无 translateX */
 }
 
+/* ---------- 状态徽章 ---------- */
 .status-badge {
   display: inline-block;
   padding: 4px 10px;
@@ -795,25 +719,23 @@ onUnmounted(() => {
   font-size: 11px;
   font-weight: 600;
 }
-
 .status-badge.returned {
   background: rgba(34, 197, 94, 0.2);
   color: #4ade80;
   border: 1px solid rgba(74, 222, 128, 0.3);
 }
-
 .status-badge.unreturned {
   background: rgba(239, 68, 68, 0.2);
   color: #f87171;
   border: 1px solid rgba(248, 113, 113, 0.3);
 }
-
 .status-badge.overdue {
   background: rgba(249, 115, 22, 0.2);
   color: #fb923c;
   border: 1px solid rgba(249, 115, 22, 0.3);
 }
 
+/* ---------- 表格图片 ---------- */
 .table-photo {
   width: 40px;
   height: 40px;
@@ -821,11 +743,10 @@ onUnmounted(() => {
   border-radius: 8px;
   cursor: pointer;
   border: 1px solid rgba(34, 211, 238, 0.3);
-  transition: transform 0.2s;
 }
-
 .table-photo:hover {
-  transform: scale(1.1);
+  border-color: #22d3ee;
+  /* 无 scale */
 }
 
 .no-photo {
@@ -842,9 +763,7 @@ onUnmounted(() => {
   color: #22d3ee;
   font-size: 12px;
   cursor: pointer;
-  transition: all 0.2s;
 }
-
 .detail-row-btn:hover {
   background: rgba(34, 211, 238, 0.3);
 }
@@ -863,6 +782,7 @@ onUnmounted(() => {
   border-top: 1px solid rgba(34, 211, 238, 0.1);
 }
 
+/* ---------- 加载 / 错误 – 保留 spin 动画（仅初始化） ---------- */
 .loading-wrapper,
 .error-wrapper {
   display: flex;
@@ -882,11 +802,8 @@ onUnmounted(() => {
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
-
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
 .retry-btn {
@@ -898,26 +815,11 @@ onUnmounted(() => {
   cursor: pointer;
   font-size: 13px;
 }
-
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-  transition: all 0.3s ease;
+.retry-btn:hover {
+  background: rgba(34, 211, 238, 0.3);
 }
 
-.modal-fade-enter-from,
-.modal-fade-leave-to {
-  opacity: 0;
-}
-
-.modal-fade-enter-from .detail-card,
-.modal-fade-leave-to .detail-card {
-  transform: scale(0.95) translateY(20px);
-}
-
-.detail-card {
-  transition: transform 0.3s ease;
-}
-
+/* ---------- 详情模态框 – 无模糊、无动画 ---------- */
 .detail-modal {
   position: fixed;
   top: 0;
@@ -925,7 +827,6 @@ onUnmounted(() => {
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -935,14 +836,14 @@ onUnmounted(() => {
 .detail-card {
   position: relative;
   background: linear-gradient(135deg, rgba(18, 28, 35, 0.98) 0%, rgba(10, 18, 24, 0.98) 100%);
-  backdrop-filter: blur(20px);
   border-radius: 28px;
   border: 1px solid rgba(34, 211, 238, 0.3);
   width: 860px;
   max-width: 92vw;
   max-height: 88vh;
   overflow: hidden;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(34, 211, 238, 0.1);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(34, 211, 238, 0.1);
+  /* 删除 transition */
 }
 
 .card-glow {
@@ -952,7 +853,7 @@ onUnmounted(() => {
   right: 0;
   height: 2px;
   background: linear-gradient(90deg, transparent, #22d3ee, #06b6d4, #22d3ee, transparent);
-  filter: blur(1px);
+  /* 删除 filter: blur */
 }
 
 .detail-header {
@@ -969,12 +870,10 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
 }
-
 .header-icon {
   font-size: 24px;
   filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.5));
 }
-
 .detail-header h3 {
   color: #22d3ee;
   margin: 0;
@@ -982,7 +881,6 @@ onUnmounted(() => {
   font-weight: 600;
   letter-spacing: 1px;
 }
-
 .header-status {
   margin-left: 8px;
   font-size: 11px;
@@ -1000,13 +898,11 @@ onUnmounted(() => {
   justify-content: center;
   color: #94a3b8;
   cursor: pointer;
-  transition: all 0.2s;
 }
-
 .close-btn:hover {
   background: rgba(239, 68, 68, 0.2);
   color: #f87171;
-  transform: rotate(90deg);
+  /* 无 rotate */
 }
 
 .detail-body {
@@ -1015,18 +911,18 @@ onUnmounted(() => {
   max-height: calc(88vh - 140px);
 }
 
+/* ---------- 详情卡片 ---------- */
 .info-card {
   background: rgba(0, 0, 0, 0.3);
   border-radius: 20px;
   padding: 20px;
   margin-bottom: 20px;
   border: 1px solid rgba(34, 211, 238, 0.12);
-  transition: all 0.2s;
 }
-
 .info-card:hover {
   border-color: rgba(34, 211, 238, 0.25);
   background: rgba(0, 0, 0, 0.35);
+  /* 无 transition */
 }
 
 .card-title {
@@ -1037,11 +933,9 @@ onUnmounted(() => {
   padding-bottom: 12px;
   border-bottom: 1px solid rgba(34, 211, 238, 0.2);
 }
-
 .title-icon {
   font-size: 18px;
 }
-
 .card-title span:last-child {
   color: #c2f0e0;
   font-weight: 600;
@@ -1053,7 +947,6 @@ onUnmounted(() => {
   display: grid;
   gap: 16px;
 }
-
 .grid-2col {
   grid-template-columns: repeat(2, 1fr);
 }
@@ -1063,21 +956,18 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 6px;
 }
-
 .field-label {
   font-size: 11px;
   color: #7e8b9f;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
-
 .field-value {
   font-size: 14px;
   color: #e2e8f0;
   font-weight: 500;
   word-break: break-word;
 }
-
 .field-value.highlight {
   color: #22d3ee;
   font-weight: 600;
@@ -1088,7 +978,6 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 16px;
 }
-
 .info-list .info-field {
   flex-direction: row;
   justify-content: space-between;
@@ -1096,14 +985,12 @@ onUnmounted(() => {
   padding: 8px 0;
   border-bottom: 1px dashed rgba(34, 211, 238, 0.08);
 }
-
 .info-list .field-label {
   font-size: 13px;
   text-transform: none;
   color: #94a3b8;
   min-width: 100px;
 }
-
 .info-list .field-value {
   text-align: right;
   font-size: 13px;
@@ -1114,7 +1001,6 @@ onUnmounted(() => {
   grid-template-columns: 1fr 1fr;
   gap: 20px;
 }
-
 .borrow-card,
 .return-card {
   margin-bottom: 0;
@@ -1126,7 +1012,6 @@ onUnmounted(() => {
   border-bottom: none !important;
   padding-top: 4px !important;
 }
-
 .photo-wrapper {
   margin-top: 8px;
   width: 100%;
@@ -1138,14 +1023,12 @@ onUnmounted(() => {
   border-radius: 12px;
   cursor: pointer;
   border: 1px solid rgba(34, 211, 238, 0.3);
-  transition: all 0.2s;
   object-fit: cover;
 }
-
 .detail-photo:hover {
-  transform: scale(1.02);
   border-color: #22d3ee;
   box-shadow: 0 4px 12px rgba(34, 211, 238, 0.2);
+  /* 无 scale */
 }
 
 .unreturned-state {
@@ -1156,20 +1039,17 @@ onUnmounted(() => {
   padding: 32px 20px;
   text-align: center;
 }
-
 .unreturned-icon {
   font-size: 48px;
   margin-bottom: 12px;
   opacity: 0.6;
 }
-
 .unreturned-text {
   color: #f87171;
   font-size: 16px;
   font-weight: 600;
   margin-bottom: 6px;
 }
-
 .unreturned-desc {
   color: #7e8b9f;
   font-size: 12px;
@@ -1192,18 +1072,16 @@ onUnmounted(() => {
   font-weight: 600;
   font-size: 13px;
   cursor: pointer;
-  transition: all 0.2s;
 }
-
 .footer-btn:hover {
-  transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(34, 211, 238, 0.3);
+  /* 无 translateY */
 }
-
 .footer-btn:active {
-  transform: translateY(0);
+  /* 无 translateY */
 }
 
+/* ---------- 图片预览 – 无模糊、无动画 ---------- */
 .preview-modal {
   position: fixed;
   top: 0;
@@ -1211,7 +1089,6 @@ onUnmounted(() => {
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.95);
-  backdrop-filter: blur(16px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1224,13 +1101,12 @@ onUnmounted(() => {
   max-width: 90vw;
   max-height: 90vh;
 }
-
 .preview-image {
   max-width: 90vw;
   max-height: 90vh;
   object-fit: contain;
   border-radius: 16px;
-  box-shadow: 0 0 40px rgba(34, 211, 238, 0.3);
+  box-shadow: 0 0 30px rgba(34, 211, 238, 0.25);
 }
 
 .preview-close {
@@ -1246,31 +1122,19 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s;
 }
-
 .preview-close:hover {
   background: rgba(239, 68, 68, 0.8);
-  transform: scale(1.1);
+  /* 无 scale */
 }
 
-.preview-fade-enter-active,
-.preview-fade-leave-active {
-  transition: opacity 0.25s ease;
-}
-
-.preview-fade-enter-from,
-.preview-fade-leave-to {
-  opacity: 0;
-}
-
+/* ---------- Toast – 无动画 ---------- */
 .toast-message {
   position: fixed;
   bottom: 30px;
   left: 50%;
   transform: translateX(-50%);
   background: rgba(0, 0, 0, 0.9);
-  backdrop-filter: blur(12px);
   color: #22d3ee;
   padding: 12px 24px;
   border-radius: 60px;
@@ -1278,21 +1142,11 @@ onUnmounted(() => {
   font-weight: 500;
   border: 1px solid #22d3ee;
   z-index: 4000;
-  animation: fadeInUp 0.3s ease;
   white-space: nowrap;
+  /* 删除 animation */
 }
 
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-}
-
+/* ---------- 响应式 ---------- */
 @media (max-width: 1200px) {
   .log-table th,
   .log-table td {
