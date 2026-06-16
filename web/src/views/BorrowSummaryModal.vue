@@ -12,7 +12,7 @@
           <div v-if="photoData" class="photo-section">
             <div class="section-title">现场照片</div>
             <div class="photo-preview">
-              <img :src="photoData" alt="拍摄照片" />
+              <img :src="formatImageUrl(photoData)" alt="拍摄照片" />
             </div>
           </div>
 
@@ -105,6 +105,7 @@
 
 <script lang="ts" setup>
 import { ref, watch } from 'vue'
+import {formatImageUrl} from '@/utils/fileUtils'
 
 // BorrowItem 类型
 interface BorrowItem {

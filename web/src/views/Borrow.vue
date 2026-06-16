@@ -71,7 +71,7 @@
                         <!-- 图片格口 -->
                         <div v-else-if="cell.type === 'image'" class="custom-image-cell"
                           :style="[getCellPosition(cell), cell.cellStyle]">
-                          <img :src="cell.imageUrl" :alt="cell.label || '图标'" />
+                          <img :src="formatImageUrl(cell.imageUrl)" :alt="cell.label || '图标'" />
                           <span v-if="cell.label" class="image-label">{{ truncateText(cell.label, 10) }}</span>
                         </div>
                       </template>
@@ -93,7 +93,7 @@
             <!-- 左侧：照片显示区域 -->
             <div class="photo-area">
               <div v-if="photoPreviewUrl" class="photo-card">
-                <img :src="photoPreviewUrl" alt="拍摄照片" class="preview-image" />
+                <img :src="formatImageUrl(photoPreviewUrl)" alt="拍摄照片" class="preview-image" />
                 <div class="photo-badge">已拍摄</div>
               </div>
               <div v-else class="photo-placeholder">
@@ -223,6 +223,7 @@ import { fetchCabinetList } from '@/api/cabinet'
 import BorrowSummaryModal from './BorrowSummaryModal.vue'
 import { submitBorrowRecords } from '@/api/borrow'
 import type { CSSProperties } from 'vue'
+import {formatImageUrl} from '@/utils/fileUtils'
 
 const photoFile = ref<File | null>(null)      // 暂存照片文件
 const photoPreviewUrl = ref<string>('')       // 用于预览的 blob URL

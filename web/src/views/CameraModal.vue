@@ -35,7 +35,7 @@
           ></video>
           <img
               v-else
-              :src="capturedImage"
+              :src="formatImageUrl(capturedImage)"
               class="captured-preview"
               alt="拍摄的照片"
           />
@@ -104,6 +104,7 @@
 <script lang="ts" setup>
 import { ref, onBeforeUnmount, watch, computed, nextTick } from 'vue'
 import { useCountdown } from '@/composables/useCountdown'
+import {formatImageUrl} from '@/utils/fileUtils'
 
 interface Props {
   visible: boolean

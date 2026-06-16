@@ -209,7 +209,7 @@ import { useSystemConfigStore } from '@/stores/systemConfig'
 import { useDehumidifierStore } from '@/stores/useDehumidifier'
 import { useCountdown } from '@/composables/useCountdown'
 import type { CSSProperties } from 'vue'
-import {formatImageUrl} from '@/utils/fileUtils.ts'
+import {formatImageUrl} from '@/utils/fileUtils'
 const router = useRouter()
 const systemConfigStore = useSystemConfigStore()
 const dehumidifierStore = useDehumidifierStore();

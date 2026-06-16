@@ -151,9 +151,8 @@ function createWindow() {
     });
 
     const indexPath = path.join(__dirname, 'dist', 'index.html');
-
-    mainWindow.loadFile(indexPath);
-
+    mainWindow.webContents.openDevTools({ mode: 'detach' });
+    mainWindow.loadFile(indexPath);    
     mainWindow.once('ready-to-show', () => {
         logger.warn('主窗口资源加载完成');
     });

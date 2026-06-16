@@ -99,7 +99,7 @@
                         <!-- 图片格口 -->
                         <div v-else-if="cell.type === 'image'" class="custom-image-cell"
                           :style="[getCellPosition(cell), cell.cellStyle]">
-                          <img :src="cell.imageUrl" :alt="cell.label || '图标'" />
+                          <img :src="formatImageUrl(cell.imageUrl)" :alt="cell.label || '图标'" />
                           <span v-if="cell.label" class="image-label">{{
                             truncateText(cell.label, 10)
                           }}</span>
@@ -123,7 +123,7 @@
             <!-- 左侧：照片显示区域 -->
             <div class="photo-area">
               <div v-if="photoData" class="photo-card">
-                <img :src="photoData" alt="拍摄照片" class="preview-image" />
+                <img :src="formatImageUrl(photoData)" alt="拍摄照片" class="preview-image" />
                 <div class="photo-badge">归还照片</div>
               </div>
               <div v-else class="photo-placeholder">
@@ -226,6 +226,7 @@ import { submitReturnRecords } from '@/api/return'
 import ReturnSummaryModal from './ReturnSummaryModal.vue'
 import { useDehumidifierStore } from '@/stores/useDehumidifier'
 import type { CSSProperties } from 'vue'
+import {formatImageUrl} from '@/utils/fileUtils'
 
 const dehumidifierStore = useDehumidifierStore()
 

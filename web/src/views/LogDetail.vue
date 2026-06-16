@@ -96,7 +96,7 @@
                 <td>
                   <img
                       v-if="item.borrowerPhoto"
-                      :src="item.borrowerPhoto"
+                      :src="formatImageUrl(item.borrowerPhoto)"
                       class="table-photo"
                       @click.stop="previewImage(item.borrowerPhoto)"
                       @error="handleImageError"
@@ -192,7 +192,7 @@
                     <div class="photo-wrapper">
                       <img
                           v-if="currentDetail?.borrowerPhoto"
-                          :src="currentDetail.borrowerPhoto"
+                          :src="formatImageUrl(currentDetail.borrowerPhoto)"
                           class="detail-photo"
                           @click.stop="previewImage(currentDetail.borrowerPhoto)"
                           @error="handleImageError"
@@ -230,7 +230,7 @@
                     <div class="photo-wrapper">
                       <img
                           v-if="currentDetail?.returnPhoto"
-                          :src="currentDetail.returnPhoto"
+                          :src="formatImageUrl(currentDetail.returnPhoto)"
                           class="detail-photo"
                           @click.stop="previewImage(currentDetail.returnPhoto)"
                           @error="handleImageError"
@@ -258,7 +258,7 @@
     <Transition name="preview-fade">
       <div v-if="previewVisible" class="preview-modal" @click="previewVisible = false">
         <div class="preview-container" @click.stop>
-          <img :src="previewUrl" class="preview-image" />
+          <img :src="formatImageUrl(previewUrl)" class="preview-image" />
           <button class="preview-close" @click="previewVisible = false">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
               <path d="M18 6L6 18M6 6L18 18" stroke="white" stroke-width="2" stroke-linecap="round"/>
@@ -278,6 +278,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchAllLogList, type LogListDTO } from '@/api/log'
 import { useCountdown } from '@/composables/useCountdown'
+import {formatImageUrl} from '@/utils/fileUtils'
 
 const router = useRouter()
 

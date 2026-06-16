@@ -55,7 +55,7 @@
                   <span class="cell photo">
                     <img
                         v-if="item.borrowerPhoto"
-                        :src="item.borrowerPhoto"
+                        :src="formatImageUrl(item.borrowerPhoto)"
                         class="borrow-photo"
                         @click.stop="previewImage(item.borrowerPhoto)"
                         @error="handleImageError"
@@ -313,7 +313,7 @@
 
     <!-- 图片预览模态框 -->
     <div v-if="previewVisible" class="preview-modal" @click="previewVisible = false">
-      <img :src="previewUrl" class="preview-image" @click.stop />
+      <img :src="formatImageUrl(previewUrl)" class="preview-image" @click.stop />
     </div>
   </div>
 </template>
@@ -327,6 +327,7 @@ import { fetchCabinetList } from '@/api/cabinet'
 import type { SystemConfig } from '@/api/system'
 import { useCountdown } from '@/composables/useCountdown'
 import { fetchTempHumidityLogs, type TempHumidityLog } from '@/api/tempHumidity'
+import {formatImageUrl} from '@/utils/fileUtils'
 
 const router = useRouter()
 const systemConfigStore = useSystemConfigStore()

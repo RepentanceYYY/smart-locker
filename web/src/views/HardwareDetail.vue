@@ -145,7 +145,7 @@
                                class="custom-image-cell"
                                :style="[getCellPosition(cell), cell.cellStyle]"
                                @click="advancedSettingsEnabled && showImageDetail(cell, cab.id)">
-                            <img :src="cell.imageUrl" :alt="cell.label || '图标'" />
+                            <img :src="formatImageUrl(cell.imageUrl)" :alt="cell.label || '图标'" />
                             <span v-if="cell.label" class="image-label">{{ truncateText(cell.label, 10) }}</span>
                           </div>
                         </template>
@@ -291,7 +291,7 @@
               <div class="image-upload-card" :class="{ 'form-row--error': errors.imageUrl }">
                 <div class="upload-preview-area">
                   <div class="preview-image" v-if="dialogForm.imageUrl">
-                    <img :src="dialogForm.imageUrl" alt="预览图" />
+                    <img :src="formatImageUrl(dialogForm.imageUrl)" alt="预览图" />
                     <button type="button" class="remove-image-btn" @click="removeImage" title="移除图片">✕</button>
                   </div>
                   <div v-else class="preview-placeholder">
@@ -682,6 +682,7 @@ import { useRouter } from 'vue-router'
 import { fetchCabinetList, updateCabinet, createCabinet, deleteCabinet } from '@/api/cabinet'
 import { addCellConfig, updateCellConfig, uploadImage, deleteCellConfig, type UpdateCellDTO } from '@/api/cell'
 import { useCountdown } from '@/composables/useCountdown'
+import {formatImageUrl} from '@/utils/fileUtils'
 import VueQr from 'vue-qr'
 // 导入导出工具函数
 import { collectCellData, exportToWord, exportToExcel } from '@/utils/exportUtils'
