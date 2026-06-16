@@ -963,12 +963,61 @@ onMounted(() => {
   border-left: 3px solid #22d3ee;
 }
 .unreturned-scroll-wrapper,
+
 .temp-table-wrapper {
+
   max-height: 360px;
+
   overflow-y: auto;
+
   border-radius: 16px;
+
   background: rgba(0, 0, 0, 0.2);
+
   padding: 4px;
+
+  /* 跨浏览器滚动条样式 */
+
+  scrollbar-width: thin;
+
+  scrollbar-color: #22d3ee rgba(0, 0, 0, 0.4);
+
+}
+
+.unreturned-scroll-wrapper::-webkit-scrollbar,
+
+.temp-table-wrapper::-webkit-scrollbar {
+
+  width: 6px;
+
+}
+
+.unreturned-scroll-wrapper::-webkit-scrollbar-track,
+
+.temp-table-wrapper::-webkit-scrollbar-track {
+
+  background: rgba(0, 0, 0, 0.4);
+
+  border-radius: 4px;
+
+}
+
+.unreturned-scroll-wrapper::-webkit-scrollbar-thumb,
+
+.temp-table-wrapper::-webkit-scrollbar-thumb {
+
+  background: #22d3ee;
+
+  border-radius: 4px;
+
+}
+
+.unreturned-scroll-wrapper::-webkit-scrollbar-thumb:hover,
+
+.temp-table-wrapper::-webkit-scrollbar-thumb:hover {
+
+  background: #67e8f9;
+
 }
 .unreturned-table {
   width: 100%;
