@@ -19,11 +19,6 @@ public class WebConfig implements WebMvcConfigurer {
     // 网络路径
     @Value("${spring.application.file.upload.borrow-photo-access}")
     private String accessPath;
-
-    WebConfig(){
-        System.out.println(uploadPath);
-        System.out.println(accessPath);
-    }
     /**
      * 保存上传的图片文件，返回可访问的 URL
      */

@@ -17,7 +17,7 @@ logging:
   config: classpath:log4j2-dev.yml
 lock:
   simulation:
-    mode: true   # true=模拟模式, false=真实硬件模式
+    mode: false   # true=模拟模式, false=真实硬件模式
 # 人脸检测阈值配置
 face-threshold-config:
   live-score-min: 0.3
