@@ -32,7 +32,12 @@ function startJavaServer() {
 
     logger.info(`正在启动 Java 子进程...`);
 
-    javaProcess = spawn(javaBin, ['-jar', jarPath], {
+    javaProcess = spawn(javaBin, [
+        '-Dfile.encoding=UTF-8', 
+        '-Dsun.stdout.encoding=UTF-8', 
+        '-jar', 
+        jarPath
+    ], {
         cwd: resourcePath
     });
 

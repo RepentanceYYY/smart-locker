@@ -77,7 +77,7 @@
                         </div>
                         <div v-else-if="cell.type === 'image'" class="custom-image-cell"
                           :style="[getCellPosition(cell), cell.cellStyle]">
-                          <img :src="cell.imageUrl" :alt="cell.label || '图标'" />
+                          <img :src="formatImageUrl(cell.imageUrl)" :alt="cell.label || '图标'" />
                           <span v-if="cell.label" class="image-label">{{ truncateText(cell.label, 10) }}</span>
                         </div>
                       </template>
@@ -209,6 +209,7 @@ import { useSystemConfigStore } from '@/stores/systemConfig'
 import { useDehumidifierStore } from '@/stores/useDehumidifier'
 import { useCountdown } from '@/composables/useCountdown'
 import type { CSSProperties } from 'vue'
+import {formatImageUrl} from '@/utils/fileUtils.ts'
 const router = useRouter()
 const systemConfigStore = useSystemConfigStore()
 const dehumidifierStore = useDehumidifierStore();
