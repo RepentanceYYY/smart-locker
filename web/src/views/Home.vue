@@ -178,7 +178,7 @@
             </span>
           </div>
           <div class="password-input-group">
-            <input type="password" v-model="passwordInput" placeholder="请输入管理员密码" class="password-input"
+            <input ref="passwordInputRef" type="password" v-model="passwordInput" placeholder="请输入管理员密码" class="password-input"
               @keyup.enter="verifyPassword" @input="onPasswordInput" autofocus />
             <div v-if="passwordError" class="password-error">
               ❌ {{ passwordError }}
@@ -216,6 +216,7 @@ const passwordDialogType = ref<'inventory' | 'settings'>('settings')//操作区�
 const isAllowClickButton = ref(false)//是否允许点击领用/归还/盘点/设置按钮  
 const showInventoryDialog = ref(false)//盘点弹窗
 const inventoryDialogResult = ref<any>(null)//盘点结果数据
+const passwordInputRef = ref<HTMLInputElement | null>(null)
 // 相机相关
 const showCameraModal = ref(false)
 const isBorrowMode = ref(true)
@@ -688,8 +689,12 @@ function openPasswordDialog(type: 'inventory' | 'settings') {
   passwordInput.value = ''
   passwordError.value = ''
   showPasswordDialog.value = true
+
   nextTick(() => {
     resetPasswordCountdown()
+
+    // 自动聚焦输入框
+    passwordInputRef.value?.focus()
   })
 }
 
