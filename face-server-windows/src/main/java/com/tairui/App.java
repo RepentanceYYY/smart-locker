@@ -1,6 +1,6 @@
 package com.tairui;
 
-import com.tairui.config.SystemConfig;
+import com.tairui.config.ServerConfig;
 import com.tairui.handler.manager.FaceApiManager;
 import com.tairui.server.WebSocketServer;
 
@@ -15,7 +15,7 @@ public class App {
     public static void main(String[] args) {
         long startTime = System.currentTimeMillis();
 
-        SystemConfig systemConfig = SystemConfig.getInstance();
+        ServerConfig serverConfig = ServerConfig.getInstance();
         // 强制扫描并注册 TwelveMonkeys 插件
         ImageIO.scanForPlugins();
         // 调试：打印当前可用的 JPEG 写入器
@@ -26,7 +26,7 @@ public class App {
         }
         /*  sdk初始化 */
         FaceApiManager.load();
-        WebSocketServer server = new WebSocketServer(systemConfig.getWebSocketPort());
+        WebSocketServer server = new WebSocketServer(serverConfig.getWebSocketPort());
         long endTime = System.currentTimeMillis();
         // JVM 关闭时优雅停机
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {

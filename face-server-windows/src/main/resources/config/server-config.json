@@ -1,0 +1,12 @@
+{
+  "webSocketPort": 8081,
+  "useFixedModelDir": true,
+  "baiduFaceModelDir": "D:\\Baidu-Face-Resources",
+  "baiduFaceDbDefaultGroup": "group",
+  "dbUrl": "jdbc:mysql://127.0.0.1:3306/grid_cabinet_db?useSSL=false&serverTimezone=UTC",
+  "useFixedFaceImageDir": true,
+  "faceImageDir": "D:\\gkg-images",
+  "dbUsername": "root",
+  "dbPassword": "123456",
+  "webSocketPath": "/ws"
+}

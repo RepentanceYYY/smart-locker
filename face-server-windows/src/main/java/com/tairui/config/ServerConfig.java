@@ -7,12 +7,12 @@ import com.tairui.utils.JsonUtils;
 import java.io.InputStream;
 
 /**
- * 系统配置单例
+ * 服务配置单例
  */
 @Data
-public class SystemConfig {
+public class ServerConfig {
 
-    private static final SystemConfig INSTANCE;
+    private static final ServerConfig INSTANCE;
 
     static {
         INSTANCE = loadConfig();
@@ -20,38 +20,40 @@ public class SystemConfig {
 
     // 配置字段
     private int webSocketPort;
-    private String baiduFaceModelPath;
+    private Boolean useFixedModelDir;
+    private String baiduFaceModelDir;
     private String baiduFaceDbDefaultGroup;
     private String dbUrl;
-    private String faceImagePath;
+    private Boolean useFixedFaceImageDir;
+    private String faceImageDir;
     private String dbUsername;
     private String dbPassword;
     private String webSocketPath;
 
     // 私有构造
-    private SystemConfig() {
+    private ServerConfig() {
     }
 
     /**
      * 获取单例实例
      */
-    public static SystemConfig getInstance() {
+    public static ServerConfig getInstance() {
         return INSTANCE;
     }
 
     /**
      * 加载配置
      */
-    private static SystemConfig loadConfig() {
+    private static ServerConfig loadConfig() {
         ObjectMapper mapper = JsonUtils.MAPPER;
-        try (InputStream is = SystemConfig.class.getClassLoader()
-                .getResourceAsStream("config/system.json")) {
+        try (InputStream is = ServerConfig.class.getClassLoader()
+                .getResourceAsStream("config/server-config.json")) {
             if (is == null) {
-                throw new RuntimeException("无法找到 system.json");
+                throw new RuntimeException("无法找到 server-config.json");
             }
-            return mapper.readValue(is, SystemConfig.class);
+            return mapper.readValue(is, ServerConfig.class);
         } catch (Exception e) {
-            throw new RuntimeException("加载 system.json 失败", e);
+            throw new RuntimeException("加载 server-config.json 失败", e);
         }
     }
 

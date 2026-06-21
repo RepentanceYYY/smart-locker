@@ -1,16 +1,13 @@
 package com.tairui.handler.manager;
 
 import com.jni.face.Face;
-import com.tairui.config.SystemConfig;
-import com.tairui.dao.AuthSettingsDao;
-import com.tairui.entity.FaceRequest;
-import com.tairui.entity.FaceResult;
-import com.tairui.handler.FaceHandler;
-import com.tairui.utils.FileUtils;
+import com.tairui.config.ServerConfig;
+import com.tairui.dao.AppSystemConfigDao;
+import com.tairui.entity.WsRequest;
+import com.tairui.entity.WsResponse;
+import com.tairui.entity.db.AppSystemConfig;
 
 import java.io.*;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -20,6 +17,9 @@ public class FaceApiManager {
      * sdk初始化响应码
      */
     public static int sdkInitCode = 0;
+    /**
+     * sdk响应码和消息对照表
+     */
     public static Map<Integer, String> codeTextMap = new HashMap<>();
 
 
@@ -31,21 +31,20 @@ public class FaceApiManager {
             if (api != null) {
                 destroy();
             }
-            System.out.println("开始--> 删除百度人脸旧数据库");
-            Path dir = Paths.get(System.getProperty("java.home"), "bin", "db");
-            System.out.println("百度人脸数据库所在目录" + dir);
-            FileUtils.deleteDirectory(dir);
-            System.out.println("结束--> 删除百度人脸旧数据库");
-            SystemConfig systemConfig = SystemConfig.getInstance();
-            AuthSettingsDao authSettingsDao = new AuthSettingsDao();
-            String keyFromDb = authSettingsDao.selectFaceSdkLicenseKey();
-            File licenseFile = new File(systemConfig.getBaiduFaceModelPath(), "license/license.key");
-            if (licenseFile.exists()) {
+
+            AppSystemConfigDao appSystemConfigDao = new AppSystemConfigDao();
+            AppSystemConfig appSystemConfig = appSystemConfigDao.getConfig();
+            String licenseKey = appSystemConfig.getBaiduFaceLicenseKey();
+
+            ServerConfig serverConfig = ServerConfig.getInstance();
+            String faceModelDir = serverConfig.getUseFixedModelDir() ? serverConfig.getBaiduFaceModelDir() : System.getProperty("user.dir");
+            File licenseKeyFile = new File(faceModelDir, "license/license.key");
+            if (licenseKeyFile.exists()) {
                 FileWriter writer = null;
                 try {
-                    writer = new FileWriter(licenseFile, false);
-                    if(keyFromDb !=null){
-                        writer.write(keyFromDb.trim());
+                    writer = new FileWriter(licenseKeyFile, false);
+                    if (licenseKey != null) {
+                        writer.write(licenseKey.trim());
                     }
 
                     writer.flush();
@@ -62,16 +61,15 @@ public class FaceApiManager {
                 }
             }
             api = new Face();
-            sdkInitCode = api.sdkInit(systemConfig.getBaiduFaceModelPath());
+            sdkInitCode = api.sdkInit(faceModelDir);
             // 获取设备指纹
             String deviceId = api.getDeviceId();
             System.out.println("指纹id:" + deviceId);
             // 获取版本号
             String ver = api.sdkVersion();
             System.out.println("sdk版本:" + ver);
-            System.out.println("百度人脸SDK初始化结果---> " + getErrorText(sdkInitCode));
+            System.out.println("百度人脸SDK初始化结果---> " + getErrorText());
             if (sdkInitCode == 0) {
-                FaceHandler.init();
                 Face.loadDbFace();
             } else {
                 destroy(); // 销毁SDK，防止内存泄露
@@ -92,26 +90,27 @@ public class FaceApiManager {
     /**
      * 激活SDK
      */
-    public static FaceResult activateSDK(FaceRequest req) {
+    public static WsResponse activateSDK(WsRequest req) {
         synchronized (Face.class) {
-            if(api !=null){
+            if (api != null) {
                 destroy();
             }
-            SystemConfig systemConfig = SystemConfig.getInstance();
-            File licenseFile = new File(systemConfig.getBaiduFaceModelPath(), "license/license.key");
+            ServerConfig serverConfig = ServerConfig.getInstance();
+            File licenseFile = new File(serverConfig.getBaiduFaceModelDir(), "license/license.key");
             if (!licenseFile.exists()) {
-                return FaceResult.fail(req.getAction(), "找不到证书路径，无法授权");
+                return WsResponse.fail(req.getAction(), 400, "找不到证书路径，无法授权");
             }
-            if (req.getActivationCode() == null ||  req.getActivationCode().trim().length() == 0) {
-                return FaceResult.fail(req.getAction(), "授权码不能为空");
+            String licenseKey = (String) req.getData();
+            if (licenseKey == null || licenseKey.trim().length() == 0) {
+                return WsResponse.fail(req.getAction(), 400, "授权码不能为空");
             }
             FileWriter writer = null;
             try {
                 writer = new FileWriter(licenseFile, false);
-                writer.write(req.getActivationCode().trim());
+                writer.write(licenseKey.trim());
                 writer.flush();
             } catch (IOException e) {
-                return FaceResult.fail(req.getAction(), "激活码写入证书失败,程序消息:" + e.getMessage());
+                return WsResponse.fail(req.getAction(), 500, "激活码写入证书失败,程序消息:" + e.getMessage());
             } finally {
                 if (writer != null) {
                     try {
@@ -122,21 +121,29 @@ public class FaceApiManager {
                 }
             }
             // 写入数据库
-            AuthSettingsDao authSettingsDao = new AuthSettingsDao();
-            boolean updateDbRes = authSettingsDao.updateFaceSdkLicenseKey(req.getActivationCode().trim());
-            if(!updateDbRes){
-                return FaceResult.fail(req.getAction(),"激活码写入数据库失败");
+            AppSystemConfigDao appSystemConfigDao = new AppSystemConfigDao();
+            boolean updateDbRes = appSystemConfigDao.updateBaiduFaceLicenseKey(licenseKey);
+            if (!updateDbRes) {
+                return WsResponse.fail(req.getAction(), 500, "授权码写入数据库失败");
             }
 
             api = new Face();
-            sdkInitCode = api.sdkInit(systemConfig.getBaiduFaceModelPath());
+            sdkInitCode = api.sdkInit(serverConfig.getBaiduFaceModelDir());
             if (sdkInitCode != 0) {
                 destroy();
-                return FaceResult.fail(req.getAction(), getErrorText(sdkInitCode));
+                return WsResponse.fail(req.getAction(), 500, getErrorText());
             }
-            FaceHandler.init();
             Face.loadDbFace();
-            return FaceResult.success(req.getAction(), "百度人脸授权成功",null);
+            return WsResponse.success(req.getAction(), "百度人脸授权成功", null);
+        }
+    }
+
+    public static WsResponse queryActivationStatus(WsRequest req) {
+
+        if (sdkInitCode == 0) {
+            return WsResponse.success(req.getAction(), "已授权", null);
+        } else {
+            return WsResponse.fail(req.getAction(), 500, "未授权");
         }
     }
 
@@ -146,8 +153,8 @@ public class FaceApiManager {
      * @return 授权码
      */
     public static String queryActivationCode() {
-        SystemConfig systemConfig = SystemConfig.getInstance();
-        File licenseFile = new File(systemConfig.getBaiduFaceModelPath(), "license/license.key");
+        ServerConfig serverConfig = ServerConfig.getInstance();
+        File licenseFile = new File(serverConfig.getBaiduFaceModelDir(), "license/license.key");
 
         if (!licenseFile.exists()) {
             return null;
@@ -169,11 +176,15 @@ public class FaceApiManager {
         }
     }
 
+    public static String getErrorText() {
+        return codeTextMap.getOrDefault(sdkInitCode, "未知错误");
+    }
+
     /**
      * 根据错误码获取对应描述
      */
-    public static String getErrorText(int code) {
-        return codeTextMap.getOrDefault(code, "未知错误");
+    public static String getErrorText(int errno) {
+        return codeTextMap.getOrDefault(sdkInitCode, "未知错误");
     }
 
     static {

@@ -1,6 +1,6 @@
 package com.tairui.server;
 
-import com.tairui.config.SystemConfig;
+import com.tairui.config.ServerConfig;
 import com.tairui.handler.BinaryFrameHandler;
 import com.tairui.handler.TextFrameHandler;
 import io.netty.channel.ChannelInitializer;
@@ -14,12 +14,12 @@ public class WebSocketServerInitializer extends ChannelInitializer<SocketChannel
 
     @Override
     protected void initChannel(SocketChannel ch) {
-        SystemConfig systemConfig = SystemConfig.getInstance();
+        ServerConfig serverConfig = ServerConfig.getInstance();
 
         ch.pipeline().addLast(new HttpServerCodec());
         ch.pipeline().addLast(new HttpObjectAggregator(20 * 1024 * 1024));
         ch.pipeline().addLast(new WebSocketServerProtocolHandler(
-                systemConfig.getWebSocketPath(), null, true, 15 * 1024 * 1024
+                serverConfig.getWebSocketPath(), null, true, 15 * 1024 * 1024
         ));
         ch.pipeline().addLast(new WebSocketFrameAggregator(15 * 1024 * 1024));
         ch.pipeline().addLast(new TextFrameHandler());
