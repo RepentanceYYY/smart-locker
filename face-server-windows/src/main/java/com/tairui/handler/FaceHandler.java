@@ -41,9 +41,15 @@ public class FaceHandler {
 
         Mat rgbRawMat = null;
         Mat rgbMat = null;
+        Mat irRawMat = null;
+        Mat irMat = null;
 
         try {
             byte[] bytes = FaceHandler.decode(dualFace.getRgbBase64());
+            byte[] irBytes = null;
+            if (dualFace.getIrBase64() != null) {
+                irBytes = FaceHandler.decode(dualFace.getIrBase64());
+            }
             MatOfByte matOfByte = new MatOfByte(bytes);
             rgbRawMat = Imgcodecs.imdecode(matOfByte, Imgcodecs.IMREAD_COLOR);
             if (rgbRawMat == null || rgbRawMat.empty()) {
@@ -51,6 +57,17 @@ public class FaceHandler {
             }
             rgbMat = rgbRawMat.clone();
             long rgbMatAddr = rgbMat.getNativeObjAddr();
+
+
+            if (irBytes != null && irBytes.length > 0) {
+                MatOfByte irMatOfByte = new MatOfByte(irBytes);
+                irRawMat = Imgcodecs.imdecode(irMatOfByte, Imgcodecs.IMREAD_COLOR);
+                if (irRawMat == null || irRawMat.empty()) {
+                    return WsResponse.fail(request.getAction(), 400, "红外图片解码失败");
+                }
+            }
+            irMat = irRawMat.clone();
+            long irMatAddr = irMat.getNativeObjAddr();
 
             synchronized (Face.class) {
                 // RGB静默活体检测
@@ -91,6 +108,14 @@ public class FaceHandler {
                 if (blurList[0] > FaceConfig.blurMax) {
                     System.out.println(String.format("模糊度太高，%.3f", blurList[0]));
                     return WsResponse.fail(request.getAction(), 400, "人脸太模糊");
+                }
+                if (irBytes != null && irBytes.length > 0) {
+                    String time = LocalDateTime.now()
+                            .format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+                    String irFileName = "face_ir_" + time + "_" + UUID.randomUUID().toString().substring(0, 8) + ".jpg";
+                    LivenessInfo[] livenessInfos = Face.nirLiveness(irMatAddr);
+                    System.out.println("活体检测结果:" + JsonUtils.MAPPER.writeValueAsString(livenessInfos));
+                    saveFaceImage(irBytes,irFileName);
                 }
                 Face.loadDbFace();
                 // 检测人脸是否已经注册
