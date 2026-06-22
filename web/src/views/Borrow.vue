@@ -307,10 +307,17 @@ function loadPhotoData() {
       const data = JSON.parse(storedData)
       // 如果拍照组件存的是 base64，可以将其转换为 File（可选）
       if (data.imageData) {
-        // 将 base64 转为 File（兼容旧逻辑）
-        const file = base64ToFile(data.imageData, 'photo.jpg')
-        photoFile.value = file
-        photoPreviewUrl.value = URL.createObjectURL(file)
+        // 检查是否为 URL 还是 base64
+        if (data.imageData.startsWith('/uploads') || data.imageData.startsWith('http')) {
+          // 如果是 URL，直接显示
+          photoPreviewUrl.value = data.imageData
+          console.log('加载人脸图片URL:', data.imageData)
+        } else {
+          // 将 base64 转为 File（兼容旧逻辑）
+          const file = base64ToFile(data.imageData, 'photo.jpg')
+          photoFile.value = file
+          photoPreviewUrl.value = URL.createObjectURL(file)
+        }
       } else if (data.imageFile) {
         // 如果存储的是 File 相关信息（不可直接存，忽略）
       }

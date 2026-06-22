@@ -168,7 +168,7 @@
     </div>
 
     <!-- 相机弹窗 -->
-    <CameraModal v-model:visible="showCameraModal" :isBorrow="isBorrowMode" @confirm="handlePhotoConfirm" @notify="addNotification" />
+    <CameraModal v-model:visible="showCameraModal" :isBorrow="isBorrowMode" @confirm="handlePhotoConfirm" @notify="addNotification" @faceRecognized="handleFaceRecognized" />
 
     <InventoryDialog :visible="showInventoryDialog" :inventoryResult="inventoryDialogResult"
                      @close="closeInventoryDialog" @cancel="closeInventoryDialog" @confirm="closeInventoryDialog" />
@@ -794,6 +794,29 @@ function handlePhotoConfirm(imageData: string) {
   } else {
     router.push('/return')
   }
+}
+
+// 人脸识别成功后处理
+function handleFaceRecognized(faceImageUrl: string) {
+  console.log('人脸识别成功，图片URL:', faceImageUrl)
+  // 将人脸图片数据传递到领用页面
+  const operationData = {
+    imageData: faceImageUrl,
+    imageFile: null,
+    timestamp: Date.now()
+  }
+  sessionStorage.setItem('toolOperationData', JSON.stringify(operationData))
+  
+  // 跳转到对应页面
+  setTimeout(() => {
+    if (isBorrowMode.value) {
+      console.log('跳转到领用页面')
+      // router.push('/borrow')
+    } else {
+      console.log('跳转到归还页面')
+      // router.push('/return')
+    }
+  }, 600)
 }
 
 // ================== 性能优化：温湿度更新只改当前柜子 ==================

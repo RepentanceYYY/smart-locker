@@ -103,6 +103,7 @@ const emit = defineEmits<{
   (e: 'confirm', imageData: string): void
   (e: 'close'): void
   (e: 'notify', text: string, type: 'info' | 'success' | 'warning'): void
+  (e: 'faceRecognized', imageUrl: string): void
 }>()
 
 // --- DOM 引用 ---
@@ -123,9 +124,9 @@ let checkReadyInterval: number | null = null
 let isResettingCamera = ref<boolean>(false)
 const isShowButton = ref(true)
 
-// ==================== 【核心重构：流控锁与防内存泄漏定时器】 ====================
+// ==================== 【核心：流控锁与定时器】 ====================
 const isProcessing = ref<boolean>(false)      // 真正涉及核心接口往返的排他主锁
-let autoCaptureTimeout: number | null = null   // 严格保有的全局唯一自动抓拍定时器句柄
+let autoCaptureTimeout: number | null = null   // 全局唯一自动抓拍定时器句柄
 
 // --- 摄像头多路流与设备管理 ---
 let stream: MediaStream | null = null
@@ -253,46 +254,55 @@ function initWebSocket() {
         console.log('人脸识别成功')
         wsErrorMessage.value = ''
         isShowButton.value = true
-
-        // 1. 立刻切断、释放所有前端摄像头流
+      
+        // 成功时:立刻切断、释放所有前端摄像头流与轮询
         stopLiveStreaming()
-
-        // 2.  修复图片展示逻辑
+      
+        // 修复图片展示逻辑:只在返回标准路径或完整链接时渲染
+        let faceImageUrl = ''
         if (response.data) {
           const imgData = response.data.trim()
-
           if (imgData.startsWith('/uploads') || imgData.startsWith('http')) {
-            capturedImage.value = imgData
+            faceImageUrl = imgData
+            capturedImage.value = faceImageUrl
           }
         }
-        // 3. 释放锁
+              
+        // 将人脸图片数据传递到领用页面
+        sessionStorage.setItem('toolOperationData', JSON.stringify({
+          imageData: faceImageUrl,
+          imageFile: null,
+          timestamp: Date.now()
+        }))
+              
         isProcessing.value = false
-      } else if (response.code === 404) {
-        console.warn('未识别到人脸，准备重新自动捕获')
+              
+        // 通知父组件人脸识别成功,携带图片URL
+        emit('faceRecognized', faceImageUrl)
+              
+        // 延迟关闭弹窗,给父组件时间处理
+        // setTimeout(() => {
+        //   close()
+        // }, 500)
+      } else {
+        //  优化需求 2：无论是 404（未匹配）还是其他代码，都不断开，继续重试
+        console.warn(`业务未通过(code: ${response.code}): ${response.message}，保持连接继续自动抓拍`)
         wsErrorMessage.value = response.message || '未检测到清晰人脸，请微调位置并正对镜头...'
-
-        // 失败：2秒控锁闭环，释放锁，并重新拉起下一次自动抓拍
+        
+        // 核心：释放排他锁，允许 2 秒后自动重新触发新一轮抓拍
         isProcessing.value = false
         triggerAutoCaptureDelay()
-      } else {
-        // 其他非 200/404 致命异常处理
-        console.error('严重异常错误:', response.message)
-        wsErrorMessage.value = response.message || '人脸识别失败'
-        isShowButton.value = false
-        isProcessing.value = false
-
-        stopLiveStreaming()
-        emit('notify', wsErrorMessage.value, 'warning')
-        setTimeout(() => { close() }, 1500)
       }
     } catch (e) {
       console.error('解析消息失败:', e, event.data)
       wsErrorMessage.value = '人脸识别服务异常'
+      // 容错：遇到解析错误也释放锁，允许继续尝试下一次抓拍，不断开
       isProcessing.value = false
-      stopLiveStreaming()
+      triggerAutoCaptureDelay()
     }
   }
 }
+
 function closeWebSocket() {
   if (ws) {
     ws.close()
@@ -380,14 +390,16 @@ async function initCamera() {
     resetTimer()
     stopCheckReadyInterval()
     clearAutoCaptureTimeout()
-
-    // 彻底释放旧的流媒体通道
     releaseTracks()
 
     await loadDeviceList()
 
+    //  优化需求 1：精细化校验可见光摄像头连接
     if (!selectedRgbId.value) {
-      throw new Error('没有可用的可见光摄像头 ID')
+      wsErrorMessage.value = '请检查可见光设备，未检测到有效可见光摄像头'
+      emit('notify', wsErrorMessage.value, 'warning')
+      isCameraStarting.value = false
+      return
     }
 
     const rgbConstraints: MediaStreamConstraints = {
@@ -397,34 +409,60 @@ async function initCamera() {
         height: { ideal: 480 }
       }
     }
-    stream = await navigator.mediaDevices.getUserMedia(rgbConstraints)
-    if (videoRef.value) videoRef.value.srcObject = stream
 
-    if (useAntiSpoofing.value && selectedIrId.value && selectedIrId.value !== selectedRgbId.value) {
-      try {
-        const irConstraints: MediaStreamConstraints = {
-          video: {
-            deviceId: { exact: selectedIrId.value },
-            width: { ideal: 640 },
-            height: { ideal: 480 }
-          }
+    try {
+      stream = await navigator.mediaDevices.getUserMedia(rgbConstraints)
+      if (videoRef.value) videoRef.value.srcObject = stream
+    } catch (rgbErr) {
+      console.error('可见光流捕获失败:', rgbErr)
+      wsErrorMessage.value = '请检查可见光设备，摄像头流开启被拒绝或占用'
+      emit('notify', wsErrorMessage.value, 'warning')
+      isCameraStarting.value = false
+      return
+    }
+
+    // 优化需求 1：精细化校验红外双目摄像头连接
+    if (useAntiSpoofing.value) {
+      if (!selectedIrId.value || selectedIrId.value === selectedRgbId.value) {
+        wsErrorMessage.value = '请检查红外设备，未检测到独立的红外双目摄像头'
+        emit('notify', wsErrorMessage.value, 'warning')
+        // 降级关闭硬件占用
+        releaseTracks()
+        isCameraStarting.value = false
+        return
+      }
+
+      const irConstraints: MediaStreamConstraints = {
+        video: {
+          deviceId: { exact: selectedIrId.value },
+          width: { ideal: 640 },
+          height: { ideal: 480 }
         }
+      }
+
+      try {
         irStream = await navigator.mediaDevices.getUserMedia(irConstraints)
         await nextTick()
         if (irVideoRef.value) irVideoRef.value.srcObject = irStream
         console.log('红外 IR 隐藏流成功绑定')
       } catch (irErr) {
         console.error('红外镜头打开失败:', irErr)
+        wsErrorMessage.value = '请检查红外设备，红外摄像头流开启失败'
+        emit('notify', wsErrorMessage.value, 'warning')
+        // 发生红外错误，及时释放已开启的可见光
+        releaseTracks()
+        isCameraStarting.value = false
+        return
       }
     }
 
     isCameraStarting.value = false
     startCheckReadyStatus()
-  } catch (error) {
+  } catch (error: any) {
     isCameraStarting.value = false
     console.error('相机工作流初始化失败:', error)
-    emit('notify', '请检查设备连接和软件权限允许', 'warning')
-    close()
+    wsErrorMessage.value = '请检查设备连接和软件权限允许'
+    emit('notify', wsErrorMessage.value, 'warning')
   }
 }
 
@@ -433,16 +471,13 @@ function getFrameBase64(videoElement: HTMLVideoElement | null): string | null {
   if (!videoElement || videoElement.readyState < 2 || videoElement.videoWidth === 0) return null
 
   const canvas = document.createElement('canvas')
-  //  直接使用摄像头输出的真实原始宽高
   canvas.width = videoElement.videoWidth
   canvas.height = videoElement.videoHeight
 
   const ctx = canvas.getContext('2d')
   if (!ctx) return null
 
-  //  原封不动全面绘制，不做任何裁剪
   ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height)
-
   return canvas.toDataURL('image/jpeg', 0.8)
 }
 
@@ -450,7 +485,6 @@ function getFrameBase64(videoElement: HTMLVideoElement | null): string | null {
  *  解决 6：并发抓拍边缘问题优化
  */
 const autoCaptureFrame = () => {
-  // 严格执行防并发二次校验
   if (isProcessing.value || !isCameraReady.value || !videoRef.value || capturedImage.value) {
     return
   }
@@ -458,7 +492,6 @@ const autoCaptureFrame = () => {
   // 挂载发送状态排他锁
   isProcessing.value = true
 
-  // 1. 抓拍可见光
   const rgbBase64 = getFrameBase64(videoRef.value)
   if (!rgbBase64) {
     isProcessing.value = false // 捕获失败立刻释放排他锁
