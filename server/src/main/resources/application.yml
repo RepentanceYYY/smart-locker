@@ -18,10 +18,18 @@ logging:
 lock:
   simulation:
     mode: false   # true=模拟模式, false=真实硬件模式
-# 人脸检测阈值配置
+face-detect-provider: Baidu
+# 百度人脸配置
+baidu-face-config:
+  use-fixed-path: true # 是否使用固定目录模型
+  fixed-path: D:\Baidu-Face-Resources # 固定目录
+  group-id: "common" # 固定组名
+
+# 百度人脸检测阈值配置
 face-threshold-config:
   live-score-min: 0.3
   mouth-close-score-min: 0.9
   eye-close-max: 0.1
   blur-max: 0.2
   similarity: 80.0
+
