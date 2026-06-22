@@ -91,6 +91,7 @@ public class FaceWebSocketHandler extends TextWebSocketHandler {
                 break;
             default:
                 wsResponse = WsResponse.fail(wsRequest.getAction(), 400, "未知消息类型");
+                session.sendMessage(new TextMessage(objectMapper.writeValueAsString(wsResponse)));
 
         }
 
@@ -107,8 +108,9 @@ public class FaceWebSocketHandler extends TextWebSocketHandler {
     /**
      * 处理激活
      */
-    private void handleActivate(WebSocketSession session, WsRequest wsRequest) throws IOException {
-
+    private void handleActivate(WebSocketSession session, WsRequest wsRequest) throws Exception {
+        WsResponse activate = faceServer.activate(wsRequest);
+        session.sendMessage(new TextMessage(objectMapper.writeValueAsString(activate)));
     }
 
     /**

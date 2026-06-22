@@ -32,4 +32,5 @@ face-threshold-config:
   eye-close-max: 0.1
   blur-max: 0.2
   similarity: 80.0
+  faceOcclusion: 0.6
 

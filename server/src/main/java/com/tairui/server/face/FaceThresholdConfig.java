@@ -31,4 +31,8 @@ public class FaceThresholdConfig {
      * 人脸识别最低相似度
      */
     private double similarity = 80d;
+    /**
+     * 最高面部遮挡置信度
+     */
+    private float faceOcclusion = 0.6f;
 }

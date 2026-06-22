@@ -2,8 +2,10 @@ package com.tairui.server.face;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jni.face.Face;
+import com.jni.struct.EyeClose;
 import com.jni.struct.FaceBox;
 import com.jni.struct.LivenessInfo;
+import com.jni.struct.Occlusion;
 import com.tairui.server.entity.SystemConfig;
 import com.tairui.server.mapper.SystemConfigMapper;
 import com.tairui.server.webSocket.dto.WsRequest;
@@ -17,7 +19,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -65,7 +70,7 @@ public class BaiduFaceServer implements IFaceServer {
     /**
      * 生活照
      */
-    private final int LIFESTYLE_PHOTO = 1;
+    private final int LIFESTYLE_PHOTO = 0;
 
     public static Map<Integer, String> codeTextMap = new HashMap<>();
 
@@ -89,7 +94,7 @@ public class BaiduFaceServer implements IFaceServer {
 
             try {
                 if (sdkInitCode != 0) {
-                    throw new IOException(getErrorText(sdkInitCode));
+                    return WsResponse.fail(wsRequest.getAction(), 506, getErrorText(sdkInitCode));
                 }
                 if (rgbBase64 != null && rgbBase64.startsWith("data:image")) {
                     rgbBase64 = rgbBase64.substring(rgbBase64.indexOf(",") + 1);
@@ -104,8 +109,7 @@ public class BaiduFaceServer implements IFaceServer {
                     return WsResponse.fail(wsRequest.getAction(), 400, "图片帧格式错误，OpenCV 无法解析该图片字节流");
                 }
 
-                rgbMat = new Mat();
-                org.opencv.imgproc.Imgproc.cvtColor(rgbRawMat, rgbMat, org.opencv.imgproc.Imgproc.COLOR_BGR2RGB);
+                rgbMat = rgbRawMat.clone();
 
                 long rgbMatAddr = rgbMat.getNativeObjAddr();
                 if (rgbMatAddr == 0) {
@@ -115,10 +119,58 @@ public class BaiduFaceServer implements IFaceServer {
                 FaceBox[] faceBoxes = Face.detect(rgbMatAddr, RGB_DETECT);
 
                 if (faceBoxes == null || faceBoxes.length == 0) {
-                    return WsResponse.fail(wsRequest.getAction(), 404, "未检测到人脸");
+                    return WsResponse.fail(wsRequest.getAction(), 404, "请面对摄像头");
                 }
                 if (faceBoxes.length > 1) {
                     return WsResponse.fail(wsRequest.getAction(), 404, "请保持画面只有一张人脸");
+                }
+                // 遮挡度检测
+                Occlusion[] occlusions = Face.faceOcclusion(rgbMatAddr);
+                Occlusion occlusion = occlusions[0];
+                List<String> occludedParts = new ArrayList<>();
+
+                if (occlusion.leftEye > faceThresholdConfig.getFaceOcclusion()) occludedParts.add("左眼");
+                if (occlusion.rightEye > faceThresholdConfig.getFaceOcclusion()) occludedParts.add("右眼");
+                if (occlusion.nose > faceThresholdConfig.getFaceOcclusion()) occludedParts.add("鼻子");
+                if (occlusion.mouth > faceThresholdConfig.getFaceOcclusion()) occludedParts.add("嘴巴");
+                if (occlusion.leftCheek > faceThresholdConfig.getFaceOcclusion()) occludedParts.add("左脸");
+                if (occlusion.rightCheek > faceThresholdConfig.getFaceOcclusion()) occludedParts.add("右脸");
+                if (occlusion.chin > faceThresholdConfig.getFaceOcclusion()) occludedParts.add("下巴");
+
+                if (!occludedParts.isEmpty()) {
+                    return WsResponse.fail(
+                            wsRequest.getAction(),
+                            404,
+                            String.join("、", occludedParts) + "被挡住了"
+                    );
+                }
+
+
+                // 嘴巴闭合检测
+                float[] mouthCloseScore = Face.faceMouthClose(rgbMatAddr);
+                if (mouthCloseScore[0] < faceThresholdConfig.getMouthCloseScoreMin()) {
+                    return WsResponse.fail(wsRequest.getAction(), 404, "请闭合嘴巴");
+                }
+
+                // 眼睛闭合检测
+                System.out.println("获取眼睛闭合参数");
+                EyeClose[] eyeCloses = Face.faceEyeClose(rgbMatAddr);
+                if (eyeCloses == null || eyeCloses.length < 1) {
+                    return WsResponse.fail(wsRequest.getAction(), 404, "请睁开眼睛");
+                }
+
+                if (eyeCloses[0].leftEyeCloseConf > faceThresholdConfig.getEyeCloseMax() || eyeCloses[0].rightEyeCloseConf > faceThresholdConfig.getEyeCloseMax()) {
+                    return WsResponse.fail(wsRequest.getAction(), 404, "请睁开眼睛");
+                }
+
+                // 人脸模糊度检测
+                System.out.println("获取人脸模糊度");
+                float[] blurList = Face.faceBlur(rgbMatAddr);
+                if (blurList == null || blurList.length == 0) {
+                    return WsResponse.fail(wsRequest.getAction(), 404, "请保持人脸在画面中");
+                }
+                if (blurList[0] > faceThresholdConfig.getBlurMax()) {
+                    return WsResponse.fail(wsRequest.getAction(), 404, "人脸太模糊");
                 }
 
                 LivenessInfo[] liveInfos = Face.rgbLiveness(rgbMatAddr);
@@ -131,6 +183,7 @@ public class BaiduFaceServer implements IFaceServer {
                     return WsResponse.fail(wsRequest.getAction(), 404, String.format("检测到非活体,%.3f", liveScore));
                 }
                 Face.loadDbFace();
+                // 查询人脸是否已经注册
                 String identifyResultJson = Face.identifyWithAllByMat(rgbMatAddr, LIFESTYLE_PHOTO);
                 FaceRecognitionReply reply = objectMapper.readValue(identifyResultJson, FaceRecognitionReply.class);
                 List<FaceRecognitionReply.FaceRecognitionData.FaceRecognitionResult> faceRecognitionResults = reply.getData().getResult();
@@ -171,12 +224,61 @@ public class BaiduFaceServer implements IFaceServer {
 
     @Override
     public WsResponse activate(WsRequest wsRequest) throws Exception {
-        return WsResponse.success(wsRequest.getAction(), null);
+        String baiduFaceLicenseKey = objectMapper.convertValue(wsRequest.getData(), String.class);
+        if (!StringUtils.hasText(baiduFaceLicenseKey)) {
+            return WsResponse.fail(wsRequest.getAction(), 400, "未传输授权码，无法授权百度人脸");
+        }
+        this.destroy();
+        synchronized (SDK_NATIVE_LOCK) {
+            List<SystemConfig> systemConfigs = systemConfigMapper.selectList(null);
+            if (systemConfigs.isEmpty()) {
+                return WsResponse.fail(wsRequest.getAction(), 500, "系统配置表没有数据，无法授权百度人脸");
+            }
+            // 更新数据库
+            SystemConfig systemConfig = systemConfigs.get(0);
+            systemConfig.setBaiduFaceLicenseKey(baiduFaceLicenseKey);
+            systemConfigMapper.updateById(systemConfig);
+            // 将数据库中的授权码写入到授权文件中
+            String faceModelDir = useFixedPath ? fixedPath : System.getProperty("user.dir");
+            File licenseKeyFile = new File(faceModelDir, "license/license.key");
+            if (licenseKeyFile.exists()) {
+                FileWriter writer = null;
+                try {
+                    writer = new FileWriter(licenseKeyFile, false);
+                    if (baiduFaceLicenseKey != null) {
+                        writer.write(baiduFaceLicenseKey.trim());
+                    }
+                    writer.flush();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    if (writer != null) {
+                        try {
+                            writer.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+            this.load();
+
+            if (sdkInitCode == 0) {
+                return WsResponse.success(wsRequest.getAction(), "百度人脸授权成功", null);
+            } else {
+                return WsResponse.fail(wsRequest.getAction(), 500, "百度人脸授权失败，原因：" + getErrorText(sdkInitCode));
+            }
+        }
+
     }
 
     @Override
     public WsResponse getActivationStatus(WsRequest wsRequest) throws Exception {
-        return WsResponse.success(wsRequest.getAction(), null);
+        if (sdkInitCode == 0) {
+            return WsResponse.success(wsRequest.getAction(), "百度人脸已授权", null);
+        } else {
+            return WsResponse.fail(wsRequest.getAction(), 500, getErrorText(sdkInitCode));
+        }
     }
 
     @Override
@@ -222,6 +324,30 @@ public class BaiduFaceServer implements IFaceServer {
         if (enableFaceCapture != 1) {
             log.info("未启用人脸抓拍，跳过加载人脸SDK");
             return;
+        }
+        String baiduFaceLicenseKey = systemConfig.getBaiduFaceLicenseKey();
+        // 将数据库中的授权码写入到授权文件中
+        String faceModelDir = useFixedPath ? fixedPath : System.getProperty("user.dir");
+        File licenseKeyFile = new File(faceModelDir, "license/license.key");
+        if (licenseKeyFile.exists()) {
+            FileWriter writer = null;
+            try {
+                writer = new FileWriter(licenseKeyFile, false);
+                if (baiduFaceLicenseKey != null) {
+                    writer.write(baiduFaceLicenseKey.trim());
+                }
+                writer.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                if (writer != null) {
+                    try {
+                        writer.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
         }
         this.load();
     }
