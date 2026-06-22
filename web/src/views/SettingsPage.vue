@@ -71,7 +71,9 @@
         <!-- 硬件设置模块 -->
         <div class="info-card hardware-card" @click="handleUserOperation">
           <div class="card-header">
-            <div class="header-left">
+            <div class="header-left" :class="{ 'pressing-active': isPressing }" @mousedown="startPress"
+              @mouseup="cancelPress" @mouseleave="cancelPress" @touchstart.prevent="startPress" @touchend="cancelPress"
+              style="cursor: pointer; user-select: none;">
               <img src="/硬件设备.svg" alt="硬件" class="icon card-icon" />
               <h3>硬件设置</h3>
             </div>
@@ -290,11 +292,81 @@
     <div v-if="previewVisible" class="preview-modal" @click="previewVisible = false">
       <img :src="formatImageUrl(previewUrl)" class="preview-image" @click.stop />
     </div>
+
+    <!-- 格口柜格口地址设置 -->
+    <div v-if="slotAddressModalVisible" class="modal-mask" @click.self="closeSlotAddressModal">
+      <div class="modal-container slot-modal" style="width: 480px; max-width: 95%;">
+        <div class="modal-header" style="font-size: 18px; padding: 18px 24px;">
+          <span style="display: flex; align-items: center; gap: 10px;">
+            <img src="/密码锁.svg" alt="锁" class="icon" style="color: #22d3ee; width: 1.4em; height: 1.4em;" />
+            格口柜格口地址设置
+          </span>
+          <button class="modal-close" @click="closeSlotAddressModal" style="font-size: 20px;">✕</button>
+        </div>
+
+        <div class="modal-body" style="padding: 28px 24px;">
+          <div class="modal-form-group" style="margin-bottom: 24px;">
+            <label class="form-label"
+              style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: #cbd5e1; font-size: 16px; font-weight: 500;">
+              <img src="/通讯方式.svg" alt="通讯方式" class="icon" style="width: 18px; height: 18px;" />
+              通讯方式 <span style="color: #f87171;">*</span>
+            </label>
+            <div class="type-selector">
+              <button type="button" class="type-btn" :class="{ active: slotConfigForm.communicationType === 'serial' }"
+                @click="slotConfigForm.communicationType = 'serial'" style="height: 46px; font-size: 16px; gap: 10px;">
+                <img src="/rs485.svg" alt="RS485" class="icon" style="width: 18px; height: 18px;" /> 串口通信
+              </button>
+              <button type="button" class="type-btn" :class="{ active: slotConfigForm.communicationType === 'tcp' }"
+                @click="slotConfigForm.communicationType = 'tcp'" style="height: 46px; font-size: 16px; gap: 10px;">
+                <img src="/TCP-.svg" alt="TCP" class="icon" style="width: 18px; height: 18px;" /> TCP 网络通信
+              </button>
+            </div>
+          </div>
+
+          <div class="modal-form-group" style="margin-bottom: 24px;">
+            <label class="form-label"
+              style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: #cbd5e1; font-size: 16px; font-weight: 500;">
+              <img src="/端口.svg" alt="端口" class="icon" style="width: 18px; height: 18px;" />
+              硬件通信地址 <span style="color: #f87171;">*</span>
+            </label>
+            <input v-model="slotConfigForm.communicationAddress" type="text" class="modal-input large-input"
+              :placeholder="slotConfigForm.communicationType === 'serial' ? '如: COM1@9600' : '如: 192.168.0.1:8252'" />
+          </div>
+
+          <div class="modal-form-group-row" style="gap: 20px;">
+            <div class="modal-form-group" style="margin-bottom: 0;">
+              <label class="form-label"
+                style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: #cbd5e1; font-size: 16px; font-weight: 500;">
+                <img src="/地址.svg" alt="地址" class="icon" style="width: 18px; height: 18px;" />
+                起始地址 <span style="color: #f87171;">*</span>
+              </label>
+              <input v-model="slotConfigForm.startAddress" type="text" class="modal-input large-input"
+                placeholder="如: 1" />
+            </div>
+            <div class="modal-form-group" style="margin-bottom: 0;">
+              <label class="form-label"
+                style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: #cbd5e1; font-size: 16px; font-weight: 500;">
+                <img src="/地址.svg" alt="地址" class="icon" style="width: 18px; height: 18px;" />
+                结束地址 <span style="color: #f87171;">*</span>
+              </label>
+              <input v-model="slotConfigForm.endAddress" type="text" class="modal-input large-input" placeholder="如: 24"
+                @keyup.enter="confirmSlotAddress" />
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer" style="padding: 16px 24px 28px; gap: 16px;">
+          <button class="modal-btn cancel large-btn" @click="closeSlotAddressModal">取消</button>
+          <button class="modal-btn confirm large-btn" @click="confirmSlotAddress">确认保存</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSystemConfigStore } from '@/stores/systemConfig'
 import { fetchLogOverview, type UnreturnedItem } from '@/api/log'
@@ -488,6 +560,167 @@ function formatDisplayValue(key: keyof SystemConfig): string {
     return val === 1 ? '开启' : '关闭'
   }
   return val as string
+}
+
+// 配置格口柜格口地址相关
+let longPressTimer: ReturnType<typeof setTimeout> | null = null
+const isPressing = ref(false)
+// 开始长按计时
+function startPress() {
+  handleUserOperation() // 刷新页面倒计时
+  isPressing.value = true
+
+  // 设置 5000 毫秒（5秒）的定时器
+  longPressTimer = setTimeout(() => {
+    isPressing.value = false
+    longPressTimer = null
+
+    // 5秒到了！打开格口柜地址设置模态框
+    openSlotAddressModal()
+  }, 5000)
+}
+
+// 取消长按（不管是松开鼠标、鼠标移出、还是移动端手指抬起，都算取消）
+function cancelPress() {
+  if (longPressTimer) {
+    clearTimeout(longPressTimer)
+    longPressTimer = null
+  }
+  isPressing.value = false
+}
+const slotAddressModalVisible = ref(false)
+interface CabinetSlotConfig {
+  communicationAddress: string;       // 硬件通信地址
+  communicationType: 'tcp' | 'serial'; // 硬件通信类型
+  startAddress: string | number;      // 起始地址
+  endAddress: string | number;        // 结束地址
+}
+const slotConfigForm = ref<CabinetSlotConfig>({
+  communicationAddress: '',
+  communicationType: 'tcp',
+  startAddress: '',
+  endAddress: ''
+})
+// 控制格口地址设置模态框打开的方法
+const openSlotAddressModal = (existingConfig?: Partial<CabinetSlotConfig>) => {
+  handleUserOperation() // 刷新页面操作倒计时
+
+  if (existingConfig) {
+    // 如果有历史配置，回显数据
+    slotConfigForm.value = {
+      communicationAddress: existingConfig.communicationAddress || '',
+      communicationType: existingConfig.communicationType || 'tcp',
+      startAddress: existingConfig.startAddress || '',
+      endAddress: existingConfig.endAddress || ''
+    }
+  } else {
+    // 否则清空表单，恢复默认
+    slotConfigForm.value = {
+      communicationAddress: '',
+      communicationType: 'tcp',
+      startAddress: '',
+      endAddress: ''
+    }
+  }
+  slotAddressModalVisible.value = true
+}
+
+// 控制格口地址设置模态框关闭的方法
+function closeSlotAddressModal() {
+  slotAddressModalVisible.value = false
+}
+
+// 提交格口地址设置表单保存的方法
+const confirmSlotAddress = () => {
+  const { communicationAddress, communicationType, startAddress, endAddress } = slotConfigForm.value
+  const addrTrimmed = communicationAddress.trim()
+
+  // 1. 表单非空基本校验
+  if (!addrTrimmed) {
+    showMessage('硬件通信地址不能为空')
+    return
+  }
+  if (!String(startAddress).trim()) {
+    showMessage('起始地址不能为空')
+    return
+  }
+  if (!String(endAddress).trim()) {
+    showMessage('结束地址不能为空')
+    return
+  }
+
+  // 2. 硬件通信格式精准校验
+  if (communicationType === 'serial') {
+    // 串口格式校验：必须包含 @
+    if (!addrTrimmed.includes('@')) {
+      showMessage('串口格式错误，正确格式如：COM1@9600')
+      return
+    }
+
+    const [port, baudRate] = addrTrimmed.split('@')
+    if (!port.trim()) {
+      showMessage('串口通信地址错误：串口号（如COM1）不能为空')
+      return
+    }
+    // 校验波特率是否为纯数字
+    if (!baudRate.trim() || !/^\d+$/.test(baudRate.trim())) {
+      showMessage('串口通信地址错误：波特率必须为纯数字（如9600）')
+      return
+    }
+  } else if (communicationType === 'tcp') {
+    // TCP 格式校验：支持兼容中英文冒号
+    const hasEnglishColon = addrTrimmed.includes(':')
+    const hasChineseColon = addrTrimmed.includes('：')
+
+    if (!hasEnglishColon && !hasChineseColon) {
+      showMessage('TCP格式错误，正确格式如：192.168.0.1:8252')
+      return
+    }
+
+    // 统一按冒号切割
+    const separator = hasEnglishColon ? ':' : '：'
+    const [ip, portStr] = addrTrimmed.split(separator)
+
+    // 验证 IP 格式 (极简正则或基础非空验证，这里采用标准的 IPv4 正则)
+    const ipRegex = /^((25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)$/
+    if (!ip.trim() || !ipRegex.test(ip.trim())) {
+      showMessage('TCP通信地址错误：IP 地址格式不合法')
+      return
+    }
+
+    // 验证端口是否在 0 - 65535 之间
+    const portNum = parseInt(portStr.trim(), 10)
+    if (!portStr.trim() || !/^\d+$/.test(portStr.trim()) || isNaN(portNum) || portNum < 0 || portNum > 65535) {
+      showMessage('TCP通信地址错误：端口号必须是 0 ~ 65535 之间的数字')
+      return
+    }
+  }
+
+  // 3. 起始/结束地址数字范围安全卡控
+  const startNum = parseInt(String(startAddress).trim(), 10)
+  const endNum = parseInt(String(endAddress).trim(), 10)
+  if (isNaN(startNum) || startNum <= 0 || isNaN(endNum) || endNum <= 0) {
+    showMessage('格口地址必须为正整数')
+    return
+  }
+  if (startNum > endNum) {
+    showMessage('起始地址不能大于结束地址')
+    return
+  }
+
+  // 4. 验证通过，执行提交逻辑
+  try {
+    // TODO: 调用你的后端 API 或 Store 方法提交配置
+    // 示例：await systemConfigStore.updateCabinetSlotConfig(slotConfigForm.value)
+
+    console.log('提交的格口柜配置数据：', slotConfigForm.value)
+
+    showMessage('格口柜地址设置成功')
+    closeSlotAddressModal()
+  } catch (error: any) {
+    console.error('设置格口柜配置失败:', error)
+    showMessage(error?.message || '设置失败，请稍后重试')
+  }
 }
 
 // 编辑配置模态框
@@ -790,6 +1023,9 @@ onMounted(() => {
   if (!systemConfigStore.loaded && !systemConfigStore.loading) {
     systemConfigStore.loadConfig()
   }
+})
+onUnmounted(() => {
+  cancelPress()
 })
 </script>
 
@@ -1705,5 +1941,129 @@ onMounted(() => {
   .countdown-display {
     align-self: flex-end;
   }
+}
+
+/* ---------- 追加：通讯配置专用高颜值按钮组 (深色科技风) ---------- */
+.type-selector {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.type-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  border-radius: 40px;
+  /* 强行覆盖浏览器默认的黑字，使用跟你页面配套的浅色文字 */
+  color: #cbd5e1;
+  font-size: 14px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+/* 悬浮时带有一点微弱的荧光蓝 */
+.type-btn:hover {
+  background: rgba(34, 211, 238, 0.1);
+  border-color: rgba(34, 211, 238, 0.6);
+  color: #22d3ee;
+}
+
+/* 激活选中状态：完美契合你主色调的亮蓝色 */
+.type-btn.active {
+  background: rgba(34, 211, 238, 0.25);
+  border-color: #22d3ee;
+  color: #22d3ee;
+  font-weight: 600;
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.2);
+}
+
+/* 保持内部图标颜色跟随文字 */
+.type-btn .icon {
+  width: 1.1em;
+  height: 1.1em;
+}
+
+/* 规范你原有的 modal-form-group-row */
+.modal-form-group-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 0;
+}
+
+.modal-form-group-row .modal-form-group {
+  margin-bottom: 0;
+}
+
+/* 1. 按钮组容器 */
+.type-selector {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+}
+
+/* 2. 通讯方式大按钮 */
+.type-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  border-radius: 12px;
+  /* 稍微方正一点的圆角，大气一点 */
+  color: #e2e8f0;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.type-btn:hover {
+  background: rgba(34, 211, 238, 0.12);
+  border-color: rgba(34, 211, 238, 0.6);
+  color: #22d3ee;
+}
+
+.type-btn.active {
+  background: rgba(34, 211, 238, 0.25);
+  border-color: #22d3ee;
+  color: #22d3ee;
+  font-weight: 600;
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.3);
+}
+
+/* 3. 输入框大尺寸重写 */
+.large-input.modal-input {
+  height: 46px;
+  font-size: 16px;
+  border-radius: 12px;
+  /* 统一改为 12px 大圆角，视觉更协调 */
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+/* 4. 底部确定、取消大按钮 */
+.large-btn.modal-btn {
+  height: 44px;
+  padding: 0 28px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 5. 栅格并排对齐 */
+.modal-form-group-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
 }
 </style>
