@@ -14,12 +14,13 @@
     </div>
     <div v-else>
       <div v-if="totalCount === 0" class="empty-state">
-        ⚠️ 暂无柜子配置数据，请联系管理员
+        <img src="/警告 (1).svg" alt="警告" class="empty-icon" />
+        <span>暂无柜子配置数据，请联系管理员</span>
       </div>
       <div v-else class="full-layout">
         <!-- ================== 页面标题 ================== -->
         <div class="page-header">
-          <div class="title-icon">📦</div>
+          <img src="/盒子.svg" alt="领用" class="title-icon" />
           <h1>物品领用</h1>
         </div>
         <!-- ================== 上部区域 ================== -->
@@ -27,14 +28,14 @@
           <div class="top-section">
             <!-- 温度卡片 -->
             <div class="temp-card">
-              <div class="card-icon">🌡️</div>
+              <img src="/温度.svg" alt="温度" class="card-icon" />
               <div class="card-value">{{ currentCabinetTemp }}°</div>
               <div class="card-label">温度</div>
             </div>
 
             <!-- 湿度卡片 -->
             <div class="humidity-card">
-              <div class="card-icon">💧</div>
+              <img src="/湿度-01.svg" alt="湿度" class="card-icon" />
               <div class="card-value">{{ currentCabinetHumidity }}%</div>
               <div class="card-label">湿度</div>
             </div>
@@ -129,7 +130,7 @@
             <!-- 右侧：领用完成按钮 -->
             <div class="button-area">
               <button class="complete-btn" :disabled="isCompleteDisabled" @click="handleComplete">
-                <span class="btn-icon">✅</span>
+                <img src="/盒子.svg" alt="完成" class="btn-icon" />
                 <span class="btn-label">领用完成</span>
               </button>
             </div>
@@ -147,7 +148,10 @@
       <div v-if="showUnclosedModal" class="modal-overlay" @click.self="closeUnclosedModal">
         <div class="modal-container warning-modal">
           <div class="modal-header warning-header">
-            <h3>⚠️ 存在未关闭的柜门</h3>
+            <h3>
+              <img src="/警告 (1).svg" alt="警告" class="modal-icon" />
+              存在未关闭的柜门
+            </h3>
             <button class="close-btn" @click="closeUnclosedModal">✕</button>
           </div>
           <div class="modal-body">
@@ -177,7 +181,10 @@
       <div v-if="showEmptyDataModal" class="modal-overlay" @click.self="closeEmptyDataModal">
         <div class="modal-container info-modal">
           <div class="modal-header info-header">
-            <h3>📋 提示</h3>
+            <h3>
+              <img src="/笔记本.svg" alt="提示" class="modal-icon" />
+              提示
+            </h3>
             <button class="close-btn" @click="closeEmptyDataModal">✕</button>
           </div>
           <div class="modal-body">
@@ -199,7 +206,10 @@
       <div v-if="showSuccessModal" class="modal-overlay no-close">
         <div class="modal-container success-modal">
           <div class="modal-header success-header">
-            <h3>🎉 领用成功</h3>
+            <h3>
+              <img src="/color-success.svg" alt="成功" class="modal-icon" />
+              领用成功
+            </h3>
           </div>
           <div class="modal-body">
             <p class="success-tip">成功领用 <strong>{{ successBorrowCount }}</strong> 件工具！</p>
@@ -481,7 +491,7 @@ function addBorrowRecord(cabinetId: number, cabinetName: string, cellId: number,
  */
 const handleCellClick = async (cell: any, cabinetId: number, cabinetTitle: string) => {
   const anyOpen = cabinets.value.some(cab =>
-    cab.flatCells.some(cell => cell.type === 'cell' && cell.isDoorOpen === true)
+      cab.flatCells.some(cell => cell.type === 'cell' && cell.isDoorOpen === true)
   )
   if (anyOpen) {
     addNotification('请先关闭当前开启的柜门', 'warning')
@@ -489,7 +499,7 @@ const handleCellClick = async (cell: any, cabinetId: number, cabinetTitle: strin
   }
   if (cell.type !== 'cell') return
   if (cell.isEmpty) {
-    addNotification(`🔒 该格口当前为空，无法打开 · 格口 ${cell.number}`, 'warning')
+    addNotification(`该格口当前为空，无法打开 · 格口 ${cell.number}`, 'warning')
     return
   }
   if (unlocking.value) {
@@ -962,7 +972,7 @@ const handleCloseAndCheck = async (msg: any) => {
             cell.isDoorOpen = false
             cell.isEmpty = false
             cell.toolName = toolName
-            addNotification(`✅ ${cellNumber}号格口已关锁，但工具 ${toolName} 未领用`, 'warning')
+            addNotification(`${cellNumber}号格口已关锁，但工具 ${toolName} 未领用`, 'warning')
           }
           break
         }
@@ -1119,7 +1129,10 @@ body,
 }
 
 .title-icon {
-  font-size: 28px;
+  width: 32px;
+  height: 32px;
+  display: block;
+  flex-shrink: 0;
   filter: drop-shadow(0 0 4px #22d3ee);
 }
 
@@ -1183,7 +1196,10 @@ body,
 }
 
 .card-icon {
-  font-size: 18px;
+  width: 22px;
+  height: 22px;
+  display: block;
+  flex-shrink: 0;
 }
 
 .card-value {
@@ -1691,7 +1707,11 @@ body,
 }
 
 .complete-btn .btn-icon {
-  font-size: 38px;
+  width: 40px;
+  height: 40px;
+  display: block;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
 .complete-btn .btn-label {
@@ -1732,7 +1752,10 @@ body,
 }
 
 .empty-state {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
   color: #ffb347;
   background: rgba(0, 0, 0, 0.6);
   padding: 50px;
@@ -1741,6 +1764,14 @@ body,
   margin: auto;
   width: fit-content;
   max-width: 90%;
+}
+
+.empty-icon {
+  width: 32px;
+  height: 32px;
+  display: block;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 4px #f97316);
 }
 
 /* 模态框 – 无模糊、无动画 */
@@ -1789,7 +1820,15 @@ body,
   letter-spacing: 1px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+}
+
+.modal-icon {
+  width: 28px;
+  height: 28px;
+  display: block;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.3));
 }
 
 .close-btn {
@@ -1959,7 +1998,7 @@ body,
 /* 响应式 – 无动画 */
 @media (max-width: 680px) {
   .page-header { height: 50px; gap: 8px; }
-  .title-icon { font-size: 22px; }
+  .title-icon { width: 26px; height: 26px; }
   .page-header h1 { font-size: 20px; }
   .upper-area { height: calc(100vh - 350px - 50px); }
   .notification-container { top: 70px; right: 10px; max-width: 260px; }
@@ -1970,31 +2009,35 @@ body,
   .bottom-container { gap: 10px; }
   .info-header, .info-row { grid-template-columns: 1fr 0.7fr 1fr 1.3fr; gap: 8px; }
   .header-item, .row-item { font-size: 10px; }
-  .complete-btn .btn-icon { font-size: 28px; }
+  .complete-btn .btn-icon { width: 32px; height: 32px; }
   .complete-btn .btn-label { font-size: 14px; }
   .complete-btn { padding: 16px 12px; min-height: 80px; gap: 8px; }
   .temp-card, .humidity-card { padding: 3px 10px; top: 4px; }
-  .card-icon { font-size: 14px; }
+  .card-icon { width: 18px; height: 18px; }
   .card-value { font-size: 14px; min-width: 35px; }
   .card-label { font-size: 9px; padding: 1px 4px; }
+  .modal-icon { width: 24px; height: 24px; }
+  .empty-icon { width: 26px; height: 26px; }
 }
 
 @media (max-width: 480px) {
   .page-header h1 { font-size: 18px; }
-  .title-icon { font-size: 20px; }
+  .title-icon { width: 22px; height: 22px; }
   .cabinet-item { width: 260px !important; }
   .bottom-container { gap: 8px; }
   .info-header, .info-row { grid-template-columns: 1fr 0.6fr 0.9fr 1.2fr; gap: 6px; }
   .header-item, .row-item { font-size: 9px; }
   .info-row { padding: 6px 4px; }
-  .complete-btn .btn-icon { font-size: 24px; }
+  .complete-btn .btn-icon { width: 28px; height: 28px; }
   .complete-btn .btn-label { font-size: 12px; }
   .complete-btn { padding: 12px 8px; min-height: 70px; gap: 6px; }
   .placeholder-icon { width: 24px; height: 24px; }
   .photo-placeholder span { font-size: 9px; }
   .temp-card, .humidity-card { padding: 2px 8px; gap: 4px; }
-  .card-icon { font-size: 12px; }
+  .card-icon { width: 16px; height: 16px; }
   .card-value { font-size: 12px; min-width: 30px; }
   .card-label { font-size: 8px; }
+  .modal-icon { width: 20px; height: 20px; }
+  .empty-icon { width: 22px; height: 22px; }
 }
 </style>

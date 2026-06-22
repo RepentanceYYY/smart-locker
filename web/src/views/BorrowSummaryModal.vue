@@ -3,7 +3,10 @@
     <div v-if="visible" class="modal-overlay">
       <div class="modal-container">
         <div class="modal-header">
-          <h3>📋 本次借用详情</h3>
+          <h3>
+            <img src="/笔记本.svg" alt="清单" class="title-icon" />
+            本次借用详情
+          </h3>
           <button class="close-btn" @click="handleClose">✕</button>
         </div>
 
@@ -76,9 +79,15 @@
                   @click="openDateTimePicker"
               />
               <div class="time-shortcuts">
-                <button type="button" class="time-shortcut-btn" @click="quickSetTime(1, '20:00')">⏰ 明天</button>
-                <button type="button" class="time-shortcut-btn" @click="quickSetTime(2, '20:00')">⏰ 后天</button>
-                <button type="button" class="time-shortcut-btn" @click="quickSetTime(7, '20:00')">📅 一周后</button>
+                <button type="button" class="time-shortcut-btn" @click="quickSetTime(1, '20:00')">
+                  <img src="/明天.svg" alt="时间" class="shortcut-icon" /> 明天
+                </button>
+                <button type="button" class="time-shortcut-btn" @click="quickSetTime(2, '20:00')">
+                  <img src="/后天.svg" alt="时间" class="shortcut-icon" /> 后天
+                </button>
+                <button type="button" class="time-shortcut-btn" @click="quickSetTime(7, '20:00')">
+                  <img src="/日历.svg" alt="日历" class="shortcut-icon" /> 一周后
+                </button>
               </div>
             </div>
 
@@ -284,6 +293,14 @@ watch(() => props.visible, (newVal) => {
   gap: 10px;
 }
 
+.title-icon {
+  width: 26px;
+  height: 26px;
+  display: block;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.3));
+}
+
 .close-btn {
   background: none;
   border: none;
@@ -465,6 +482,9 @@ watch(() => props.visible, (newVal) => {
 }
 
 .time-shortcut-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   background: rgba(34, 211, 238, 0.12);
   border: 1px solid rgba(34, 211, 238, 0.3);
   padding: 6px 16px;
@@ -481,6 +501,14 @@ watch(() => props.visible, (newVal) => {
   background: rgba(34, 211, 238, 0.3);
   transform: translateY(-1px);
   border-color: #22d3ee;
+}
+
+.shortcut-icon {
+  width: 16px;
+  height: 16px;
+  display: block;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 2px rgba(34, 211, 238, 0.3));
 }
 
 .modal-footer {
@@ -566,6 +594,7 @@ watch(() => props.visible, (newVal) => {
     padding: 8px 12px;
   }
   .modal-header h3 { font-size: 1.2rem; }
+  .title-icon { width: 22px; height: 22px; }
   .modal-body { padding: 16px; gap: 16px; }
   .section-title { font-size: 1rem; }
   .photo-preview { max-width: 220px; }
@@ -573,6 +602,7 @@ watch(() => props.visible, (newVal) => {
   .form-input, .form-textarea { padding: 8px 12px; font-size: 0.85rem; }
   .cancel-btn, .submit-btn { padding: 8px 20px; font-size: 0.85rem; }
   .time-shortcut-btn { padding: 4px 12px; font-size: 0.75rem; }
+  .shortcut-icon { width: 14px; height: 14px; }
 }
 
 @media (max-width: 480px) {
@@ -584,11 +614,13 @@ watch(() => props.visible, (newVal) => {
   }
   .modal-header { padding: 14px 18px; }
   .modal-header h3 { font-size: 1.1rem; }
+  .title-icon { width: 20px; height: 20px; }
   .close-btn { font-size: 1.5rem; }
   .modal-footer { padding: 12px 18px; gap: 12px; }
   .form-group { margin-bottom: 14px; }
   .photo-preview { max-width: 180px; }
   .time-shortcuts { gap: 8px; }
   .time-shortcut-btn { padding: 4px 10px; font-size: 0.7rem; }
+  .shortcut-icon { width: 12px; height: 12px; }
 }
 </style>

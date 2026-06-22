@@ -2,48 +2,42 @@
   <div class="hardware-detail-container">
     <div class="detail-header">
       <button class="back-btn" @click="goBack">
-        <span class="back-icon">←</span>
+        <img src="/bg-back.svg" alt="返回" class="icon" />
         <span>返回设置</span>
       </button>
-      <h1 class="detail-title">🖥️ 硬件配置详情</h1>
-      <!-- 倒计时显示 -->
+      <h1 class="detail-title">
+        <img src="/设置.svg" alt="硬件" class="icon title-icon" />
+        硬件配置详情
+      </h1>
 
-      <!-- 设置下拉菜单 - 美化版 -->
+      <!-- 倒计时显示 -->
       <div class="settings-wrapper" ref="settingsWrapper">
         <div class="countdown-display" v-if="countdown && countdown.secondsLeft.value > 0">
-          <span class="countdown-icon">⏱️</span>
+          <img src="/计时器.svg" alt="倒计时" class="icon" />
           <span class="countdown-time">{{ formatCountdownTime(countdown.secondsLeft.value) }}</span>
           <span class="countdown-text">后自动返回</span>
         </div>
 
-
-
         <button class="settings-btn" @click.stop="toggleSettingsDropdown">
-          <span class="settings-icon">⚙️</span>
-          <span class="settings-arrow" :class="{ open: settingsDropdownVisible }">▼</span>
+          <img src="/设置.svg" alt="设置" class="icon settings-icon" />
+          <img src="/下箭头.svg" alt="展开" class="icon settings-arrow" :class="{ open: settingsDropdownVisible }" />
         </button>
         <div v-if="settingsDropdownVisible" class="settings-dropdown" @click.stop>
           <button v-if="advancedSettingsEnabled" class="dropdown-item action-item" @click="handleAddCabinet">
-            <span class="item-icon">➕</span>
+            <img src="/加号.svg" alt="新增" class="icon item-icon" />
             <span class="item-text">新增柜子</span>
           </button>
           <button v-if="advancedSettingsEnabled" class="dropdown-item action-item" @click="handleAddCell">
-            <span class="item-icon">📦</span>
+            <img src="/加号.svg" alt="格口" class="icon item-icon" />
             <span class="item-text">新增格口</span>
           </button>
-          <!-- 导出按钮组 -->
-          <!-- 导出按钮组 -->
           <button class="dropdown-item action-item" @click.stop="handleExportWordClick" :disabled="exporting">
-            <span class="export-icon">{{ exporting ? '⏳' : '📄' }}</span>
+            <img src="/导出.svg" alt="Word" class="icon export-icon" />
             <span>{{ exporting ? '导出中...' : '导出 Word' }}</span>
           </button>
-          <!--            <button class="dropdown-item action-item" @click.stop="handleExportExcel" :disabled="exporting">
-                        <span class="export-icon">{{ exporting ? '⏳' : '📊' }}</span>
-                        <span>{{ exporting ? '导出中...' : 'Excel' }}</span>
-                      </button>-->
           <div v-if="advancedSettingsEnabled" class="dropdown-divider"></div>
           <label class="dropdown-item setting-item">
-            <span class="item-icon">⚙️</span>
+            <img src="/设置.svg" alt="高级" class="icon item-icon" />
             <span class="item-text">高级设置</span>
             <span class="toggle-switch" :class="{ active: advancedSettingsEnabled }" @click.stop="toggleAdvancedSetting">
               <span class="toggle-knob"></span>
@@ -70,19 +64,27 @@
           <div class="summary-stats">
             <div class="summary-item">
               <div class="summary-value">{{ totalStats.cabinetCount }}</div>
-              <div class="summary-label">柜子总数</div>
+              <div class="summary-label">
+                <img src="/盒子.svg" alt="柜子" class="icon" /> 柜子总数
+              </div>
             </div>
             <div class="summary-item">
               <div class="summary-value">{{ totalStats.totalSlots }}</div>
-              <div class="summary-label">总格口数</div>
+              <div class="summary-label">
+                <img src="/盒子.svg" alt="格口" class="icon" /> 总格口数
+              </div>
             </div>
             <div class="summary-item">
               <div class="summary-value">{{ totalStats.usedSlots }}</div>
-              <div class="summary-label">已用格口</div>
+              <div class="summary-label">
+                <img src="/盒子.svg" alt="已用" class="icon" /> 已用格口
+              </div>
             </div>
             <div class="summary-item">
               <div class="summary-value">{{ totalStats.emptySlots }}</div>
-              <div class="summary-label">空闲格口</div>
+              <div class="summary-label">
+                <img src="/盒子.svg" alt="空闲" class="icon" /> 空闲格口
+              </div>
             </div>
             <div class="summary-item">
               <div class="summary-value">{{ totalStats.usageRate }}%</div>
@@ -96,22 +98,24 @@
           <div class="upper-area">
             <div class="top-section">
               <div class="temp-card">
-                <div class="card-icon">🌡️</div>
+                <img src="/温度.svg" alt="温度" class="icon card-icon" />
                 <div class="card-value">{{ currentCabinetTemp }}°</div>
                 <div class="card-label">温度</div>
               </div>
 
               <div class="humidity-card">
-                <div class="card-icon">💧</div>
+                <img src="/湿度-01.svg" alt="湿度" class="icon card-icon" />
                 <div class="card-value">{{ currentCabinetHumidity }}%</div>
                 <div class="card-label">湿度</div>
               </div>
 
               <button class="nav-btn-left" :class="{ disabled: currentIndex === 0 }" @click="rotatePrev">
-                <span class="arrow">◀</span><span class="btn-text">上一个</span>
+                <img src="/左箭头.svg" alt="上一个" class="icon arrow" />
+                <span class="btn-text">上一个</span>
               </button>
               <button class="nav-btn-right" :class="{ disabled: currentIndex === totalCount - 1 }" @click="rotateNext">
-                <span class="btn-text">下一个</span><span class="arrow">▶</span>
+                <span class="btn-text">下一个</span>
+                <img src="/右箭头.svg" alt="下一个" class="icon arrow" />
               </button>
 
               <div class="carousel-cylinder">
@@ -127,7 +131,6 @@
                       {{ cab.title }}
                     </div>
                     <div class="cabinet-body">
-
                       <div class="cabinet-grid" :style="getGridStyle(cab)">
                         <template v-for="(cell, cellIdx) in cab.flatCells" :key="cellIdx">
                           <div v-if="cell.type === 'cell'"
@@ -164,19 +167,27 @@
       </template>
     </div>
 
-    <!-- 统一弹窗：支持编辑格口、新增格口/图片、编辑图片 -->
+    <!-- 统一弹窗 -->
     <div v-if="showDialog" class="dialog-overlay">
       <div class="dialog-content dialog-content--editable" @click.stop>
         <div class="dialog-glow"></div>
 
         <div class="dialog-header">
           <h3>
-            <span v-if="dialogMode === 'edit'">✏️ 编辑格口信息</span>
-            <span v-else-if="dialogMode === 'add'">➕ 新增项目</span>
-            <span v-else-if="dialogMode === 'editImage'">🖼️ 编辑图片单元格</span>
+            <span v-if="dialogMode === 'edit'">
+              <img src="/编辑.svg" alt="编辑" class="icon" /> 编辑格口信息
+            </span>
+            <span v-else-if="dialogMode === 'add'">
+              <img src="/加号.svg" alt="新增" class="icon" /> 新增项目
+            </span>
+            <span v-else-if="dialogMode === 'editImage'">
+              <img src="/图片.svg" alt="图片" class="icon" /> 编辑图片单元格
+            </span>
             <span class="cabinet-name-badge">{{ currentCabinetName }}</span>
           </h3>
-          <button class="dialog-close" @click="closeDialog">✕</button>
+          <button class="dialog-close" @click="closeDialog">
+            ✕
+          </button>
         </div>
 
         <div class="dialog-body">
@@ -184,7 +195,7 @@
           <div v-if="dialogMode === 'add'" class="form-row">
             <div class="form-field" :class="{ 'form-row--error': errors.cabinetId }">
               <label class="form-label">
-                <span class="-label-icon">🗄️</span>
+                <img src="/柜子.svg" alt="柜子" class="icon label-icon" />
                 所属柜子 <span class="required-star">*</span>
               </label>
               <select v-model.number="dialogForm.cabinetId" class="form-input" @change="onCabinetChange">
@@ -198,26 +209,26 @@
           <div v-if="dialogMode === 'add'" class="form-row">
             <div class="form-field">
               <label class="form-label">
-                <span class="label-icon">🔘</span>
+                <img src="/类型.svg" alt="类型" class="icon label-icon" />
                 项目类型 <span class="required-star">*</span>
               </label>
               <div class="type-selector">
                 <button type="button" class="type-btn" :class="{ active: addType === 'cell' }" @click="handleAddTypeChange('cell')">
-                  📦 格口
+                  <img src="/格口管理.svg" alt="格口" class="icon" /> 格口
                 </button>
                 <button type="button" class="type-btn" :class="{ active: addType === 'image' }" @click="handleAddTypeChange('image')">
-                  🖼️ 图片
+                  <img src="/图片.svg" alt="图片" class="icon" /> 图片
                 </button>
               </div>
             </div>
           </div>
 
-          <!-- 格口（编辑/新增）的字段：格口号、工具名称、二维码 -->
+          <!-- 格口（编辑/新增）的字段 -->
           <template v-if="(dialogMode === 'edit' || dialogMode === 'add') && (!(dialogMode === 'add') || addType === 'cell')">
             <div class="form-row form-row--two-columns">
               <div class="form-field" :class="{ 'form-row--error': errors.slotNumber }">
                 <label class="form-label">
-                  <span class="label-icon">🔢</span>
+                  <img src="/标签.svg" alt="格口号" class="icon label-icon" />
                   格口号 <span class="required-star">*</span>
                 </label>
                 <input
@@ -233,7 +244,7 @@
               </div>
               <div class="form-field" :class="{ 'form-row--error': errors.toolName }">
                 <label class="form-label">
-                  <span class="label-icon">🛠️</span>
+                  <img src="/工具.svg" alt="工具" class="icon label-icon" />
                   工具名称 <span class="required-star">*</span>
                 </label>
                 <input
@@ -251,7 +262,7 @@
             <!-- 二维码区域 -->
             <div class="form-row" :class="{ 'form-row--error': errors.qrcodeContent }">
               <label class="form-label">
-                <span class="label-icon">📱</span>
+                <img src="/二维码.svg" alt="二维码" class="icon label-icon" />
                 二维码 <span class="required-star">*</span>
               </label>
               <div class="qrcode-area">
@@ -269,14 +280,14 @@
                   </div>
                   <div class="qrcode-text">{{ dialogForm.qrcodeContent }}</div>
                   <button type="button" class="qrcode-copy-btn" @click="copyQrcode">
-                    <span>📋</span> 复制
+                    <img src="/复制.svg" alt="复制" class="icon" /> 复制
                   </button>
                 </div>
                 <div v-else class="qrcode-empty">
-                  <div class="empty-icon">📷</div>
+                  <img src="/空白页.svg" alt="空" class="icon empty-icon" />
                   <span class="empty-hint">请点击下方按钮生成二维码</span>
                   <button type="button" class="btn-generate-qr" @click="handleGenerateQrcode">
-                    ✨ 生成二维码
+                    <img src="/保存-L.svg" alt="生成" class="icon" /> 生成二维码
                   </button>
                 </div>
               </div>
@@ -284,52 +295,56 @@
             </div>
           </template>
 
-          <!-- 图片新增/编辑模式字段：图片上传 + 标签 -->
+          <!-- 图片新增/编辑模式字段 -->
           <template v-if="(dialogMode === 'editImage') || (dialogMode === 'add' && addType === 'image')">
-            <!-- 图片上传卡片区域 -->
             <div class="form-row">
               <div class="image-upload-card" :class="{ 'form-row--error': errors.imageUrl }">
                 <div class="upload-preview-area">
                   <div class="preview-image" v-if="dialogForm.imageUrl">
                     <img :src="formatImageUrl(dialogForm.imageUrl)" alt="预览图" />
-                    <button type="button" class="remove-image-btn" @click="removeImage" title="移除图片">✕</button>
+                    <button type="button" class="remove-image-btn" @click="removeImage" title="移除图片">
+                      <img src="/移除.svg" alt="移除" class="icon" />
+                    </button>
                   </div>
                   <div v-else class="preview-placeholder">
-                    <span class="placeholder-icon">🖼️</span>
+                    <img src="/暂无图片.svg" alt="暂无图片" class="icon placeholder-icon" />
                     <span class="placeholder-text">暂无图片</span>
                   </div>
                 </div>
                 <div class="upload-actions">
                   <label class="upload-btn">
-                    <span>📁 选择图片</span>
+                    <img src="/选择.svg" alt="选择" class="icon" /> 选择图片
                     <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" @change="onImageUpload" style="display: none;" />
                   </label>
                 </div>
                 <div v-if="errors.imageUrl" class="form-error">{{ errors.imageUrl }}</div>
               </div>
             </div>
-            <!-- 标签字段 -->
             <div class="form-row">
               <div class="form-field" :class="{ 'form-row--error': errors.label }">
-                <label class="form-label"><span class="label-icon">🏷️</span>标签<span class="required-star">*</span></label>
+                <label class="form-label">
+                  <img src="/标签.svg" alt="标签" class="icon label-icon" />
+                  标签 <span class="required-star">*</span>
+                </label>
                 <input type="text" v-model="dialogForm.label" class="form-input" placeholder="不超过20位" maxlength="20" @input="clearError('label')" />
                 <div v-if="errors.label" class="form-error">{{ errors.label }}</div>
               </div>
             </div>
           </template>
 
-          <!-- 高级设置区域（布局相关，对所有可编辑模式均生效） -->
+          <!-- 高级设置区域（布局相关） -->
           <div v-if="advancedSettingsEnabled" class="advanced-settings-section">
             <div class="section-divider">
-              <span class="divider-text">⚙️ 高级配置（布局）</span>
+              <span class="divider-text">
+                <img src="/设置.svg" alt="高级" class="icon" /> 高级配置（布局）
+              </span>
             </div>
 
             <div class="form-row form-row--three-columns">
               <div class="form-field" :class="{ 'form-row--error': errors.rowNum }">
                 <label class="form-label">
-                  <span class="label-icon">🔢</span>
-                  行号
-                  <span class="required-star">*</span>
+                  <img src="/行号.svg" alt="行号" class="icon label-icon" />
+                  行号 <span class="required-star">*</span>
                 </label>
                 <input
                     type="number"
@@ -345,9 +360,8 @@
 
               <div class="form-field" :class="{ 'form-row--error': errors.colWidthNumber }">
                 <label class="form-label">
-                  <span class="label-icon">📏</span>
-                  列宽
-                  <span class="required-star">*</span>
+                  <img src="/列宽.svg" alt="列宽" class="icon label-icon" />
+                  列宽 <span class="required-star">*</span>
                 </label>
                 <div class="input-with-unit">
                   <input
@@ -366,9 +380,8 @@
 
               <div class="form-field" :class="{ 'form-row--error': errors.rowHeightNumber }">
                 <label class="form-label">
-                  <span class="label-icon">📐</span>
-                  行高
-                  <span class="required-star">*</span>
+                  <img src="/行高.svg" alt="行高" class="icon label-icon" />
+                  行高 <span class="required-star">*</span>
                 </label>
                 <div class="input-with-unit">
                   <input
@@ -389,9 +402,8 @@
             <div class="form-row form-row--three-columns">
               <div class="form-field" :class="{ 'form-row--error': errors.colSpan }">
                 <label class="form-label">
-                  <span class="label-icon">↔️</span>
-                  跨越列数
-                  <span class="required-star">*</span>
+                  <img src="/不跨列.svg" alt="跨列" class="icon label-icon" />
+                  跨越列数 <span class="required-star">*</span>
                 </label>
                 <input
                     type="number"
@@ -406,9 +418,8 @@
 
               <div class="form-field" :class="{ 'form-row--error': errors.rowSpan }">
                 <label class="form-label">
-                  <span class="label-icon">↕️</span>
-                  跨越行数
-                  <span class="required-star">*</span>
+                  <img src="/不跨列.svg" alt="跨行" class="icon label-icon" />
+                  跨越行数 <span class="required-star">*</span>
                 </label>
                 <input
                     type="number"
@@ -421,12 +432,10 @@
                 <div v-if="errors.rowSpan" class="form-error">{{ errors.rowSpan }}</div>
               </div>
 
-              <!-- 硬件地址：仅格口模式显示 -->
               <div v-if="dialogMode !== 'editImage' && !(dialogMode === 'add' && addType === 'image')" class="form-field" :class="{ 'form-row--error': errors.macAddressNumber }">
                 <label class="form-label">
-                  <span class="label-icon">🖥️</span>
-                  硬件地址
-                  <span class="required-star">*</span>
+                  <img src="/硬件地址N_icon.svg" alt="硬件地址" class="icon label-icon" />
+                  硬件地址 <span class="required-star">*</span>
                 </label>
                 <input
                     type="number"
@@ -449,14 +458,14 @@
               class="dialog-delete-btn"
               @click="openDeleteConfirm"
           >
-            🗑️ 删除
+            <img src="/垃圾桶.svg" alt="删除" class="icon" /> 删除
           </button>
           <button class="dialog-cancel-btn" @click="closeDialog">取消</button>
           <button class="dialog-save-btn" @click="handleDialogSave">
-            <span v-if="dialogMode === 'edit'">💾</span>
-            <span v-else-if="dialogMode === 'add' && addType === 'cell'">➕</span>
-            <span v-else-if="dialogMode === 'add' && addType === 'image'">🖼️</span>
-            <span v-else-if="dialogMode === 'editImage'">💾</span>
+            <img v-if="dialogMode === 'edit'" src="/保存-L.svg" alt="保存" class="icon" />
+            <img v-else-if="dialogMode === 'add' && addType === 'cell'" src="/加号.svg" alt="新增" class="icon" />
+            <img v-else-if="dialogMode === 'add' && addType === 'image'" src="/图片.svg" alt="图片" class="icon" />
+            <img v-else-if="dialogMode === 'editImage'" src="/保存-L.svg" alt="保存" class="icon" />
             {{ dialogMode === 'edit' ? '保存修改' : dialogMode === 'add' ? (addType === 'cell' ? '新增格口' : '新增图片') : '保存图片修改' }}
           </button>
         </div>
@@ -472,17 +481,25 @@
             <span>{{ editingCabinetId === null ? '➕ 新增柜子' : '🗄️ 编辑柜子信息' }}</span>
             <span v-if="editingCabinetId !== null" class="cabinet-name-badge">{{ cabinetEditForm.title || '新柜子' }}</span>
           </h3>
-          <button class="dialog-close" @click="closeCabinetDialog">✕</button>
+          <button class="dialog-close" @click="closeCabinetDialog">
+            ✕
+          </button>
         </div>
         <div class="dialog-body cabinet-edit-body">
           <div class="form-row form-row--two-columns">
             <div class="form-field" :class="{ 'form-row--error': cabinetErrors.title }">
-              <label class="form-label"><span class="label-icon">🏷️</span>柜子名称<span class="required-star">*</span></label>
+              <label class="form-label">
+                <img src="/名称.svg" alt="名称" class="icon label-icon" />
+                柜子名称 <span class="required-star">*</span>
+              </label>
               <input type="text" v-model="cabinetEditForm.title" class="form-input" placeholder="唯一名称，不能为空" maxlength="50" />
               <div v-if="cabinetErrors.title" class="form-error">{{ cabinetErrors.title }}</div>
             </div>
             <div class="form-field" :class="{ 'form-row--error': cabinetErrors.width }">
-              <label class="form-label"><span class="label-icon">📏</span>柜子宽度<span class="required-star">*</span></label>
+              <label class="form-label">
+                <img src="/宽度.svg" alt="宽度" class="icon label-icon" />
+                柜子宽度 <span class="required-star">*</span>
+              </label>
               <input type="text" v-model="cabinetEditForm.width" class="form-input" placeholder="如: 280px, 320px, auto" />
               <div v-if="cabinetErrors.width" class="form-error">{{ cabinetErrors.width }}</div>
             </div>
@@ -490,12 +507,18 @@
 
           <div class="form-row form-row--two-columns">
             <div class="form-field" :class="{ 'form-row--error': cabinetErrors.height }">
-              <label class="form-label"><span class="label-icon">📐</span>柜子高度<span class="required-star">*</span></label>
+              <label class="form-label">
+                <img src="/高度.svg" alt="高度" class="icon label-icon" />
+                柜子高度 <span class="required-star">*</span>
+              </label>
               <input type="text" v-model="cabinetEditForm.height" class="form-input" placeholder="如: auto, 500px" />
               <div v-if="cabinetErrors.height" class="form-error">{{ cabinetErrors.height }}</div>
             </div>
             <div class="form-field">
-              <label class="form-label"><span class="label-icon">⭐</span>默认展示柜子</label>
+              <label class="form-label">
+                <img src="/星星.svg" alt="默认" class="icon label-icon" />
+                默认展示柜子
+              </label>
               <div class="toggle-switch-cabinet" :class="{ active: cabinetEditForm.isDefault }" @click="cabinetEditForm.isDefault = !cabinetEditForm.isDefault">
                 <span class="toggle-knob"></span>
               </div>
@@ -506,31 +529,40 @@
           <div class="comm-config-row">
             <div class="comm-card">
               <div class="comm-card-header">
-                <span class="comm-icon">💨</span>
+                <img src="/图标-除湿机.svg" alt="除湿机" class="icon comm-icon" />
                 <span class="comm-title">除湿机通讯配置</span>
               </div>
               <div class="comm-card-body">
                 <div class="form-field" :class="{ 'form-row--error': cabinetErrors.dehumidifierCommType }">
-                  <label class="form-label"><span class="label-icon">📡</span>通讯方式<span class="required-star">*</span></label>
+                  <label class="form-label">
+                    <img src="/通讯方式.svg" alt="通讯方式" class="icon label-icon" />
+                    通讯方式 <span class="required-star">*</span>
+                  </label>
                   <div class="type-selector">
                     <button type="button" class="type-btn" :class="{ active: cabinetEditForm.dehumidifierCommType === '485' }" @click="cabinetEditForm.dehumidifierCommType = '485'">
-                      🔌 RS485
+                      <img src="/rs485.svg" alt="RS485" class="icon" /> RS485
                     </button>
                     <button type="button" class="type-btn" :class="{ active: cabinetEditForm.dehumidifierCommType === 'TCP' }" @click="cabinetEditForm.dehumidifierCommType = 'TCP'">
-                      🌐 TCP/IP
+                      <img src="/TCP-.svg" alt="TCP" class="icon" /> TCP/IP
                     </button>
                   </div>
                   <div v-if="cabinetErrors.dehumidifierCommType" class="form-error">{{ cabinetErrors.dehumidifierCommType }}</div>
                 </div>
 
                 <div class="form-field" :class="{ 'form-row--error': cabinetErrors.dehumidifierCommPort }">
-                  <label class="form-label"><span class="label-icon">🔌</span>通讯端口<span class="required-star">*</span></label>
+                  <label class="form-label">
+                    <img src="/端口.svg" alt="端口" class="icon label-icon" />
+                    通讯端口 <span class="required-star">*</span>
+                  </label>
                   <input type="text" v-model="cabinetEditForm.dehumidifierCommPort" class="form-input" :placeholder="cabinetEditForm.dehumidifierCommType === '485' ? '如: COM1@9600' : '如: 192.168.0.1:8252'" />
                   <div v-if="cabinetErrors.dehumidifierCommPort" class="form-error">{{ cabinetErrors.dehumidifierCommPort }}</div>
                 </div>
 
                 <div class="form-field" :class="{ 'form-row--error': cabinetErrors.dehumidifierAddr }">
-                  <label class="form-label"><span class="label-icon">💨</span>除湿机地址<span class="required-star">*</span></label>
+                  <label class="form-label">
+                    <img src="/地址.svg" alt="地址" class="icon label-icon" />
+                    除湿机地址 <span class="required-star">*</span>
+                  </label>
                   <input type="text" v-model="cabinetEditForm.dehumidifierAddr" class="form-input" placeholder="除湿机设备地址" />
                   <div v-if="cabinetErrors.dehumidifierAddr" class="form-error">{{ cabinetErrors.dehumidifierAddr }}</div>
                 </div>
@@ -539,31 +571,40 @@
 
             <div class="comm-card">
               <div class="comm-card-header">
-                <span class="comm-icon">🔒</span>
+                <img src="/密码锁.svg" alt="锁" class="icon comm-icon" />
                 <span class="comm-title">锁控制器通讯配置</span>
               </div>
               <div class="comm-card-body">
                 <div class="form-field" :class="{ 'form-row--error': cabinetErrors.lockCommType }">
-                  <label class="form-label"><span class="label-icon">📡</span>通讯方式<span class="required-star">*</span></label>
+                  <label class="form-label">
+                    <img src="/通讯方式.svg" alt="通讯方式" class="icon label-icon" />
+                    通讯方式 <span class="required-star">*</span>
+                  </label>
                   <div class="type-selector">
                     <button type="button" class="type-btn" :class="{ active: cabinetEditForm.lockCommType === '485' }" @click="cabinetEditForm.lockCommType = '485'">
-                      🔌 RS485
+                      <img src="/rs485.svg" alt="RS485" class="icon" /> RS485
                     </button>
                     <button type="button" class="type-btn" :class="{ active: cabinetEditForm.lockCommType === 'TCP' }" @click="cabinetEditForm.lockCommType = 'TCP'">
-                      🌐 TCP/IP
+                      <img src="/TCP-.svg" alt="TCP" class="icon" /> TCP/IP
                     </button>
                   </div>
                   <div v-if="cabinetErrors.lockCommType" class="form-error">{{ cabinetErrors.lockCommType }}</div>
                 </div>
 
                 <div class="form-field" :class="{ 'form-row--error': cabinetErrors.lockCommPort }">
-                  <label class="form-label"><span class="label-icon">🔌</span>通讯端口<span class="required-star">*</span></label>
+                  <label class="form-label">
+                    <img src="/端口.svg" alt="端口" class="icon label-icon" />
+                    通讯端口 <span class="required-star">*</span>
+                  </label>
                   <input type="text" v-model="cabinetEditForm.lockCommPort" class="form-input" :placeholder="cabinetEditForm.lockCommType === '485' ? '如: COM1@9600' : '如: 192.168.0.1:8252'" />
                   <div v-if="cabinetErrors.lockCommPort" class="form-error">{{ cabinetErrors.lockCommPort }}</div>
                 </div>
 
                 <div class="form-field" :class="{ 'form-row--error': cabinetErrors.lockBoardAddr }">
-                  <label class="form-label"><span class="label-icon">🔒</span>锁板地址</label>
+                  <label class="form-label">
+                    <img src="/地址.svg" alt="锁板地址" class="icon label-icon" />
+                    锁板地址
+                  </label>
                   <input type="text" v-model="cabinetEditForm.lockBoardAddr" class="form-input" placeholder="锁控制器设备地址" />
                   <div v-if="cabinetErrors.lockBoardAddr" class="form-error">{{ cabinetErrors.lockBoardAddr }}</div>
                 </div>
@@ -573,35 +614,31 @@
 
           <div class="advanced-settings-section">
             <div class="section-divider">
-              <span class="divider-text">🌡️ 环境阈值配置</span>
+              <span class="divider-text">
+                <img src="/84环境阈值.svg" alt="环境" class="icon" /> 环境阈值配置
+              </span>
             </div>
           </div>
 
           <div class="form-row form-row--two-columns">
             <div class="form-field" :class="{ 'form-row--error': cabinetErrors.humidityMin }">
-              <label class="form-label"><span class="label-icon">💧</span>湿度下限 (%RH)<span class="required-star">*</span></label>
+              <label class="form-label">
+                <img src="/湿度-01.svg" alt="湿度下限" class="icon label-icon" />
+                湿度下限 (%RH) <span class="required-star">*</span>
+              </label>
               <input type="number" v-model.number="cabinetEditForm.humidityMin" class="form-input" placeholder="0-100" min="0" max="100" step="1" />
               <div v-if="cabinetErrors.humidityMin" class="form-error">{{ cabinetErrors.humidityMin }}</div>
             </div>
             <div class="form-field" :class="{ 'form-row--error': cabinetErrors.humidityMax }">
-              <label class="form-label"><span class="label-icon">💧</span>湿度上限 (%RH)<span class="required-star">*</span></label>
+              <label class="form-label">
+                <img src="/湿度-01.svg" alt="湿度上限" class="icon label-icon" />
+                湿度上限 (%RH) <span class="required-star">*</span>
+              </label>
               <input type="number" v-model.number="cabinetEditForm.humidityMax" class="form-input" placeholder="0-100" min="0" max="100" step="1" />
               <div v-if="cabinetErrors.humidityMax" class="form-error">{{ cabinetErrors.humidityMax }}</div>
             </div>
           </div>
-
-          <!-- <div class="form-row form-row--two-columns">
-            <div class="form-field" :class="{ 'form-row--error': cabinetErrors.temperatureMin }">
-              <label class="form-label"><span class="label-icon">🌡️</span>温度下限 (℃)<span class="required-star">*</span></label>
-              <input type="number" v-model.number="cabinetEditForm.temperatureMin" class="form-input" placeholder="-30~50" step="1" />
-              <div v-if="cabinetErrors.temperatureMin" class="form-error">{{ cabinetErrors.temperatureMin }}</div>
-            </div>
-            <div class="form-field" :class="{ 'form-row--error': cabinetErrors.temperatureMax }">
-              <label class="form-label"><span class="label-icon">🌡️</span>温度上限 (℃)<span class="required-star">*</span></label>
-              <input type="number" v-model.number="cabinetEditForm.temperatureMax" class="form-input" placeholder="-30~50" step="1" />
-              <div v-if="cabinetErrors.temperatureMax" class="form-error">{{ cabinetErrors.temperatureMax }}</div>
-            </div>
-          </div> -->
+          <!-- 温度配置注释掉，这里保留 -->
         </div>
         <div class="dialog-footer dialog-footer--editable">
           <button
@@ -609,36 +646,47 @@
               class="dialog-delete-btn"
               @click="openCabinetDeleteConfirm"
           >
-            🗑️ 删除柜子
+            <img src="/移除.svg" alt="删除" class="icon" /> 删除柜子
           </button>
           <button class="dialog-cancel-btn" @click="closeCabinetDialog">取消</button>
           <button class="dialog-save-btn" @click="saveCabinetChanges">
-            <span>💾</span> {{ editingCabinetId === null ? '创建柜子' : '保存柜子信息' }}
+            <img src="/save-3-fill.svg" alt="保存" class="icon" /> {{ editingCabinetId === null ? '创建柜子' : '保存柜子信息' }}
           </button>
         </div>
       </div>
     </div>
 
+    <!-- 确认删除格口弹窗 -->
     <div v-if="showDeleteConfirm" class="confirm-overlay">
       <div class="confirm-dialog">
-        <div class="confirm-header">⚠️ 确认删除</div>
+        <div class="confirm-header">
+          <img src="/警告 (1).svg" alt="警告" class="icon" /> 确认删除
+        </div>
         <div class="confirm-body">确定要删除此项吗？删除后不可恢复。</div>
         <div class="confirm-footer">
           <button class="confirm-cancel" @click="showDeleteConfirm = false">取消</button>
-          <button class="confirm-ok" @click="confirmDelete">确认删除</button>
+          <button class="confirm-ok" @click="confirmDelete">
+            <img src="/移除.svg" alt="删除" class="icon" /> 确认删除
+          </button>
         </div>
       </div>
     </div>
 
+    <!-- Toast 消息 -->
     <div v-if="showToast" class="toast-message">{{ toastText }}</div>
 
+    <!-- 确认删除柜子 -->
     <div v-if="showCabinetDeleteConfirm" class="confirm-overlay">
       <div class="confirm-dialog">
-        <div class="confirm-header">⚠️ 确认删除柜子</div>
+        <div class="confirm-header">
+          <img src="/警告 (1).svg" alt="警告" class="icon" /> 确认删除柜子
+        </div>
         <div class="confirm-body">确定要删除该柜子吗？删除后该柜子下的所有格口和图片配置都将被删除，且不可恢复。</div>
         <div class="confirm-footer">
           <button class="confirm-cancel" @click="cancelCabinetDelete">取消</button>
-          <button class="confirm-ok" @click="confirmCabinetDelete">确认删除</button>
+          <button class="confirm-ok" @click="confirmCabinetDelete">
+            <img src="/移除.svg" alt="删除" class="icon" /> 确认删除
+          </button>
         </div>
       </div>
     </div>
@@ -646,20 +694,22 @@
     <!-- Word导出确认弹窗 -->
     <div v-if="showExportConfirm" class="confirm-overlay">
       <div class="confirm-dialog export-confirm-dialog">
-        <div class="confirm-header">📄 导出Word文档</div>
+        <div class="confirm-header">
+          <img src="/Word.svg" alt="Word" class="icon" /> 导出Word文档
+        </div>
         <div class="confirm-body">
           <p>确认要导出所有格口数据为Word文档吗？</p>
           <div class="export-summary">
             <div class="export-summary-item">
-              <span class="summary-icon">🗄️</span>
+              <img src="/盒子.svg" alt="柜子" class="icon summary-icon" />
               <span>柜子总数: {{ totalStats.cabinetCount }}</span>
             </div>
             <div class="export-summary-item">
-              <span class="summary-icon">📦</span>
+              <img src="/盒子.svg" alt="格口" class="icon summary-icon" />
               <span>格口总数: {{ totalStats.totalSlots }}</span>
             </div>
             <div class="export-summary-item">
-              <span class="summary-icon">✅</span>
+              <img src="/盒子.svg" alt="已用" class="icon summary-icon" />
               <span>已用格口: {{ totalStats.usedSlots }}</span>
             </div>
           </div>
@@ -668,7 +718,7 @@
         <div class="confirm-footer">
           <button class="confirm-cancel" @click="showExportConfirm = false">取消</button>
           <button class="confirm-ok export-ok-btn" @click="confirmExportWord">
-            <span>📄</span> 确认导出
+            <img src="/导出.svg" alt="导出" class="icon" /> 确认导出
           </button>
         </div>
       </div>
@@ -2305,8 +2355,20 @@ onBeforeUnmount(() => {
 .settings-arrow {
   font-size: 12px;
   opacity: 0.8;
+  transition: transform 0.2s;
 }
-.settings-arrow.open { opacity: 1; }
+.settings-arrow.open {
+  opacity: 1;
+  transform: rotate(180deg);
+}
+.temp-card .card-icon {
+  color: #f87171;
+}
+
+.humidity-card .card-icon {
+  color: #4ade80;
+}
+
 
 .settings-dropdown {
   position: absolute;
@@ -2491,6 +2553,21 @@ onBeforeUnmount(() => {
   overflow: hidden;
   min-height: 500px;
   padding: 10px 0;
+}
+
+.icon {
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: middle;
+  display: inline-block;
+  flex-shrink: 0;
+  fill: currentColor; /* 如果 SVG 使用 currentColor 可继承文字颜色 */
+}
+
+/* 针对标题中的图标稍大 */
+.title-icon {
+  width: 1.6em;
+  height: 1.6em;
 }
 
 /* ---------- 温湿度卡片 ---------- */

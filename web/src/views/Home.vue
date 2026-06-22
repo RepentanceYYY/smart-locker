@@ -1,4 +1,4 @@
-、<template>
+<template>
   <div class="home-container">
     <!-- 加载状态 -->
     <div v-if="loading" class="loading-mask">
@@ -11,7 +11,7 @@
         <header ref="headerRef" class="app-header">
           <div class="header-left">
             <div class="logo-wrapper">
-              <span class="logo-icon">🗄️</span>
+              <img src="/jg.svg" alt="系统Logo" class="logo-icon" />
               <span class="status-dot"></span>
             </div>
             <div class="title-wrapper">
@@ -24,7 +24,7 @@
           </div>
           <div class="header-right">
             <div class="time-wrapper">
-              <span class="time-icon">⏱️</span>
+              <img src="/计时器.svg" alt="时间Logo" class="time-icon" />
               <span class="header-time">{{ currentTime }}</span>
             </div>
           </div>
@@ -34,14 +34,14 @@
           <div class="top-section">
             <!-- 左侧温度卡片 -->
             <div class="temp-card">
-              <div class="card-icon">🌡️</div>
+              <img src="/温度.svg" alt="温度Logo" class="card-icon" />
               <div class="card-value">{{ currentCabinetTemp }}°</div>
               <div class="card-label">温度</div>
             </div>
 
             <!-- 右侧湿度卡片 -->
             <div class="humidity-card">
-              <div class="card-icon">💧</div>
+              <img src="/湿度-01.svg" alt="湿度Logo" class="card-icon" />
               <div class="card-value">{{ currentCabinetHumidity }}%</div>
               <div class="card-label">湿度</div>
             </div>
@@ -101,19 +101,19 @@
         <div class="bottom-section">
           <div class="big-buttons-container">
             <button :disabled="isAllowClickButton" class="big-action-btn borrow-btn" @click="handleBorrow">
-              <span class="btn-icon">📦</span>
+              <img src="/盒子.svg" alt="领用" class="btn-icon" />
               <span class="btn-label">领用</span>
             </button>
             <button :disabled="isAllowClickButton" class="big-action-btn return-btn" @click="handleReturn">
-              <span class="btn-icon">🔄</span>
+              <img src="/进行中.svg" alt="归还" class="btn-icon" />
               <span class="btn-label">归还</span>
             </button>
             <button :disabled="isAllowClickButton" class="big-action-btn inventory-btn" @click="handleInventory">
-              <span class="btn-icon">📋</span>
+              <img src="/盘点单.svg" alt="盘点" class="btn-icon" />
               <span class="btn-label">盘点</span>
             </button>
             <button :disabled="isAllowClickButton" class="big-action-btn settings-btn" @click="handleSettings">
-              <span class="btn-icon">⚙️</span>
+              <img src="/设置.svg" alt="设置" class="btn-icon" />
               <span class="btn-label">设置</span>
             </button>
           </div>
@@ -143,7 +143,7 @@
           </div>
           <div v-if="dialogData.isEmpty" class="detail-row empty-warning">
             <span class="detail-label">状态：</span>
-            <span class="detail-value">⚠️ 空柜门</span>
+            <span class="detail-value">空柜门</span>
           </div>
           <div class="detail-row">
             <span class="detail-label">当前温度：</span>
@@ -170,12 +170,15 @@
     <div v-if="showPasswordDialog" class="dialog-overlay" @click="closePasswordDialog">
       <div class="dialog-content password-dialog" @click.stop>
         <div class="dialog-header">
-          <h3>🔐 管理员验证<span v-if="passwordDialogType === 'inventory'"> - 盘点</span></h3>
+          <h3>
+            <img src="/密码锁.svg" alt="锁" class="lock-icon" />
+            管理员验证<span v-if="passwordDialogType === 'inventory'"> - 盘点</span>
+          </h3>
           <button class="dialog-close" @click="closePasswordDialog">✕</button>
         </div>
         <div class="dialog-body">
           <div class="password-timer">
-            <span class="timer-icon">⏱️</span>
+            <img src="/计时器.svg" alt="计时器" class="timer-icon" />
             <span class="timer-text" :class="{ 'timer-warning': passwordSecondsLeft <= 5 }">
               剩余时间 {{ passwordSecondsLeft }} 秒
             </span>
@@ -213,6 +216,7 @@ import { useDehumidifierStore } from '@/stores/useDehumidifier'
 import { useCountdown } from '@/composables/useCountdown'
 import type { CSSProperties } from 'vue'
 import { formatImageUrl } from '@/utils/fileUtils'
+
 
 const router = useRouter()
 const systemConfigStore = useSystemConfigStore()
@@ -972,7 +976,10 @@ body,
   justify-content: center;
 }
 .logo-icon {
-  font-size: 32px;
+  width: 36px;
+  height: 36px;
+  display: block;
+  flex-shrink: 0;
   filter: drop-shadow(0 0 6px rgba(34, 211, 238, 0.6));
 }
 
@@ -1038,7 +1045,10 @@ body,
   border-color: #22d3ee;
 }
 .time-icon {
-  font-size: 16px;
+  width: 20px;
+  height: 20px;
+  display: block;
+  flex-shrink: 0;
   filter: drop-shadow(0 0 2px #22d3ee);
 }
 .header-time {
@@ -1095,7 +1105,10 @@ body,
   border-right: 3px solid #4ade80;
 }
 .card-icon {
-  font-size: 18px;
+  width: 28px;
+  height: 28px;
+  display: block;
+  flex-shrink: 0;
 }
 .card-value {
   font-size: 18px;
@@ -1263,7 +1276,11 @@ body,
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 .btn-icon {
-  font-size: 32px;
+  width: 36px;
+  height: 36px;
+  display: block;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 .btn-label {
   font-size: 18px;
@@ -1486,6 +1503,16 @@ body,
   font-size: 20px;
   color: #c2f0e0;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.lock-icon {
+  width: 24px;
+  height: 24px;
+  display: block;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.4));
 }
 .dialog-close {
   background: none;
@@ -1561,7 +1588,11 @@ body,
   border-radius: 40px;
 }
 .timer-icon {
-  font-size: 18px;
+  width: 22px;
+  height: 22px;
+  display: block;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 2px #22d3ee);
 }
 .timer-text {
   font-size: 16px;
@@ -1639,37 +1670,42 @@ body,
 /* ---------- 响应式 ---------- */
 @media (max-width: 680px) {
   .app-header { height: 56px; padding: 0 16px; }
-  .logo-icon { font-size: 24px; }
+  .logo-icon { width: 28px; height: 28px; }
   .title-text { font-size: 16px; }
   .title-sub { display: none; }
   .time-wrapper { padding: 4px 12px; gap: 6px; }
   .header-time { font-size: 16px; min-width: 55px; }
-  .time-icon { font-size: 12px; }
+  .time-icon { width: 16px; height: 16px; }
   .temp-card, .humidity-card { padding: 3px 10px; top: 8px; }
-  .card-icon { font-size: 14px; }
+  .card-icon { width: 20px; height: 20px; }
   .card-value { font-size: 14px; min-width: 35px; }
   .card-label { font-size: 9px; padding: 1px 4px; }
   .nav-btn-left, .nav-btn-right { padding: 8px 16px; }
-  .btn-icon { font-size: 24px; }
+  .btn-icon { width: 28px; height: 28px; }
   .btn-label { font-size: 14px; }
   .big-action-btn { padding: 12px 6px; min-height: 60px; }
   .dialog-content { width: 90%; }
+  .lock-icon { width: 20px; height: 20px; }
+  .timer-icon { width: 18px; height: 18px; }
 }
 @media (max-width: 480px) {
   .app-header { padding: 0 12px; }
   .header-time { font-size: 14px; min-width: 48px; }
   .title-text { font-size: 14px; letter-spacing: 1px; }
-  .logo-icon { font-size: 20px; }
+  .logo-icon { width: 22px; height: 22px; }
   .time-wrapper { padding: 2px 10px; }
+  .time-icon { width: 14px; height: 14px; }
   .cabinet-item { width: 260px !important; }
   .nav-btn-left, .nav-btn-right { padding: 6px 12px; }
-  .btn-icon { font-size: 20px; }
+  .btn-icon { width: 24px; height: 24px; }
   .btn-label { font-size: 12px; }
   .big-action-btn { padding: 10px 4px; min-height: 55px; }
   .big-buttons-container { gap: 10px; }
   .temp-card, .humidity-card { padding: 2px 8px; gap: 4px; top: 6px; }
-  .card-icon { font-size: 12px; }
+  .card-icon { width: 16px; height: 16px; }
   .card-value { font-size: 12px; min-width: 30px; }
   .card-label { font-size: 8px; }
+  .lock-icon { width: 18px; height: 18px; }
+  .timer-icon { width: 16px; height: 16px; }
 }
 </style>

@@ -4,12 +4,14 @@
     <div class="outer-frame">
       <div class="settings-header">
         <button class="back-btn" @click="goBack">
-          <span class="back-icon">←</span>
+          <img src="/bg-back.svg" alt="返回" class="icon" />
           <span>返回首页</span>
         </button>
-        <h1 class="settings-title">📊 系统概览</h1>
+        <h1 class="settings-title">
+          <img src="/系统概览.svg" alt="系统概览" class="icon title-icon" /> 系统概览
+        </h1>
         <div class="countdown-display" v-if="countdown && countdown.secondsLeft.value > 0 && systemConfigStore.loaded">
-          <span class="countdown-icon">⏱️</span>
+          <img src="/计时器.svg" alt="倒计时" class="icon" />
           <span class="countdown-time">{{ formatCountdownTime(countdown.secondsLeft.value) }}</span>
           <span class="countdown-text">后自动返回</span>
         </div>
@@ -21,7 +23,7 @@
         <div class="info-card log-card" @click="handleUserOperation">
           <div class="card-header">
             <div class="header-left">
-              <span class="card-icon">📋</span>
+              <img src="/日志.svg" alt="日志" class="icon card-icon" />
               <h3>日志查询</h3>
             </div>
             <button class="detail-btn" @click.stop="viewDetail('log')">查看详情 →</button>
@@ -36,7 +38,9 @@
               <div class="stat-label">未归还数量</div>
             </div>
           </div>
-          <div class="section-title">📌 未归还记录</div>
+          <div class="section-title">
+            <img src="/超期未归还.svg" alt="未归还" class="icon" /> 未归还记录
+          </div>
           <div class="unreturned-scroll-wrapper">
             <div class="unreturned-table">
               <div v-if="unreturnedList.length === 0" class="empty-tip">暂无未归还记录</div>
@@ -74,7 +78,7 @@
         <div class="info-card hardware-card" @click="handleUserOperation">
           <div class="card-header">
             <div class="header-left">
-              <span class="card-icon">🖥️</span>
+              <img src="/硬件设备.svg" alt="硬件" class="icon card-icon" />
               <h3>硬件设置</h3>
             </div>
             <button class="detail-btn" @click.stop="viewDetail('hardware')">查看详情 →</button>
@@ -84,7 +88,8 @@
             <span>加载硬件配置中...</span>
           </div>
           <div v-else-if="hardwareError" class="error-placeholder">
-            <span>⚠️ 加载失败：{{ hardwareError }}</span>
+            <img src="/警告 (1).svg" alt="警告" class="icon" />
+            <span>加载失败：{{ hardwareError }}</span>
             <button class="retry-btn" @click.stop="fetchHardwareData">重试</button>
           </div>
           <template v-else>
@@ -115,7 +120,7 @@
         <div class="info-card temp-card" @click="handleUserOperation">
           <div class="card-header">
             <div class="header-left">
-              <span class="card-icon">🌡️</span>
+              <img src="/温湿度.svg" alt="温湿度" class="icon card-icon" />
               <h3>温湿度日志</h3>
             </div>
             <button class="detail-btn" @click.stop="viewDetail('tempHumidity')">查看详情 →</button>
@@ -125,11 +130,14 @@
             <span>加载温湿度记录中...</span>
           </div>
           <div v-else-if="tempHumidityError" class="error-placeholder">
-            <span>⚠️ 加载失败：{{ tempHumidityError }}</span>
+            <img src="/警告 (1).svg" alt="警告" class="icon" />
+            <span>加载失败：{{ tempHumidityError }}</span>
             <button class="retry-btn" @click.stop="fetchTempHumidityLogsData">重试</button>
           </div>
           <div v-else>
-            <div class="section-title">📊 最近记录</div>
+            <div class="section-title">
+              <img src="/最近记录.svg" alt="最近记录" class="icon" /> 最近记录
+            </div>
             <div class="temp-table-wrapper">
               <div v-if="recentTempLogs.length === 0" class="empty-tip">
                 暂无温湿度记录
@@ -161,7 +169,8 @@
                 class="config-footer-tip"
                 v-if="systemConfigStore.config.tempHumidityLogInterval"
             >
-              <span>📌 记录间隔：{{ systemConfigStore.config.tempHumidityLogInterval }} 分钟</span>
+              <img src="/间隔.svg" alt="记录间隔" class="icon" />
+              记录间隔：{{ systemConfigStore.config.tempHumidityLogInterval }} 分钟
             </div>
           </div>
         </div>
@@ -170,7 +179,7 @@
         <div class="info-card system-card" @click="handleUserOperation">
           <div class="card-header">
             <div class="header-left">
-              <span class="card-icon">⚙️</span>
+              <img src="/设置.svg" alt="系统配置" class="icon card-icon" />
               <h3>系统配置</h3>
             </div>
             <button class="reset-btn" @click.stop="openResetModal">恢复出厂设置</button>
@@ -187,12 +196,15 @@
                   <span class="config-value" :class="{ 'password-mask': field.key === 'adminPwd' }">
                     {{ formatDisplayValue(field.key) }}
                   </span>
-                  <button class="edit-icon" @click.stop="openEditModal(field.key, field.label)" title="编辑">✏️</button>
+                  <button class="edit-icon" @click.stop="openEditModal(field.key, field.label)" title="编辑">
+                    <img src="/编辑.svg" alt="编辑" class="icon" />
+                  </button>
                 </div>
               </div>
             </div>
             <div class="config-footer-tip">
-              <span>💡 提示：点击 ✏️ 图标修改配置，所有修改将自动保存</span>
+              <img src="/提示.svg" alt="提示" class="icon" />
+              提示：点击 <img src="/编辑.svg" alt="编辑" class="icon" /> 图标修改配置，所有修改将自动保存
             </div>
           </div>
         </div>
@@ -204,7 +216,9 @@
       <div class="modal-container">
         <div class="modal-header">
           <span>编辑 {{ editLabel }}</span>
-          <button class="modal-close" @click="closeEditModal">×</button>
+          <button class="modal-close" @click="closeEditModal">
+            ✕
+          </button>
         </div>
         <div class="modal-body">
           <input
@@ -225,7 +239,8 @@
                 @keyup.enter="confirmEdit"
             />
             <button type="button" class="password-toggle" @click="togglePasswordVisibility" tabindex="-1">
-              {{ passwordVisible ? '🙈' : '👁️' }}
+              <img v-if="passwordVisible" src="/隐藏.svg" alt="隐藏" class="icon" />
+              <img v-else src="/显示.svg" alt="显示" class="icon" />
             </button>
           </div>
           <select
@@ -280,8 +295,11 @@
     <div v-if="resetModalVisible" class="modal-mask" @click.self="closeResetModal">
       <div class="modal-container reset-modal">
         <div class="modal-header warning-header">
-          <span>⚠️ 恢复出厂设置</span>
-          <button class="modal-close" @click="closeResetModal">×</button>
+          <img src="/警告 (1).svg" alt="警告" class="icon" />
+          <span>恢复出厂设置</span>
+          <button class="modal-close" @click="closeResetModal">
+            ✕
+          </button>
         </div>
         <div class="modal-body">
           <div class="reset-warning">
@@ -686,7 +704,7 @@ async function confirmReset() {
 
   try {
     await systemConfigStore.resetConfig()
-    showMessage('✅ 已成功恢复出厂设置，页面即将刷新...')
+    showMessage('已成功恢复出厂设置，页面即将刷新...')
     setTimeout(() => {
       window.location.reload()
     }, 1000)
@@ -751,7 +769,27 @@ onMounted(() => {
 </script>
 
 <style lang="css" scoped>
-/* 整体容器：固定全屏，禁止外层滚动 */
+/* 新增通用图标样式 */
+.icon {
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: middle;
+  display: inline-block;
+  flex-shrink: 0;
+  fill: currentColor;
+}
+
+.title-icon {
+  width: 1.6em;
+  height: 1.6em;
+}
+
+.card-icon {
+  width: 1.8em;
+  height: 1.8em;
+}
+
+/* 原有样式完全保留，仅微调与图标相关的部分 */
 .settings-container {
   position: fixed;
   top: 0;
@@ -817,15 +855,14 @@ onMounted(() => {
   background: rgba(34, 211, 238, 0.2);
   border-color: #22d3ee;
 }
-.back-btn:active {
-  /* 无 scale */
-}
-.back-icon { font-size: 18px; }
 
 .settings-title {
   color: #c2f0e0;
   font-size: 24px;
   text-shadow: 0 0 8px rgba(34, 211, 238, 0.25);
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 .placeholder { width: 80px; }
 
@@ -842,9 +879,7 @@ onMounted(() => {
   font-size: 14px;
   font-weight: 500;
   white-space: nowrap;
-  /* 删除 animation */
 }
-.countdown-icon { font-size: 16px; }
 .countdown-time {
   font-size: 18px;
   font-weight: 700;
@@ -889,7 +924,6 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
 }
-.card-icon { font-size: 28px; }
 .card-header h3 {
   color: #e2e8f0;
   font-size: 20px;
@@ -910,9 +944,6 @@ onMounted(() => {
   background: rgba(34, 211, 238, 0.2);
   border-color: #22d3ee;
 }
-.detail-btn:active {
-  /* 无 scale */
-}
 
 .reset-btn {
   background: rgba(239, 68, 68, 0.15);
@@ -928,9 +959,6 @@ onMounted(() => {
   background: rgba(239, 68, 68, 0.3);
   border-color: #ef4444;
   color: #fecaca;
-}
-.reset-btn:active {
-  /* 无 scale */
 }
 
 /* ---------- 统计行 ---------- */
@@ -965,6 +993,9 @@ onMounted(() => {
   margin-bottom: 12px;
   padding-left: 4px;
   border-left: 3px solid #22d3ee;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* ---------- 滚动容器 – 无模糊 ---------- */
@@ -993,7 +1024,6 @@ onMounted(() => {
   background: #22d3ee;
   border-radius: 4px;
 }
-/* 删除 hover 滚动条样式变化 */
 
 /* ---------- 表格 – 无过渡、无位移 ---------- */
 .unreturned-table {
@@ -1025,7 +1055,6 @@ onMounted(() => {
 }
 .table-row:hover {
   background: rgba(34, 211, 238, 0.1);
-  /* 无 translateX */
 }
 
 .cell {
@@ -1053,7 +1082,6 @@ onMounted(() => {
 }
 .borrow-photo:hover {
   border-color: #22d3ee;
-  /* 无 scale */
 }
 .no-photo {
   color: #5b6e8c;
@@ -1091,7 +1119,6 @@ onMounted(() => {
 }
 .temp-row:hover {
   background: rgba(34, 211, 238, 0.1);
-  /* 无 translateX */
 }
 
 /* ---------- 信息行 ---------- */
@@ -1160,7 +1187,6 @@ onMounted(() => {
   background: transparent;
   border: none;
   cursor: pointer;
-  font-size: 16px;
   padding: 4px 6px;
   border-radius: 20px;
   color: #6b8cae;
@@ -1168,7 +1194,10 @@ onMounted(() => {
 .edit-icon:hover {
   background: rgba(34, 211, 238, 0.2);
   color: #22d3ee;
-  /* 无 scale */
+}
+.edit-icon .icon {
+  width: 1em;
+  height: 1em;
 }
 
 .config-footer-tip {
@@ -1178,6 +1207,10 @@ onMounted(() => {
   text-align: center;
   border-top: 1px dashed rgba(34,211,238,0.2);
   padding-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 /* ---------- Toast – 无动画 ---------- */
@@ -1195,7 +1228,6 @@ onMounted(() => {
   border: 1px solid #22d3ee;
   z-index: 100000;
   white-space: nowrap;
-  /* 删除 animation */
 }
 
 /* ---------- 图片预览 ---------- */
@@ -1252,6 +1284,9 @@ onMounted(() => {
   color: #22d3ee;
   font-weight: 600;
 }
+.modal-header .icon {
+  margin-right: 8px;
+}
 .warning-header {
   color: #f87171;
   border-bottom-color: rgba(239, 68, 68, 0.5);
@@ -1259,11 +1294,16 @@ onMounted(() => {
 .modal-close {
   background: none;
   border: none;
-  font-size: 24px;
   cursor: pointer;
   color: #94a3b8;
+  padding: 0 4px;
 }
-.modal-close:hover { color: #22d3ee; }
+.modal-close .icon {
+  font-size: 20px;
+  width: 1.4em;
+  height: 1.4em;
+}
+.modal-close:hover .icon { color: #22d3ee; }
 
 .modal-body {
   padding: 24px 20px;
@@ -1312,13 +1352,16 @@ onMounted(() => {
   transform: translateY(-50%);
   background: transparent;
   border: none;
-  font-size: 18px;
   cursor: pointer;
   padding: 4px;
   color: #94a3b8;
 }
 .password-toggle:hover {
   color: #22d3ee;
+}
+.password-toggle .icon {
+  width: 1.2em;
+  height: 1.2em;
 }
 
 .modal-footer {
@@ -1390,6 +1433,10 @@ onMounted(() => {
   padding: 40px 20px;
   gap: 16px;
   color: #94a3b8;
+}
+.error-placeholder {
+  flex-direction: row;
+  flex-wrap: wrap;
 }
 .loading-spinner {
   width: 32px;

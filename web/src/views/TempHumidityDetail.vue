@@ -3,12 +3,14 @@
     <div class="outer-frame">
       <div class="temp-detail-header">
         <button class="back-btn" @click="goBack">
-          <span class="back-icon">←</span>
+          <img src="/bg-back.svg" alt="返回" class="icon" />
           <span>返回设置</span>
         </button>
-        <h1 class="page-title">🌡️ 温湿度日志详情</h1>
+        <h1 class="page-title">
+          <img src="/温湿度.svg" alt="温湿度" class="icon title-icon" /> 温湿度日志详情
+        </h1>
         <div class="countdown-display" v-if="countdown && countdown.secondsLeft.value > 0">
-          <span class="countdown-icon">⏱️</span>
+          <img src="/计时器.svg" alt="倒计时" class="icon" />
           <span class="countdown-time">{{ formatCountdownTime(countdown.secondsLeft.value) }}</span>
           <span class="countdown-text">后自动返回</span>
         </div>
@@ -30,7 +32,9 @@
               </div>
             </div>
             <div class="filter-actions">
-              <button class="search-btn" @click.stop="handleSearch">🔍 查询</button>
+              <button class="search-btn" @click.stop="handleSearch">
+                <img src="/查询.svg" alt="查询" class="icon" /> 查询
+              </button>
               <button class="reset-btn" @click.stop="handleReset">重置</button>
             </div>
           </div>
@@ -42,7 +46,8 @@
         </div>
 
         <div v-else-if="error" class="error-wrapper">
-          <span>⚠️ {{ error }}</span>
+          <img src="/警告 (1).svg" alt="警告" class="icon" />
+          <span>{{ error }}</span>
           <button class="retry-btn" @click="fetchData">重试</button>
         </div>
 
@@ -85,19 +90,17 @@
           <div class="card-glow"></div>
           <div class="detail-header">
             <div class="header-left">
-              <span class="header-icon">🌡️</span>
+              <img src="/温湿度.svg" alt="温湿度" class="icon header-icon" />
               <h3>温湿度详情</h3>
             </div>
             <button class="close-btn" @click="detailVisible = false">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              </svg>
+              <img src="/关闭小.svg" alt="关闭" class="icon" />
             </button>
           </div>
           <div class="detail-body">
             <div class="info-card cabinet-info">
               <div class="card-title">
-                <span class="title-icon">📦</span>
+                <img src="/柜子.svg" alt="柜子" class="icon title-icon" />
                 <span>柜子信息</span>
               </div>
               <div class="info-list">
@@ -111,7 +114,7 @@
             <div class="sensor-card">
               <div class="sensor-item temperature">
                 <div class="sensor-label">
-                  <span class="sensor-icon">🌡️</span>
+                  <img src="/温度.svg" alt="温度" class="icon sensor-icon" />
                   <span>温度</span>
                 </div>
                 <div class="sensor-value">
@@ -122,7 +125,7 @@
               <div class="sensor-divider"></div>
               <div class="sensor-item humidity">
                 <div class="sensor-label">
-                  <span class="sensor-icon">💧</span>
+                  <img src="/湿度-01.svg" alt="湿度" class="icon sensor-icon" />
                   <span>湿度</span>
                 </div>
                 <div class="sensor-value">
@@ -134,7 +137,7 @@
 
             <div class="info-card time-info">
               <div class="card-title">
-                <span class="title-icon">⏱️</span>
+                <img src="/记录.svg" alt="记录" class="icon title-icon" />
                 <span>记录信息</span>
               </div>
               <div class="info-list">
@@ -167,7 +170,7 @@ interface TempHumidityLog {
   temperature: number | undefined
   humidity: number | undefined
   recordTime: string
-  cabinetId?: string // 保留但不展示
+  cabinetId?: string
 }
 
 const router = useRouter()
@@ -342,7 +345,33 @@ onUnmounted(() => {
 </script>
 
 <style lang="css" scoped>
-/* 样式与之前保持一致，已移除所有温湿度阈值相关样式，仅保留基础布局 */
+/* 新增通用图标样式 */
+.icon {
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: middle;
+  display: inline-block;
+  flex-shrink: 0;
+  fill: currentColor;
+}
+
+.title-icon {
+  width: 1.6em;
+  height: 1.6em;
+}
+
+.header-icon {
+  width: 1.8em;
+  height: 1.8em;
+  filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.5));
+}
+
+.sensor-icon {
+  width: 1.4em;
+  height: 1.4em;
+}
+
+/* 原有样式完全保留 */
 .temp-detail-container {
   position: fixed;
   top: 0;
@@ -407,13 +436,14 @@ onUnmounted(() => {
   background: rgba(34, 211, 238, 0.2);
   border-color: #22d3ee;
 }
-.back-btn:active { /* 无 scale */ }
-.back-icon { font-size: 18px; }
 
 .page-title {
   color: #c2f0e0;
   font-size: 24px;
   text-shadow: 0 0 8px rgba(34, 211, 238, 0.25);
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 /* ---------- 倒计时 – 无动画 ---------- */
@@ -430,7 +460,6 @@ onUnmounted(() => {
   font-weight: 500;
   white-space: nowrap;
 }
-.countdown-icon { font-size: 16px; }
 .countdown-time {
   font-size: 18px;
   font-weight: 700;
@@ -519,6 +548,9 @@ onUnmounted(() => {
   cursor: pointer;
   border: none;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 .search-btn {
   background: #22d3ee;
@@ -623,6 +655,10 @@ onUnmounted(() => {
   gap: 16px;
   color: #94a3b8;
 }
+.error-wrapper {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
 .loading-spinner {
   width: 40px;
   height: 40px;
@@ -678,7 +714,6 @@ onUnmounted(() => {
   right: 0;
   height: 2px;
   background: linear-gradient(90deg, transparent, #22d3ee, #06b6d4, #22d3ee, transparent);
-  /* 删除 filter: blur */
 }
 
 .detail-header {
@@ -693,10 +728,6 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 12px;
-}
-.header-icon {
-  font-size: 24px;
-  filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.5));
 }
 .detail-header h3 {
   color: #22d3ee;
@@ -749,8 +780,10 @@ onUnmounted(() => {
   padding-bottom: 12px;
   border-bottom: 1px solid rgba(34, 211, 238, 0.2);
 }
-.title-icon {
+.card-title .title-icon {
   font-size: 18px;
+  width: 1.4em;
+  height: 1.4em;
 }
 .card-title span:last-child {
   color: #c2f0e0;
@@ -824,9 +857,6 @@ onUnmounted(() => {
   color: #94a3b8;
   margin-bottom: 12px;
 }
-.sensor-icon {
-  font-size: 20px;
-}
 .sensor-value {
   font-size: 36px;
   font-weight: 700;
@@ -896,10 +926,6 @@ onUnmounted(() => {
   }
   .back-btn {
     padding: 10px 12px;
-  }
-  .back-icon {
-    font-size: 18px;
-    margin: 0;
   }
   .toast-message {
     white-space: normal;

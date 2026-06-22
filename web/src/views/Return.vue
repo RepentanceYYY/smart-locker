@@ -14,12 +14,14 @@
     </div>
     <div v-else>
       <div v-if="totalCount === 0" class="empty-state">
+        <img src="/警告 (1).svg" alt="警告" class="empty-icon" />
         ⚠️ 暂无柜子配置数据，请联系管理员
       </div>
       <div v-else class="full-layout">
         <!-- 页面标题 -->
         <div class="page-header">
-          <div class="title-icon">📦</div>
+          <img src="/归还.svg" alt="归还" class="title-icon" />
+
           <h1>物品归还</h1>
         </div>
 
@@ -52,14 +54,14 @@
           <div class="top-section">
             <!-- 温度卡片 -->
             <div class="temp-card">
-              <div class="card-icon">🌡️</div>
+              <img src="/温度.svg" alt="温度" class="card-icon" />
               <div class="card-value">{{ currentCabinetTemp }}°</div>
               <div class="card-label">温度</div>
             </div>
 
             <!-- 湿度卡片 -->
             <div class="humidity-card">
-              <div class="card-icon">💧</div>
+              <img src="/湿度-01.svg" alt="湿度" class="card-icon" />
               <div class="card-value">{{ currentCabinetHumidity }}%</div>
               <div class="card-label">湿度</div>
             </div>
@@ -162,7 +164,7 @@
             <!-- 右侧：手动触发归还完成按钮 -->
             <div class="button-area">
               <button class="complete-btn return-btn" :disabled="isCompleteDisabled" @click="handleCompleteSession">
-                <span class="btn-icon">📦</span>
+                <img src="/归还.svg" alt="归还" class="btn-icon" />
                 <span class="btn-label">归还完成</span>
               </button>
             </div>
@@ -180,7 +182,7 @@
       <div v-if="showEmptyReturnModal" class="modal-overlay" @click.self="closeEmptyReturnModal">
         <div class="modal-container info-modal">
           <div class="modal-header info-header">
-            <h3>📋 提示</h3>
+            <img src="/笔记本.svg" alt="提示" class="modal-icon" />
             <button class="close-btn" @click="closeEmptyReturnModal">✕</button>
           </div>
           <div class="modal-body">
@@ -202,7 +204,10 @@
       <div v-if="showReturnSuccessModal" class="modal-overlay no-close">
         <div class="modal-container success-modal">
           <div class="modal-header success-header">
-            <h3>✅ 归还成功</h3>
+            <h3>
+              <img src="/color-success.svg" alt="成功" class="modal-icon" />
+              归还成功
+            </h3>
           </div>
           <div class="modal-body">
             <p class="success-tip">
@@ -532,6 +537,7 @@ async function loadCabinets() {
     loading.value = false
   }
 }
+
 
 function updateLayout() {
   if (typeof window === 'undefined') return
@@ -1331,7 +1337,10 @@ body,
 }
 
 .title-icon {
-  font-size: 28px;
+  width: 32px;
+  height: 32px;
+  display: block;
+  flex-shrink: 0;
   filter: drop-shadow(0 0 4px #22d3ee);
 }
 
@@ -1395,7 +1404,10 @@ body,
 }
 
 .card-icon {
-  font-size: 18px;
+  width: 22px;
+  height: 22px;
+  display: block;
+  flex-shrink: 0;
 }
 
 .card-value {
@@ -1908,7 +1920,11 @@ body,
 }
 
 .complete-btn .btn-icon {
-  font-size: 38px;
+  width: 40px;
+  height: 40px;
+  display: block;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
 .complete-btn .btn-label {
@@ -2035,6 +2051,13 @@ body,
   border-top: 1px solid rgba(34, 211, 238, 0.2);
   background: rgba(0, 0, 0, 0.3);
 }
+.modal-icon {
+  width: 28px;
+  height: 28px;
+  display: block;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.3));
+}
 
 .confirm-btn {
   background: linear-gradient(135deg, #10b981, #059669);
@@ -2121,13 +2144,13 @@ body,
 /* ---------- 响应式 – 无动画 ---------- */
 @media (max-width: 680px) {
   .page-header { height: 50px; gap: 8px; }
-  .title-icon { font-size: 22px; }
+  .title-icon { width: 26px; height: 26px; }
   .page-header h1 { font-size: 20px; }
   .upper-area { height: calc(100vh - 350px - 50px - 50px); }
   .info-area { width: 320px; padding: 8px; }
   .info-header, .info-row { grid-template-columns: 1fr 0.7fr 1fr 1.3fr; gap: 8px; }
   .header-item, .row-item { font-size: 10px; }
-  .complete-btn .btn-icon { font-size: 28px; }
+  .complete-btn .btn-icon { width: 32px; height: 32px; }
   .complete-btn .btn-label { font-size: 14px; }
   .complete-btn { padding: 16px 12px; min-height: 80px; }
   .temp-card, .humidity-card { padding: 3px 10px; top: 4px; }
@@ -2136,24 +2159,27 @@ body,
   .scanner-text { font-size: 11px; }
   .manual-input { width: 120px; font-size: 11px; padding: 4px 8px; }
   .manual-submit-btn { padding: 3px 8px; font-size: 10px; }
+  .empty-icon { width: 26px; height: 26px; }
+  .modal-icon { width: 24px; height: 24px; }
+  .card-icon { width: 18px; height: 18px; }
 }
 
 @media (max-width: 480px) {
   .page-header h1 { font-size: 18px; }
-  .title-icon { font-size: 20px; }
+  .title-icon { width: 22px; height: 22px; }
   .cabinet-item { width: 260px !important; }
   .bottom-container { gap: 8px; }
   .info-area { width: 260px; padding: 6px; }
   .info-header, .info-row { grid-template-columns: 1fr 0.6fr 0.9fr 1.2fr; gap: 6px; }
   .header-item, .row-item { font-size: 9px; }
   .info-row { padding: 6px 4px; }
-  .complete-btn .btn-icon { font-size: 24px; }
+  .complete-btn .btn-icon { width: 28px; height: 28px; }
   .complete-btn .btn-label { font-size: 12px; }
   .complete-btn { padding: 12px 8px; min-height: 70px; gap: 6px; }
   .placeholder-icon { width: 24px; height: 24px; }
   .photo-placeholder span { font-size: 9px; }
   .temp-card, .humidity-card { padding: 2px 8px; gap: 4px; }
-  .card-icon { font-size: 12px; }
+  .card-icon { width: 16px; height: 16px; }
   .card-value { font-size: 12px; min-width: 30px; }
   .card-label { font-size: 8px; }
   .scanner-prompt { padding: 4px 8px; }
@@ -2162,5 +2188,15 @@ body,
   .reset-scan-btn { font-size: 10px; padding: 2px 8px; }
   .manual-input { width: 100px; font-size: 10px; padding: 3px 6px; }
   .manual-submit-btn { padding: 2px 6px; font-size: 9px; }
+  .modal-icon { width: 20px; height: 20px; }
+  .empty-icon { width: 22px; height: 22px; }
 }
+.empty-icon {
+  width: 32px;
+  height: 32px;
+  display: block;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 4px #f97316);
+}
+
 </style>

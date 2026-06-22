@@ -3,7 +3,10 @@
     <div v-if="visible" class="modal-overlay">
       <div class="modal-container">
         <div class="modal-header">
-          <h3>📋 本次归还详情</h3>
+          <h3>
+            <img src="/笔记本.svg" alt="清单" class="title-icon" />
+            本次借用详情
+          </h3>
           <button class="close-btn" @click="handleClose">✕</button>
         </div>
 
@@ -428,6 +431,14 @@ watch(() => props.visible, (newVal) => {
   transform: translateY(1px);
 }
 
+.title-icon {
+  width: 26px;
+  height: 26px;
+  display: block;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.3));
+}
+
 .list-scroll::-webkit-scrollbar,
 .modal-body::-webkit-scrollbar {
   width: 5px;
@@ -457,6 +468,7 @@ watch(() => props.visible, (newVal) => {
 
 @media (max-width: 680px) {
   .modal-container { width: 95%; max-height: 90vh; }
+  .title-icon { width: 22px; height: 22px; }
   .list-header, .list-row {
     grid-template-columns: 1fr 0.7fr 1fr 1.3fr;
     gap: 10px;
@@ -480,6 +492,7 @@ watch(() => props.visible, (newVal) => {
     padding: 6px 10px;
   }
   .modal-header { padding: 14px 18px; }
+  .title-icon { width: 20px; height: 20px; }
   .modal-header h3 { font-size: 1.1rem; }
   .close-btn { font-size: 1.5rem; }
   .modal-footer { padding: 12px 18px; gap: 12px; }

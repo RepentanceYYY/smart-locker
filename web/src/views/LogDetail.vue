@@ -4,12 +4,14 @@
     <div class="outer-frame">
       <div class="log-detail-header">
         <button class="back-btn" @click="goBack">
-          <span class="back-icon">←</span>
+          <img src="/bg-back.svg" alt="返回" class="icon" />
           <span>返回设置</span>
         </button>
-        <h1 class="page-title">📋 操作日志详情</h1>
+        <h1 class="page-title">
+          <img src="/文档.svg" alt="日志" class="icon title-icon" /> 操作日志详情
+        </h1>
         <div class="countdown-display" v-if="countdown && countdown.secondsLeft.value > 0">
-          <span class="countdown-icon">⏱️</span>
+          <img src="/计时器.svg" alt="倒计时" class="icon" />
           <span class="countdown-time">{{ formatCountdownTime(countdown.secondsLeft.value) }}</span>
           <span class="countdown-text">后自动返回</span>
         </div>
@@ -44,7 +46,9 @@
               </div>
             </div>
             <div class="filter-actions">
-              <button class="search-btn" @click.stop="handleSearch">🔍 查询</button>
+              <button class="search-btn" @click.stop="handleSearch">
+                <img src="/查询.svg" alt="查询" class="icon" /> 查询
+              </button>
               <button class="reset-btn" @click.stop="handleReset">重置</button>
             </div>
           </div>
@@ -56,7 +60,8 @@
         </div>
 
         <div v-else-if="error" class="error-wrapper">
-          <span>⚠️ {{ error }}</span>
+          <img src="/警告 (1).svg" alt="警告" class="icon" />
+          <span>{{ error }}</span>
           <button class="retry-btn" @click="fetchData">重试</button>
         </div>
 
@@ -125,22 +130,20 @@
         <div class="card-glow"></div>
         <div class="detail-header">
           <div class="header-left">
-            <span class="header-icon">📋</span>
+            <img src="/详情.svg" alt="详情" class="icon header-icon" />
             <h3>借还详情</h3>
             <span :class="['status-badge', getStatusClass(currentDetail)]" class="header-status">
               {{ getStatusText(currentDetail) }}
             </span>
           </div>
           <button class="close-btn" @click="detailVisible = false">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
+            ✕
           </button>
         </div>
         <div class="detail-body">
           <div class="info-card tool-info">
             <div class="card-title">
-              <span class="title-icon">🔧</span>
+              <img src="/工具.svg" alt="工具" class="icon title-icon" />
               <span>工具信息</span>
             </div>
             <div class="info-grid grid-2col">
@@ -166,28 +169,38 @@
           <div class="borrow-return-wrapper">
             <div class="info-card borrow-card">
               <div class="card-title">
-                <span class="title-icon">📤</span>
+                <img src="/进行中.svg" alt="借出" class="icon title-icon" />
                 <span>借出信息</span>
               </div>
               <div class="info-list">
                 <div class="info-field">
-                  <span class="field-label">👤 借用人</span>
+                  <span class="field-label">
+                    <img src="/顾客.svg" alt="借用人" class="icon" /> 借用人
+                  </span>
                   <span class="field-value">{{ currentDetail?.borrowerName || '-' }}</span>
                 </div>
                 <div class="info-field">
-                  <span class="field-label">🆔 工号/卡号</span>
+                  <span class="field-label">
+                    <img src="/卡号.svg" alt="工号" class="icon" /> 工号/卡号
+                  </span>
                   <span class="field-value">{{ currentDetail?.borrowerNumber || '-' }}</span>
                 </div>
                 <div class="info-field">
-                  <span class="field-label">⏱️ 借用时间</span>
+                  <span class="field-label">
+                    <img src="/借用时间.svg" alt="借用时间" class="icon" /> 借用时间
+                  </span>
                   <span class="field-value">{{ formatDateTime(currentDetail?.borrowTime) }}</span>
                 </div>
                 <div class="info-field">
-                  <span class="field-label">📝 借用说明</span>
+                  <span class="field-label">
+                    <img src="/说明.svg" alt="借用说明" class="icon" /> 借用说明
+                  </span>
                   <span class="field-value">{{ currentDetail?.borrowRemark || '无' }}</span>
                 </div>
                 <div class="info-field photo-field">
-                  <span class="field-label">📷 借用照片</span>
+                  <span class="field-label">
+                    <img src="/图片.svg" alt="借用照片" class="icon" /> 借用照片
+                  </span>
                   <div class="photo-wrapper">
                     <img
                         v-if="currentDetail?.borrowerPhoto"
@@ -204,28 +217,38 @@
 
             <div class="info-card return-card">
               <div class="card-title">
-                <span class="title-icon">📥</span>
+                <img src="/进行中.svg" alt="归还" class="icon title-icon" />
                 <span>归还信息</span>
               </div>
               <div v-if="currentDetail?.returnTime" class="info-list">
                 <div class="info-field">
-                  <span class="field-label">👤 归还人</span>
+                  <span class="field-label">
+                    <img src="/顾客.svg" alt="归还人" class="icon" /> 归还人
+                  </span>
                   <span class="field-value">{{ currentDetail?.returnName || '-' }}</span>
                 </div>
                 <div class="info-field">
-                  <span class="field-label">🆔 工号/卡号</span>
+                  <span class="field-label">
+                    <img src="/卡号.svg" alt="工号" class="icon" /> 工号/卡号
+                  </span>
                   <span class="field-value">{{ currentDetail?.returnNumber || '-' }}</span>
                 </div>
                 <div class="info-field">
-                  <span class="field-label">⏱️ 归还时间</span>
+                  <span class="field-label">
+                    <img src="/借用时间.svg" alt="归还时间" class="icon" /> 归还时间
+                  </span>
                   <span class="field-value">{{ formatDateTime(currentDetail?.returnTime) }}</span>
                 </div>
                 <div class="info-field">
-                  <span class="field-label">📝 归还说明</span>
+                  <span class="field-label">
+                    <img src="/说明.svg" alt="归还说明" class="icon" /> 归还说明
+                  </span>
                   <span class="field-value">{{ currentDetail?.returnRemark || '无' }}</span>
                 </div>
                 <div class="info-field photo-field">
-                  <span class="field-label">📷 归还照片</span>
+                  <span class="field-label">
+                    <img src="/图片.svg" alt="归还照片" class="icon" /> 归还照片
+                  </span>
                   <div class="photo-wrapper">
                     <img
                         v-if="currentDetail?.returnPhoto"
@@ -239,7 +262,7 @@
                 </div>
               </div>
               <div v-else class="unreturned-state">
-                <div class="unreturned-icon">⏳</div>
+                <img src="/等待.svg" alt="等待" class="icon unreturned-icon" />
                 <div class="unreturned-text">尚未归还</div>
                 <div class="unreturned-desc">该工具仍在借用中</div>
               </div>
@@ -257,9 +280,7 @@
       <div class="preview-container" @click.stop>
         <img :src="formatImageUrl(previewUrl)" class="preview-image" />
         <button class="preview-close" @click="previewVisible = false">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path d="M18 6L6 18M6 6L18 18" stroke="white" stroke-width="2" stroke-linecap="round"/>
-          </svg>
+          ✕
         </button>
       </div>
     </div>
@@ -442,6 +463,22 @@ onUnmounted(() => {
 </script>
 
 <style lang="css" scoped>
+/* 新增通用图标样式 */
+.icon {
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: middle;
+  display: inline-block;
+  flex-shrink: 0;
+  fill: currentColor;
+}
+
+.title-icon {
+  width: 1.6em;
+  height: 1.6em;
+}
+
+/* 原有样式完全保留，仅微调一些与图标有关的尺寸 */
 .log-detail-container {
   position: fixed;
   top: 0;
@@ -510,14 +547,14 @@ onUnmounted(() => {
 .back-btn:active {
   /* 无 scale */
 }
-.back-icon {
-  font-size: 18px;
-}
 
 .page-title {
   color: #c2f0e0;
   font-size: 24px;
   text-shadow: 0 0 8px rgba(34, 211, 238, 0.25);
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 /* ---------- 倒计时 – 无动画 ---------- */
@@ -533,10 +570,6 @@ onUnmounted(() => {
   font-size: 14px;
   font-weight: 500;
   white-space: nowrap;
-  /* 删除 animation */
-}
-.countdown-icon {
-  font-size: 16px;
 }
 .countdown-time {
   font-size: 18px;
@@ -630,6 +663,9 @@ onUnmounted(() => {
   cursor: pointer;
   border: none;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 .search-btn {
   background: #22d3ee;
@@ -637,7 +673,6 @@ onUnmounted(() => {
 }
 .search-btn:hover {
   background: #1cb5cc;
-  /* 无 translateY */
 }
 .reset-btn {
   background: rgba(255, 255, 255, 0.1);
@@ -708,7 +743,6 @@ onUnmounted(() => {
 }
 .log-table tr:hover td {
   background: rgba(34, 211, 238, 0.05);
-  /* 无 translateX */
 }
 
 /* ---------- 状态徽章 ---------- */
@@ -746,7 +780,6 @@ onUnmounted(() => {
 }
 .table-photo:hover {
   border-color: #22d3ee;
-  /* 无 scale */
 }
 
 .no-photo {
@@ -843,7 +876,6 @@ onUnmounted(() => {
   max-height: 88vh;
   overflow: hidden;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(34, 211, 238, 0.1);
-  /* 删除 transition */
 }
 
 .card-glow {
@@ -853,7 +885,6 @@ onUnmounted(() => {
   right: 0;
   height: 2px;
   background: linear-gradient(90deg, transparent, #22d3ee, #06b6d4, #22d3ee, transparent);
-  /* 删除 filter: blur */
 }
 
 .detail-header {
@@ -871,7 +902,9 @@ onUnmounted(() => {
   gap: 12px;
 }
 .header-icon {
-  font-size: 24px;
+  font-size: 24px; /* 覆盖 .icon 默认大小 */
+  width: 1.6em;
+  height: 1.6em;
   filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.5));
 }
 .detail-header h3 {
@@ -902,7 +935,6 @@ onUnmounted(() => {
 .close-btn:hover {
   background: rgba(239, 68, 68, 0.2);
   color: #f87171;
-  /* 无 rotate */
 }
 
 .detail-body {
@@ -922,7 +954,6 @@ onUnmounted(() => {
 .info-card:hover {
   border-color: rgba(34, 211, 238, 0.25);
   background: rgba(0, 0, 0, 0.35);
-  /* 无 transition */
 }
 
 .card-title {
@@ -933,8 +964,10 @@ onUnmounted(() => {
   padding-bottom: 12px;
   border-bottom: 1px solid rgba(34, 211, 238, 0.2);
 }
-.title-icon {
+.card-title .title-icon {
   font-size: 18px;
+  width: 1.4em;
+  height: 1.4em;
 }
 .card-title span:last-child {
   color: #c2f0e0;
@@ -961,6 +994,13 @@ onUnmounted(() => {
   color: #7e8b9f;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.field-label .icon {
+  width: 1em;
+  height: 1em;
 }
 .field-value {
   font-size: 14px;
@@ -1028,7 +1068,6 @@ onUnmounted(() => {
 .detail-photo:hover {
   border-color: #22d3ee;
   box-shadow: 0 4px 12px rgba(34, 211, 238, 0.2);
-  /* 无 scale */
 }
 
 .unreturned-state {
@@ -1041,6 +1080,8 @@ onUnmounted(() => {
 }
 .unreturned-icon {
   font-size: 48px;
+  width: 48px;
+  height: 48px;
   margin-bottom: 12px;
   opacity: 0.6;
 }
@@ -1075,7 +1116,6 @@ onUnmounted(() => {
 }
 .footer-btn:hover {
   box-shadow: 0 4px 12px rgba(34, 211, 238, 0.3);
-  /* 无 translateY */
 }
 .footer-btn:active {
   /* 无 translateY */
@@ -1125,7 +1165,6 @@ onUnmounted(() => {
 }
 .preview-close:hover {
   background: rgba(239, 68, 68, 0.8);
-  /* 无 scale */
 }
 
 /* ---------- Toast – 无动画 ---------- */
@@ -1143,7 +1182,6 @@ onUnmounted(() => {
   border: 1px solid #22d3ee;
   z-index: 4000;
   white-space: nowrap;
-  /* 删除 animation */
 }
 
 /* ---------- 响应式 ---------- */
@@ -1168,7 +1206,7 @@ onUnmounted(() => {
   .back-btn {
     padding: 10px 12px;
   }
-  .back-icon {
+  .back-btn .icon {
     font-size: 18px;
     margin: 0;
   }
