@@ -57,14 +57,8 @@
                   <span class="cell cell-number">{{ item.cellNumber || '-' }}</span>
                   <span class="cell tool">{{ item.toolName || '-' }}</span>
                   <span class="cell photo">
-                    <img
-                        v-if="item.borrowerPhoto"
-                        :src="formatImageUrl(item.borrowerPhoto)"
-                        class="borrow-photo"
-                        @click.stop="previewImage(item.borrowerPhoto)"
-                        @error="handleImageError"
-                        alt="借用图片"
-                    />
+                    <img v-if="item.borrowerPhoto" :src="formatImageUrl(item.borrowerPhoto)" class="borrow-photo"
+                      @click.stop="previewImage(item.borrowerPhoto)" @error="handleImageError" alt="借用图片" />
                     <span v-else class="no-photo">无图片</span>
                   </span>
                   <span class="cell time">{{ item.borrowTime || '-' }}</span>
@@ -149,11 +143,7 @@
                   <span>湿度 (%)</span>
                   <span>记录时间</span>
                 </div>
-                <div
-                    v-for="(log, idx) in recentTempLogs"
-                    :key="idx"
-                    class="table-row temp-row"
-                >
+                <div v-for="(log, idx) in recentTempLogs" :key="idx" class="table-row temp-row">
                   <span class="cell cabinet-name">{{ log.cabinetTitle || '-' }}</span>
                   <span class="cell cell-number">
                     {{ log.temperature }}
@@ -165,10 +155,7 @@
                 </div>
               </div>
             </div>
-            <div
-                class="config-footer-tip"
-                v-if="systemConfigStore.config.tempHumidityLogInterval"
-            >
+            <div class="config-footer-tip" v-if="systemConfigStore.config.tempHumidityLogInterval">
               <img src="/间隔.svg" alt="记录间隔" class="icon" />
               记录间隔：{{ systemConfigStore.config.tempHumidityLogInterval }} 分钟
             </div>
@@ -222,63 +209,38 @@
         </div>
         <div class="modal-body">
           <input
-              v-if="editField !== 'adminPwd' && editField !== 'borrowPeriod' && editField !== 'autoReturnTimeoutMinutes' && editField !== 'tempHumidityLogInterval' && editField !== 'enableFaceCapture'"
-              v-model="editTempValue"
-              type="text"
-              class="modal-input"
-              :placeholder="`请输入新的${editLabel}`"
-              :maxlength="editField === 'systemName' || editField === 'systemCode' ? 10 : undefined"
-              @keyup.enter="confirmEdit"
-          />
+            v-if="editField !== 'adminPwd' && editField !== 'borrowPeriod' && editField !== 'autoReturnTimeoutMinutes' && editField !== 'tempHumidityLogInterval' && editField !== 'enableFaceCapture'"
+            v-model="editTempValue" type="text" class="modal-input" :placeholder="`请输入新的${editLabel}`"
+            :maxlength="editField === 'systemName' || editField === 'systemCode' ? 10 : undefined"
+            @keyup.enter="confirmEdit" />
           <div v-else-if="editField === 'adminPwd'" class="password-input-wrapper">
-            <input
-                v-model="editTempValue"
-                :type="passwordVisible ? 'text' : 'password'"
-                class="modal-input password-input"
-                placeholder="请输入新密码（不可包含中文）"
-                @keyup.enter="confirmEdit"
-            />
+            <input v-model="editTempValue" :type="passwordVisible ? 'text' : 'password'"
+              class="modal-input password-input" placeholder="请输入新密码（不可包含中文）" @keyup.enter="confirmEdit" />
             <button type="button" class="password-toggle" @click="togglePasswordVisibility" tabindex="-1">
               <img v-if="passwordVisible" src="/隐藏.svg" alt="隐藏" class="icon" />
               <img v-else src="/显示.svg" alt="显示" class="icon" />
             </button>
           </div>
-          <select
-              v-else-if="editField === 'borrowPeriod'"
-              v-model="editTempValue"
-              class="modal-select"
-              @change="confirmEdit"
-          >
+          <select v-else-if="editField === 'borrowPeriod'" v-model="editTempValue" class="modal-select"
+            @change="confirmEdit">
             <option v-for="option in borrowPeriodOptions" :key="option" :value="option">
               {{ option }}
             </option>
           </select>
-          <select
-              v-else-if="editField === 'autoReturnTimeoutMinutes'"
-              v-model="editTempValue"
-              class="modal-select"
-              @change="confirmEdit"
-          >
+          <select v-else-if="editField === 'autoReturnTimeoutMinutes'" v-model="editTempValue" class="modal-select"
+            @change="confirmEdit">
             <option v-for="option in timeoutOptions" :key="option.value" :value="option.value">
               {{ option.label }}
             </option>
           </select>
-          <select
-              v-else-if="editField === 'tempHumidityLogInterval'"
-              v-model="editTempValue"
-              class="modal-select"
-              @change="confirmEdit"
-          >
+          <select v-else-if="editField === 'tempHumidityLogInterval'" v-model="editTempValue" class="modal-select"
+            @change="confirmEdit">
             <option v-for="option in humidityIntervalOptions" :key="option.value" :value="option.value">
               {{ option.label }}
             </option>
           </select>
-          <select
-              v-else-if="editField === 'enableFaceCapture'"
-              v-model="editTempValue"
-              class="modal-select"
-              @change="confirmEdit"
-          >
+          <select v-else-if="editField === 'enableFaceCapture'" v-model="editTempValue" class="modal-select"
+            @change="confirmEdit">
             <option v-for="option in faceCaptureOptions" :key="option.value" :value="option.value">
               {{ option.label }}
             </option>
@@ -286,7 +248,9 @@
         </div>
         <div class="modal-footer">
           <button class="modal-btn cancel" @click="closeEditModal">取消</button>
-          <button class="modal-btn confirm" @click="confirmEdit">确认</button>
+          <button class="modal-btn confirm" :disabled="isActivatingFace" @click="confirmEdit">
+            {{ isActivatingFace ? '激活中...' : '确认' }}
+          </button>
         </div>
       </div>
     </div>
@@ -306,15 +270,8 @@
             <p>此操作将<strong>重置所有系统配置</strong>为默认值，且<strong>不可撤销</strong>！</p>
             <p>请输入 <strong class="confirm-text">"确定"</strong> 以继续操作：</p>
           </div>
-          <input
-              v-model="resetInputValue"
-              type="text"
-              class="modal-input"
-              placeholder="请输入“确定”"
-              @keyup.enter="confirmReset"
-              :disabled="isResetting"
-              autofocus
-          />
+          <input v-model="resetInputValue" type="text" class="modal-input" placeholder="请输入“确定”"
+            @keyup.enter="confirmReset" :disabled="isResetting" autofocus />
           <div v-if="resetErrorMsg" class="reset-error">{{ resetErrorMsg }}</div>
         </div>
         <div class="modal-footer">
@@ -345,7 +302,7 @@ import { fetchCabinetList } from '@/api/cabinet'
 import type { SystemConfig } from '@/api/system'
 import { useCountdown } from '@/composables/useCountdown'
 import { fetchTempHumidityLogs, type TempHumidityLog } from '@/api/tempHumidity'
-import {formatImageUrl} from '@/utils/fileUtils'
+import { formatImageUrl } from '@/utils/fileUtils'
 
 const router = useRouter()
 const systemConfigStore = useSystemConfigStore()
@@ -492,7 +449,8 @@ const configFields: { key: keyof SystemConfig; label: string }[] = [
   { key: 'borrowPeriod', label: '使用周期' },
   { key: 'autoReturnTimeoutMinutes', label: '长时间不操作返回主页' },
   { key: 'tempHumidityLogInterval', label: '温湿度记录间隔（分钟）' },
-  { key: 'enableFaceCapture', label: '开启抓拍人脸' }
+  { key: 'enableFaceCapture', label: '开启抓拍人脸' },
+  { key: 'baiduFaceLicenseKey', label: '人脸授权码' }
 ]
 
 const borrowPeriodOptions = ['1天', '3天', '5天', '7天', '15天', '30天']
@@ -538,6 +496,8 @@ const editField = ref<keyof SystemConfig | ''>('')
 const editLabel = ref('')
 const editTempValue = ref<string | number>('')
 const passwordVisible = ref(false)
+// 是否正在激活人脸
+const isActivatingFace = ref(false)
 
 function togglePasswordVisibility() {
   passwordVisible.value = !passwordVisible.value
@@ -569,7 +529,7 @@ function openEditModal(field: keyof SystemConfig, label: string) {
   editModalVisible.value = true
 }
 
-async function confirmEdit() {
+const confirmEdit = async () => {
   if (!editField.value) return
   const field = editField.value
 
@@ -652,6 +612,71 @@ async function confirmEdit() {
         return
       }
       await systemConfigStore.updateConfigField('location', newVal)
+    } else if (field === 'baiduFaceLicenseKey') {
+      const newVal = (editTempValue.value as string).trim()
+      if (newVal === '') {
+        showMessage('人脸授权码不能为空')
+        return
+      }
+      await systemConfigStore.updateConfigField('baiduFaceLicenseKey', newVal)
+      isActivatingFace.value = true;
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const ws = new WebSocket('ws://localhost:8080/ws/face')
+
+          // 设置一个 60 秒超时，防止后端没响应导致界面死锁
+          const timeoutTimer = setTimeout(() => {
+            ws.close()
+            reject(new Error('授权超时，请检查服务是否正常'))
+          }, 60000)
+
+          ws.onopen = () => {
+            // 构造发送的消息体
+            const msg = {
+              action: 'activate',
+              requestId: String(Date.now()),
+              data: newVal
+            }
+            ws.send(JSON.stringify(msg))
+          }
+
+          ws.onmessage = (event) => {
+            try {
+              const res = JSON.parse(event.data)
+              // 识别是否是当前激活动作的返回结果
+              if (res.action === 'activate') {
+                clearTimeout(timeoutTimer)
+                ws.close() // 收到结果后关闭连接
+
+                if (res.code === 200) {
+                  resolve() // 授权成功
+                } else {
+                  // 授权失败，抛出后端返回的错误原因
+                  reject(new Error(res.message || '人脸授权失败'))
+                }
+              }
+            } catch (e) {
+              console.error('解析 WebSocket 消息失败:', e)
+            }
+          }
+
+          ws.onerror = (err) => {
+            clearTimeout(timeoutTimer)
+            reject(new Error('WebSocket 连接失败，无法连接到授权服务器'))
+          }
+        })
+
+        showMessage('百度人脸授权成功')
+        closeEditModal() // 只有成功才关闭模态框
+        return
+      } catch (error: any) {
+        console.error('人脸授权激活失败:', error)
+        showMessage(error?.message || '授权失败，请稍后重试')
+        return // 失败了阻断流程，保持模态框开启，让用户检查或重新输入
+      } finally {
+        await systemConfigStore.updateConfigField('baiduFaceLicenseKey', newVal)
+        isActivatingFace.value = false
+      }
     }
 
     showMessage(`${editLabel.value} 已更新`)
@@ -819,10 +844,12 @@ onMounted(() => {
 .outer-frame::-webkit-scrollbar {
   width: 6px;
 }
+
 .outer-frame::-webkit-scrollbar-track {
   background: rgba(0, 0, 0, 0.3);
   border-radius: 4px;
 }
+
 .outer-frame::-webkit-scrollbar-thumb {
   background: #22d3ee;
   border-radius: 4px;
@@ -851,6 +878,7 @@ onMounted(() => {
   font-weight: 600;
   cursor: pointer;
 }
+
 .back-btn:hover {
   background: rgba(34, 211, 238, 0.2);
   border-color: #22d3ee;
@@ -864,7 +892,10 @@ onMounted(() => {
   align-items: center;
   gap: 10px;
 }
-.placeholder { width: 80px; }
+
+.placeholder {
+  width: 80px;
+}
 
 /* ---------- 倒计时 – 无动画 ---------- */
 .countdown-display {
@@ -880,13 +911,18 @@ onMounted(() => {
   font-weight: 500;
   white-space: nowrap;
 }
+
 .countdown-time {
   font-size: 18px;
   font-weight: 700;
   font-family: monospace;
   letter-spacing: 1px;
 }
-.countdown-text { font-size: 12px; opacity: 0.8; }
+
+.countdown-text {
+  font-size: 12px;
+  opacity: 0.8;
+}
 
 /* ---------- 内容区 ---------- */
 .settings-content {
@@ -905,6 +941,7 @@ onMounted(() => {
   padding: 24px;
   cursor: pointer;
 }
+
 .info-card:hover {
   border-color: rgba(34, 211, 238, 0.4);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
@@ -919,11 +956,13 @@ onMounted(() => {
   border-bottom: 1px solid rgba(34, 211, 238, 0.2);
   cursor: default;
 }
+
 .header-left {
   display: flex;
   align-items: center;
   gap: 12px;
 }
+
 .card-header h3 {
   color: #e2e8f0;
   font-size: 20px;
@@ -940,6 +979,7 @@ onMounted(() => {
   font-weight: 500;
   cursor: pointer;
 }
+
 .detail-btn:hover {
   background: rgba(34, 211, 238, 0.2);
   border-color: #22d3ee;
@@ -955,6 +995,7 @@ onMounted(() => {
   font-weight: 500;
   cursor: pointer;
 }
+
 .reset-btn:hover {
   background: rgba(239, 68, 68, 0.3);
   border-color: #ef4444;
@@ -968,11 +1009,16 @@ onMounted(() => {
   margin-bottom: 24px;
   justify-content: space-around;
 }
-.stats-row.three-cols { justify-content: space-between; }
+
+.stats-row.three-cols {
+  justify-content: space-between;
+}
+
 .stat-item {
   text-align: center;
   flex: 1;
 }
+
 .stat-value {
   font-size: 36px;
   font-weight: 700;
@@ -980,6 +1026,7 @@ onMounted(() => {
   line-height: 1.2;
   text-shadow: 0 0 6px rgba(34, 211, 238, 0.25);
 }
+
 .stat-label {
   font-size: 13px;
   color: #94a3b8;
@@ -1014,11 +1061,13 @@ onMounted(() => {
 .temp-table-wrapper::-webkit-scrollbar {
   width: 6px;
 }
+
 .unreturned-scroll-wrapper::-webkit-scrollbar-track,
 .temp-table-wrapper::-webkit-scrollbar-track {
   background: rgba(0, 0, 0, 0.4);
   border-radius: 4px;
 }
+
 .unreturned-scroll-wrapper::-webkit-scrollbar-thumb,
 .temp-table-wrapper::-webkit-scrollbar-thumb {
   background: #22d3ee;
@@ -1030,6 +1079,7 @@ onMounted(() => {
   width: 100%;
   min-width: 700px;
 }
+
 .table-header,
 .table-row {
   display: grid;
@@ -1038,6 +1088,7 @@ onMounted(() => {
   padding: 12px 16px;
   align-items: center;
 }
+
 .table-header {
   background: rgba(34, 211, 238, 0.1);
   color: #22d3ee;
@@ -1048,11 +1099,13 @@ onMounted(() => {
   position: sticky;
   top: 0;
 }
+
 .table-row {
   background: rgba(0, 0, 0, 0.3);
   margin-bottom: 6px;
   border-radius: 12px;
 }
+
 .table-row:hover {
   background: rgba(34, 211, 238, 0.1);
 }
@@ -1062,15 +1115,20 @@ onMounted(() => {
   color: #cbd5e1;
   word-break: break-word;
 }
+
 .cabinet {
   font-weight: 500;
   color: #e2e8f0;
 }
+
 .cell-number {
   font-family: monospace;
   color: #22d3ee;
 }
-.tool { color: #94a3b8; }
+
+.tool {
+  color: #94a3b8;
+}
 
 .borrow-photo {
   width: 40px;
@@ -1080,14 +1138,17 @@ onMounted(() => {
   cursor: pointer;
   border: 1px solid rgba(34, 211, 238, 0.3);
 }
+
 .borrow-photo:hover {
   border-color: #22d3ee;
 }
+
 .no-photo {
   color: #5b6e8c;
   font-size: 12px;
   font-style: italic;
 }
+
 .time {
   font-size: 12px;
   color: #7e8a98;
@@ -1102,6 +1163,7 @@ onMounted(() => {
   padding: 10px 16px;
   align-items: center;
 }
+
 .temp-header {
   background: rgba(34, 211, 238, 0.1);
   color: #22d3ee;
@@ -1112,11 +1174,13 @@ onMounted(() => {
   position: sticky;
   top: 0;
 }
+
 .temp-row {
   background: rgba(0, 0, 0, 0.3);
   margin-bottom: 6px;
   border-radius: 12px;
 }
+
 .temp-row:hover {
   background: rgba(34, 211, 238, 0.1);
 }
@@ -1130,10 +1194,12 @@ onMounted(() => {
   padding-top: 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
+
 .info-key {
   color: #94a3b8;
   font-size: 13px;
 }
+
 .info-value {
   color: #cbd5e1;
   font-weight: 500;
@@ -1145,6 +1211,7 @@ onMounted(() => {
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 14px;
 }
+
 .config-item {
   display: flex;
   justify-content: space-between;
@@ -1153,36 +1220,42 @@ onMounted(() => {
   padding: 12px 18px;
   border-radius: 20px;
 }
+
 .config-item:hover {
   background: rgba(34, 211, 238, 0.08);
   border-left: 2px solid #22d3ee;
 }
+
 .config-label {
   color: #94a3b8;
   font-size: 13px;
   font-weight: 500;
   letter-spacing: 0.3px;
 }
+
 .config-value-group {
   display: flex;
   align-items: center;
   gap: 12px;
 }
+
 .config-value {
   color: #e2e8f0;
   font-weight: 500;
   font-size: 14px;
-  background: rgba(0,0,0,0.4);
+  background: rgba(0, 0, 0, 0.4);
   padding: 4px 10px;
   border-radius: 40px;
   min-width: 100px;
   text-align: center;
 }
+
 .password-mask {
   font-family: monospace;
   letter-spacing: 2px;
   font-size: 16px;
 }
+
 .edit-icon {
   background: transparent;
   border: none;
@@ -1191,10 +1264,12 @@ onMounted(() => {
   border-radius: 20px;
   color: #6b8cae;
 }
+
 .edit-icon:hover {
   background: rgba(34, 211, 238, 0.2);
   color: #22d3ee;
 }
+
 .edit-icon .icon {
   width: 1em;
   height: 1em;
@@ -1205,7 +1280,7 @@ onMounted(() => {
   font-size: 12px;
   color: #5b7a9a;
   text-align: center;
-  border-top: 1px dashed rgba(34,211,238,0.2);
+  border-top: 1px dashed rgba(34, 211, 238, 0.2);
   padding-top: 14px;
   display: flex;
   align-items: center;
@@ -1244,6 +1319,7 @@ onMounted(() => {
   z-index: 2000;
   cursor: pointer;
 }
+
 .preview-image {
   max-width: 90vw;
   max-height: 90vh;
@@ -1265,6 +1341,7 @@ onMounted(() => {
   justify-content: center;
   z-index: 3000;
 }
+
 .modal-container {
   background: rgba(20, 30, 40, 0.95);
   border-radius: 28px;
@@ -1274,6 +1351,7 @@ onMounted(() => {
   box-shadow: 0 16px 30px rgba(0, 0, 0, 0.5);
   overflow: hidden;
 }
+
 .modal-header {
   display: flex;
   justify-content: space-between;
@@ -1284,13 +1362,16 @@ onMounted(() => {
   color: #22d3ee;
   font-weight: 600;
 }
+
 .modal-header .icon {
   margin-right: 8px;
 }
+
 .warning-header {
   color: #f87171;
   border-bottom-color: rgba(239, 68, 68, 0.5);
 }
+
 .modal-close {
   background: none;
   border: none;
@@ -1298,16 +1379,21 @@ onMounted(() => {
   color: #94a3b8;
   padding: 0 4px;
 }
+
 .modal-close .icon {
   font-size: 20px;
   width: 1.4em;
   height: 1.4em;
 }
-.modal-close:hover .icon { color: #22d3ee; }
+
+.modal-close:hover .icon {
+  color: #22d3ee;
+}
 
 .modal-body {
   padding: 24px 20px;
 }
+
 .modal-input {
   width: 100%;
   background: rgba(0, 0, 0, 0.5);
@@ -1318,10 +1404,12 @@ onMounted(() => {
   font-size: 14px;
   outline: none;
 }
+
 .modal-input:focus {
   border-color: #22d3ee;
   box-shadow: 0 0 6px rgba(34, 211, 238, 0.25);
 }
+
 .modal-select {
   width: 100%;
   background: rgba(0, 0, 0, 0.5);
@@ -1333,6 +1421,7 @@ onMounted(() => {
   outline: none;
   cursor: pointer;
 }
+
 .modal-select:focus {
   border-color: #22d3ee;
   box-shadow: 0 0 6px rgba(34, 211, 238, 0.25);
@@ -1342,9 +1431,11 @@ onMounted(() => {
   position: relative;
   width: 100%;
 }
+
 .password-input {
   padding-right: 48px;
 }
+
 .password-toggle {
   position: absolute;
   right: 12px;
@@ -1356,9 +1447,11 @@ onMounted(() => {
   padding: 4px;
   color: #94a3b8;
 }
+
 .password-toggle:hover {
   color: #22d3ee;
 }
+
 .password-toggle .icon {
   width: 1.2em;
   height: 1.2em;
@@ -1370,6 +1463,7 @@ onMounted(() => {
   gap: 12px;
   padding: 12px 20px 20px;
 }
+
 .modal-btn {
   padding: 6px 20px;
   border-radius: 40px;
@@ -1378,26 +1472,32 @@ onMounted(() => {
   cursor: pointer;
   border: none;
 }
+
 .modal-btn.cancel {
   background: rgba(100, 116, 139, 0.3);
   color: #cbd5e1;
 }
+
 .modal-btn.cancel:hover {
   background: rgba(100, 116, 139, 0.5);
 }
+
 .modal-btn.confirm {
   background: rgba(34, 211, 238, 0.2);
   border: 1px solid #22d3ee;
   color: #22d3ee;
 }
+
 .modal-btn.confirm:hover {
   background: rgba(34, 211, 238, 0.4);
 }
+
 .modal-btn.confirm.danger {
   background: rgba(239, 68, 68, 0.2);
   border-color: #ef4444;
   color: #f87171;
 }
+
 .modal-btn.confirm.danger:hover {
   background: rgba(239, 68, 68, 0.4);
 }
@@ -1409,13 +1509,16 @@ onMounted(() => {
   font-size: 14px;
   text-align: center;
 }
+
 .reset-warning p {
   margin: 8px 0;
 }
+
 .reset-warning .confirm-text {
   color: #f87171;
   font-size: 16px;
 }
+
 .reset-error {
   margin-top: 12px;
   color: #ef4444;
@@ -1434,10 +1537,12 @@ onMounted(() => {
   gap: 16px;
   color: #94a3b8;
 }
+
 .error-placeholder {
   flex-direction: row;
   flex-wrap: wrap;
 }
+
 .loading-spinner {
   width: 32px;
   height: 32px;
@@ -1446,8 +1551,11 @@ onMounted(() => {
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
+
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .retry-btn {
@@ -1459,6 +1567,7 @@ onMounted(() => {
   cursor: pointer;
   font-size: 13px;
 }
+
 .retry-btn:hover {
   background: rgba(34, 211, 238, 0.3);
 }
@@ -1475,39 +1584,108 @@ onMounted(() => {
   .outer-frame {
     padding: 15px 20px;
   }
-  .table-header, .table-row {
+
+  .table-header,
+  .table-row {
     grid-template-columns: 1fr 0.5fr 1fr 0.7fr 1.2fr;
     gap: 8px;
     padding: 10px 12px;
   }
-  .cell { font-size: 11px; }
-  .borrow-photo { width: 32px; height: 32px; }
-  .config-grid { grid-template-columns: 1fr; }
-  .config-value { min-width: 80px; font-size: 12px; }
-  .countdown-display { padding: 6px 12px; font-size: 12px; }
-  .countdown-time { font-size: 14px; }
-  .temp-header, .temp-row { grid-template-columns: 1.5fr 0.8fr 0.8fr; gap: 8px; }
+
+  .cell {
+    font-size: 11px;
+  }
+
+  .borrow-photo {
+    width: 32px;
+    height: 32px;
+  }
+
+  .config-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .config-value {
+    min-width: 80px;
+    font-size: 12px;
+  }
+
+  .countdown-display {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .countdown-time {
+    font-size: 14px;
+  }
+
+  .temp-header,
+  .temp-row {
+    grid-template-columns: 1.5fr 0.8fr 0.8fr;
+    gap: 8px;
+  }
 }
 
 @media (max-width: 700px) {
   .outer-frame {
     padding: 12px 16px;
   }
-  .settings-title { font-size: 20px; }
-  .placeholder { width: 60px; }
-  .stats-row { gap: 12px; }
-  .stat-value { font-size: 28px; }
-  .toast-message { white-space: normal; text-align: center; max-width: 80vw; }
-  .table-header, .table-row {
+
+  .settings-title {
+    font-size: 20px;
+  }
+
+  .placeholder {
+    width: 60px;
+  }
+
+  .stats-row {
+    gap: 12px;
+  }
+
+  .stat-value {
+    font-size: 28px;
+  }
+
+  .toast-message {
+    white-space: normal;
+    text-align: center;
+    max-width: 80vw;
+  }
+
+  .table-header,
+  .table-row {
     grid-template-columns: 0.8fr 0.5fr 0.9fr 0.6fr 1fr;
     gap: 6px;
   }
-  .cabinet, .tool { font-size: 10px; }
-  .config-item { flex-wrap: wrap; gap: 8px; }
-  .config-label { min-width: 100px; }
-  .countdown-display { padding: 4px 10px; }
-  .countdown-text { display: none; }
-  .temp-header, .temp-row { grid-template-columns: 1.2fr 0.7fr 0.7fr; gap: 6px; }
+
+  .cabinet,
+  .tool {
+    font-size: 10px;
+  }
+
+  .config-item {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .config-label {
+    min-width: 100px;
+  }
+
+  .countdown-display {
+    padding: 4px 10px;
+  }
+
+  .countdown-text {
+    display: none;
+  }
+
+  .temp-header,
+  .temp-row {
+    grid-template-columns: 1.2fr 0.7fr 0.7fr;
+    gap: 6px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1515,8 +1693,17 @@ onMounted(() => {
     flex-direction: column;
     gap: 12px;
   }
-  .placeholder { display: none; }
-  .back-btn { align-self: flex-start; }
-  .countdown-display { align-self: flex-end; }
+
+  .placeholder {
+    display: none;
+  }
+
+  .back-btn {
+    align-self: flex-start;
+  }
+
+  .countdown-display {
+    align-self: flex-end;
+  }
 }
 </style>

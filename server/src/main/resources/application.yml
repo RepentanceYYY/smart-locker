@@ -28,7 +28,7 @@ baidu-face-config:
 # 百度人脸检测阈值配置
 face-threshold-config:
   live-score-min: 0.3
-  mouth-close-score-min: 0.9
+  mouth-close-score-min: 0.8
   eye-close-max: 0.1
   blur-max: 0.2
   similarity: 80.0

@@ -18,7 +18,7 @@ public class FaceThresholdConfig {
     /**
      * 最低嘴巴闭合置信度
      */
-    private float mouthCloseScoreMin = 0.9f;
+    private float mouthCloseScoreMin = 0.8f;
     /**
      * 最高闭眼置信度
      */
@@ -26,7 +26,7 @@ public class FaceThresholdConfig {
     /**
      * 最高模糊置信度
      */
-    private float blurMax = 0.2f;
+    private float blurMax = 0.25f;
     /**
      * 人脸识别最低相似度
      */

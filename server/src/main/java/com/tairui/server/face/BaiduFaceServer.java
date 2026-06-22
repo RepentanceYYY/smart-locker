@@ -169,13 +169,14 @@ public class BaiduFaceServer implements IFaceServer {
 
                 // 嘴巴闭合检测
                 float[] mouthCloseScore = Face.faceMouthClose(rgbMatAddr);
+                log.debug("请闭合嘴巴检测结果:{}", objectMapper.writeValueAsString(mouthCloseScore));
                 if (mouthCloseScore[0] < faceThresholdConfig.getMouthCloseScoreMin()) {
                     return WsResponse.fail(wsRequest.getAction(), 404, "请闭合嘴巴");
                 }
 
                 // 眼睛闭合检测
-                System.out.println("获取眼睛闭合参数");
                 EyeClose[] eyeCloses = Face.faceEyeClose(rgbMatAddr);
+                log.debug("眼睛闭合检测结果:{}", objectMapper.writeValueAsString(eyeCloses));
                 if (eyeCloses == null || eyeCloses.length < 1) {
                     return WsResponse.fail(wsRequest.getAction(), 404, "请睁开眼睛");
                 }
@@ -185,8 +186,8 @@ public class BaiduFaceServer implements IFaceServer {
                 }
 
                 // 人脸模糊度检测
-                System.out.println("获取人脸模糊度");
                 float[] blurList = Face.faceBlur(rgbMatAddr);
+                log.debug("人脸模糊度检测检测结果:{}", objectMapper.writeValueAsString(blurList));
                 if (blurList == null || blurList.length == 0) {
                     return WsResponse.fail(wsRequest.getAction(), 404, "请保持人脸在画面中");
                 }
@@ -197,8 +198,8 @@ public class BaiduFaceServer implements IFaceServer {
                 if (Boolean.TRUE.equals(faceImage.getSilentLivenessEnabled())) {
                     long irMatAddr = irMat.getNativeObjAddr();
                     LivenessInfo[] livenessInfos = Face.nirLiveness(irMatAddr);
-                    if(livenessInfos == null){
-                        return WsResponse.fail(wsRequest.getAction(), 404,"检测到非活体");
+                    if (livenessInfos == null) {
+                        return WsResponse.fail(wsRequest.getAction(), 404, "检测到非活体");
                     }
                     for (int i = 0; i < livenessInfos.length; i++) {
                         if (livenessInfos[i].livescore < faceThresholdConfig.getLiveScoreMin()) {
@@ -261,13 +262,13 @@ public class BaiduFaceServer implements IFaceServer {
     public WsResponse activate(WsRequest wsRequest) throws Exception {
         String baiduFaceLicenseKey = objectMapper.convertValue(wsRequest.getData(), String.class);
         if (!StringUtils.hasText(baiduFaceLicenseKey)) {
-            return WsResponse.fail(wsRequest.getAction(), 400, "未传输授权码，无法授权百度人脸");
+            return WsResponse.fail(wsRequest.getAction(), 400, "未传输授权码，无法授权人脸");
         }
         this.destroy();
         synchronized (SDK_NATIVE_LOCK) {
             List<SystemConfig> systemConfigs = systemConfigMapper.selectList(null);
             if (systemConfigs.isEmpty()) {
-                return WsResponse.fail(wsRequest.getAction(), 500, "系统配置表没有数据，无法授权百度人脸");
+                return WsResponse.fail(wsRequest.getAction(), 500, "系统配置表没有数据，无法授权人脸");
             }
             // 更新数据库
             SystemConfig systemConfig = systemConfigs.get(0);
@@ -299,9 +300,9 @@ public class BaiduFaceServer implements IFaceServer {
             this.load();
 
             if (sdkInitCode == 0) {
-                return WsResponse.success(wsRequest.getAction(), "百度人脸授权成功", null);
+                return WsResponse.success(wsRequest.getAction(), "人脸授权成功", null);
             } else {
-                return WsResponse.fail(wsRequest.getAction(), 500, "百度人脸授权失败，原因：" + getErrorText(sdkInitCode));
+                return WsResponse.fail(wsRequest.getAction(), 500, "由于" + getErrorText(sdkInitCode) + "人脸授权失败，但授权码已保存");
             }
         }
 
@@ -310,7 +311,7 @@ public class BaiduFaceServer implements IFaceServer {
     @Override
     public WsResponse getActivationStatus(WsRequest wsRequest) throws Exception {
         if (sdkInitCode == 0) {
-            return WsResponse.success(wsRequest.getAction(), "百度人脸已授权", null);
+            return WsResponse.success(wsRequest.getAction(), "人脸已授权", null);
         } else {
             return WsResponse.fail(wsRequest.getAction(), 500, getErrorText(sdkInitCode));
         }
