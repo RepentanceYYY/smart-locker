@@ -133,7 +133,7 @@ public class FaceWebSocketHandler extends TextWebSocketHandler {
             session.sendMessage(new TextMessage(objectMapper.writeValueAsString(WsResponse.fail(wsRequest.getAction(), 400, "RGB图片帧未传输"))));
             return;
         }
-        if (Boolean.TRUE.equals(faceImage.getSilentLivenessEnabled()) && StringUtils.hasText(faceImage.getIrBase64())) {
+        if (Boolean.TRUE.equals(faceImage.getSilentLivenessEnabled()) && !StringUtils.hasText(faceImage.getIrBase64())) {
             session.sendMessage(new TextMessage(objectMapper.writeValueAsString(WsResponse.fail(wsRequest.getAction(), 400, "当前已启动活体检测，但未传输IrBase64"))));
             return;
         }

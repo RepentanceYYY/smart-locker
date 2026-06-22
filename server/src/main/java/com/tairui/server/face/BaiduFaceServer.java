@@ -85,25 +85,46 @@ public class BaiduFaceServer implements IFaceServer {
 
         FaceImage faceImage = objectMapper.convertValue(wsRequest.getData(), FaceImage.class);
         String rgbBase64 = faceImage.getRgbBase64();
+        String irBase64 = faceImage.getIrBase64();
 
         synchronized (SDK_NATIVE_LOCK) {
-
+            // RGB
             MatOfByte rgbMatOfByte = null;
             Mat rgbRawMat = null;
             Mat rgbMat = null;
+            // IR
+            MatOfByte irMatOfByte = null;
+            Mat irRawMat = null;
+            Mat irMat = null;
 
             try {
                 if (sdkInitCode != 0) {
                     return WsResponse.fail(wsRequest.getAction(), 506, getErrorText(sdkInitCode));
                 }
-                if (rgbBase64 != null && rgbBase64.startsWith("data:image")) {
+                if (StringUtils.hasText(rgbBase64) && rgbBase64.startsWith("data:image")) {
                     rgbBase64 = rgbBase64.substring(rgbBase64.indexOf(",") + 1);
+                }
+                if (StringUtils.hasText(irBase64) && irBase64.startsWith("data:image")) {
+                    irBase64 = irBase64.substring(irBase64.indexOf(",") + 1);
                 }
 
                 byte[] rgbBytes = Base64.getDecoder().decode(rgbBase64);
 
+
+                if (Boolean.TRUE.equals(faceImage.getSilentLivenessEnabled())) {
+                    if (!StringUtils.hasText(irBase64)) {
+                        return WsResponse.fail(wsRequest.getAction(), 400, "已启动活体检测但未传递图片帧，请检查设备连接");
+                    }
+                    byte[] irBytes = Base64.getDecoder().decode(irBase64);
+                    irMatOfByte = new MatOfByte(irBytes);
+                    irRawMat = Imgcodecs.imdecode(irMatOfByte, Imgcodecs.IMREAD_COLOR);
+                    irMat = irRawMat.clone();
+                }
+
+
                 rgbMatOfByte = new MatOfByte(rgbBytes);
                 rgbRawMat = Imgcodecs.imdecode(rgbMatOfByte, Imgcodecs.IMREAD_COLOR);
+
 
                 if (rgbRawMat == null || rgbRawMat.empty()) {
                     return WsResponse.fail(wsRequest.getAction(), 400, "图片帧格式错误，OpenCV 无法解析该图片字节流");
@@ -173,14 +194,17 @@ public class BaiduFaceServer implements IFaceServer {
                     return WsResponse.fail(wsRequest.getAction(), 404, "人脸太模糊");
                 }
 
-                LivenessInfo[] liveInfos = Face.rgbLiveness(rgbMatAddr);
-                if (liveInfos == null || liveInfos.length == 0 || liveInfos[0].box == null) {
-                    return WsResponse.fail(wsRequest.getAction(), 404, "未检测到人脸");
-                }
-
-                float liveScore = liveInfos[0].livescore;
-                if (liveScore < faceThresholdConfig.getLiveScoreMin()) {
-                    return WsResponse.fail(wsRequest.getAction(), 404, String.format("检测到非活体,%.3f", liveScore));
+                if (Boolean.TRUE.equals(faceImage.getSilentLivenessEnabled())) {
+                    long irMatAddr = irMat.getNativeObjAddr();
+                    LivenessInfo[] livenessInfos = Face.nirLiveness(irMatAddr);
+                    if(livenessInfos == null){
+                        return WsResponse.fail(wsRequest.getAction(), 404,"检测到非活体");
+                    }
+                    for (int i = 0; i < livenessInfos.length; i++) {
+                        if (livenessInfos[i].livescore < faceThresholdConfig.getLiveScoreMin()) {
+                            return WsResponse.fail(wsRequest.getAction(), 404, String.format("检测到非活体,%.3f", livenessInfos[i].livescore));
+                        }
+                    }
                 }
                 Face.loadDbFace();
                 // 查询人脸是否已经注册
@@ -209,6 +233,17 @@ public class BaiduFaceServer implements IFaceServer {
                 FaceUserResponse faceUserInfo = objectMapper.readValue(userInfoJSON, FaceUserResponse.class);
                 if (faceUserInfo.getErrno() != 0) {
                     return WsResponse.fail(wsRequest.getAction(), 500, faceUserInfo.getMsg());
+                }
+                String faceUrl = faceUserInfo.getData().getResult().get(0).getUserInfo();
+                String fileName = java.nio.file.Paths.get(faceUrl).getFileName().toString();
+                File file = new File(uploadPath, fileName);
+                if (!file.exists()) {
+                    log.info("本地图片丢失，正在恢复：{}", file.getAbsolutePath());
+                    try {
+                        Files.write(file.toPath(), rgbBytes);
+                    } catch (IOException e) {
+                        return WsResponse.fail(wsRequest.getAction(), 500, "本地图片丢失后恢复失败，原因:" + e.getMessage());
+                    }
                 }
                 return WsResponse.success(wsRequest.getAction(), faceUserInfo.getData().getResult().get(0).getUserInfo());
             } catch (Exception e) {
