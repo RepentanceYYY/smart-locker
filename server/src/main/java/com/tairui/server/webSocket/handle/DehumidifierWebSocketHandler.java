@@ -1,4 +1,4 @@
-package com.tairui.server.webSocket;
+package com.tairui.server.webSocket.handle;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tairui.server.device.dehumidifier.ThData;

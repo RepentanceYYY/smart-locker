@@ -1,18 +1,17 @@
 package com.tairui.server.face;
 
-import java.util.Map;
+import com.tairui.server.webSocket.dto.WsRequest;
+import com.tairui.server.webSocket.dto.WsResponse;
 
 public interface IFaceServer {
 
-    public String faceDetect(FaceImage faceImage) throws Exception;
+    public WsResponse faceDetect(WsRequest wsRequest) throws Exception;
 
-    public void activate(String sdkKey)throws Exception;
+    public WsResponse activate(WsRequest wsRequest)throws Exception;
 
-    public void activate(String appId, String sdkKey)throws Exception;
+    public WsResponse getActivationStatus(WsRequest wsRequest)throws Exception;
 
-    public Map<String, String> getActivationStatus()throws Exception;
-
-    public String getBaiDuActivationStatus()throws Exception;
+    public WsResponse getBaiDuActivationStatus(WsRequest wsRequest)throws Exception;
 
     public void start()throws Exception;
 }

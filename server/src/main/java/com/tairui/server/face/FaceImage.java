@@ -12,4 +12,8 @@ public class FaceImage {
      * 红外base64
      */
     private String irBase64;
+    /**
+     * 是否启用了静默活体检测
+     */
+    private Boolean silentLivenessEnabled;
 }

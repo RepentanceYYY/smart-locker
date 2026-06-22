@@ -1,4 +1,4 @@
-package com.tairui.server.webSocket;
+package com.tairui.server.webSocket.handle;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tairui.server.deviceService.QianMingLockDeviceServiceManager;
@@ -7,22 +7,23 @@ import com.tairui.server.service.CabinetConfigService;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
+
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Component
 @Log4j2
-public class BorrowWebSocketHandler extends TextWebSocketHandler {
+public class ReturnWebSocketHandler extends TextWebSocketHandler {
+
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
 
@@ -114,8 +115,8 @@ public class BorrowWebSocketHandler extends TextWebSocketHandler {
          * 400 请求数据错误
          * 409 锁状态查询失败，后续不检测是否储物
          * 500 检测到未关锁 后续不检测是否储物
-         * 200 已关锁，没有物品
-         * 204 已关锁，有物品
+         * 200 已关锁，有物
+         * 204 已关锁，没有物品
          *
          */
 
@@ -142,7 +143,7 @@ public class BorrowWebSocketHandler extends TextWebSocketHandler {
             hasGoods = qianMingLockDeviceServiceManager.querySingleGoodsStatusSync(cellId, 3000L);
         } catch (Exception e) {
             e.printStackTrace();
-            hasGoods = true;
+            hasGoods = false;
         }
         String operationTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         if (hasGoods) {
@@ -151,18 +152,19 @@ public class BorrowWebSocketHandler extends TextWebSocketHandler {
                     "cabinetId", cabinetId,
                     "cellId", cellId,
                     "cellNumber", cellNumber,
-                    "toolName", toolName
+                    "toolName", toolName,
+                    "returnTime", operationTime
             );
-            sendResponse(session, "closeAndCheck", 204, "已关锁，检测到物品", result);
+            sendResponse(session, "closeAndCheck", 200, "已关锁，检测到物品", result);
         } else {
             Map<String, Object> result = Map.of(
                     "cabinetId", cabinetId,
                     "cellId", cellId,
                     "cellNumber", cellNumber,
                     "toolName", toolName,
-                    "borrowTime", operationTime
+                    "borrow", operationTime
             );
-            sendResponse(session, "closeAndCheck", 200, "已关锁，未检测到物品", result);
+            sendResponse(session, "closeAndCheck", 204, "已关锁，未检测到物品", result);
         }
     }
 
@@ -202,13 +204,15 @@ public class BorrowWebSocketHandler extends TextWebSocketHandler {
                     .filter(s -> s.matches("\\d+"))
                     .map(Integer::parseInt)
                     .collect(Collectors.toList());
-            Boolean allClosed = false;
-            try {
-                allClosed = qianMingLockDeviceServiceManager.isAllActiveCellsClosed(cabinet.getId(), macList);
+
+            Boolean allClosed;
+            try{
+                allClosed  = qianMingLockDeviceServiceManager.isAllActiveCellsClosed(cabinet.getId(), macList);
             } catch (Exception e) {
                 sendResponse(session, "checkAllLockStatus", 501, e.getMessage(), null);
                 return;
             }
+
             if (allClosed == false) {
                 allCabinetAllClosed = false;
             }
@@ -219,10 +223,6 @@ public class BorrowWebSocketHandler extends TextWebSocketHandler {
         } else {
             sendResponse(session, "checkAllLockStatus", 500, "部分锁未关闭", null);
         }
-    }
-
-    private void sendError(WebSocketSession session, String errorMsg) throws IOException {
-        sendResponse(session, "error", 500, errorMsg, null);
     }
 
     private String getToolNameByCell(Integer cabinetId, Integer cellId, String cellNumber) {
@@ -240,4 +240,13 @@ public class BorrowWebSocketHandler extends TextWebSocketHandler {
         session.sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
     }
 
+    private void sendError(WebSocketSession session, String errorMsg) throws IOException {
+        sendResponse(session, "error", 500, errorMsg, null);
+    }
+
+    @Override
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
+        sessions.remove(session.getId());
+        log.info("WebSocket 连接关闭: {}", session.getId());
+    }
 }

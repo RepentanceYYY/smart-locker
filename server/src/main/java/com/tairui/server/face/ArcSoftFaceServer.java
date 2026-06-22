@@ -1,5 +1,7 @@
 package com.tairui.server.face;
 
+import com.tairui.server.webSocket.dto.WsRequest;
+import com.tairui.server.webSocket.dto.WsResponse;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -11,28 +13,23 @@ import java.util.Map;
 @ConditionalOnProperty(name = "face-detect-provider", havingValue = "ArcSoft")
 public class ArcSoftFaceServer implements IFaceServer {
     @Override
-    public String faceDetect(FaceImage faceImage) throws Exception {
-        return "";
+    public WsResponse faceDetect(WsRequest wsRequest) throws Exception {
+        return WsResponse.success(wsRequest.getAction(),null);
     }
 
     @Override
-    public void activate(String sdkKey) throws Exception {
-
+    public WsResponse activate(WsRequest wsRequest) throws Exception {
+        return WsResponse.success(wsRequest.getAction(),null);
     }
 
     @Override
-    public void activate(String appId, String sdkKey) throws Exception {
-
+    public WsResponse getActivationStatus(WsRequest wsRequest) throws Exception {
+        return WsResponse.success(wsRequest.getAction(),null);
     }
 
     @Override
-    public Map<String, String> getActivationStatus() throws Exception {
-        return Map.of();
-    }
-
-    @Override
-    public String getBaiDuActivationStatus() throws Exception {
-        return "";
+    public WsResponse getBaiDuActivationStatus(WsRequest wsRequest) throws Exception {
+        return WsResponse.success(wsRequest.getAction(),null);
     }
 
     @Override

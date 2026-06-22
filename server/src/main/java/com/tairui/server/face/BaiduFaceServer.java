@@ -6,6 +6,8 @@ import com.jni.struct.FaceBox;
 import com.jni.struct.LivenessInfo;
 import com.tairui.server.entity.SystemConfig;
 import com.tairui.server.mapper.SystemConfigMapper;
+import com.tairui.server.webSocket.dto.WsRequest;
+import com.tairui.server.webSocket.dto.WsResponse;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.log4j.Log4j2;
 import org.opencv.core.Mat;
@@ -27,8 +29,8 @@ import java.util.*;
 @ConditionalOnProperty(name = "face-detect-provider", havingValue = "Baidu", matchIfMissing = true)
 public class BaiduFaceServer implements IFaceServer {
 
-    // 改为 volatile 确保多线程可见
     public static volatile Face api;
+
     private volatile int sdkInitCode = -1014;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -71,102 +73,119 @@ public class BaiduFaceServer implements IFaceServer {
     private static final Object SDK_NATIVE_LOCK = new Object();
 
     /**
-     * 人脸检测与比对（整个方法体由 SDK_NATIVE_LOCK 保护）
+     * 人脸检测识别和注册
      */
     @Override
-    public String faceDetect(FaceImage faceImage) throws Exception {
-        String frame = faceImage.getRgbBase64();
-        // 使用全局唯一锁，把整个 C++ 运算、矩阵解码、注册、比对全部锁死
-        synchronized (SDK_NATIVE_LOCK) {
-            log.info(">>>> 进入人脸检测方法，接收到 base64 长度: {}", frame != null ? frame.length() : "null");
+    public WsResponse faceDetect(WsRequest wsRequest) {
 
-            MatOfByte matOfByte = null;
-            Mat rawMat = null;
+        FaceImage faceImage = objectMapper.convertValue(wsRequest.getData(), FaceImage.class);
+        String rgbBase64 = faceImage.getRgbBase64();
+
+        synchronized (SDK_NATIVE_LOCK) {
+
+            MatOfByte rgbMatOfByte = null;
+            Mat rgbRawMat = null;
             Mat rgbMat = null;
 
             try {
                 if (sdkInitCode != 0) {
                     throw new IOException(getErrorText(sdkInitCode));
                 }
-                if (frame != null && frame.startsWith("data:image")) {
-                    frame = frame.substring(frame.indexOf(",") + 1);
+                if (rgbBase64 != null && rgbBase64.startsWith("data:image")) {
+                    rgbBase64 = rgbBase64.substring(rgbBase64.indexOf(",") + 1);
                 }
 
-                byte[] bytes = Base64.getDecoder().decode(frame);
-                log.info("Base64 解码成功，图片字节大小: {} bytes", bytes.length);
+                byte[] rgbBytes = Base64.getDecoder().decode(rgbBase64);
 
-                matOfByte = new MatOfByte(bytes);
-                rawMat = Imgcodecs.imdecode(matOfByte, Imgcodecs.IMREAD_COLOR);
+                rgbMatOfByte = new MatOfByte(rgbBytes);
+                rgbRawMat = Imgcodecs.imdecode(rgbMatOfByte, Imgcodecs.IMREAD_COLOR);
 
-                if (rawMat == null || rawMat.empty()) {
-                    throw new RuntimeException("图片帧格式错误，OpenCV 无法解析该图片字节流");
+                if (rgbRawMat == null || rgbRawMat.empty()) {
+                    return WsResponse.fail(wsRequest.getAction(), 400, "图片帧格式错误，OpenCV 无法解析该图片字节流");
                 }
 
                 rgbMat = new Mat();
-                org.opencv.imgproc.Imgproc.cvtColor(rawMat, rgbMat, org.opencv.imgproc.Imgproc.COLOR_BGR2RGB);
+                org.opencv.imgproc.Imgproc.cvtColor(rgbRawMat, rgbMat, org.opencv.imgproc.Imgproc.COLOR_BGR2RGB);
 
                 long rgbMatAddr = rgbMat.getNativeObjAddr();
                 if (rgbMatAddr == 0) {
-                    throw new RuntimeException("OpenCV Native 对象地址为 0，拒绝传递给 C++ 层");
+                    return WsResponse.fail(wsRequest.getAction(), 400, "OpenCV Native 对象地址为 0，拒绝传递给 C++ 层");
                 }
 
-                // 此时 mkldnn.dll 开始介入矩阵运算，这里已被死死锁住，绝不会有第二个线程进来
                 FaceBox[] faceBoxes = Face.detect(rgbMatAddr, RGB_DETECT);
 
                 if (faceBoxes == null || faceBoxes.length == 0) {
-                    throw new RuntimeException("未检测到人脸");
+                    return WsResponse.fail(wsRequest.getAction(), 404, "未检测到人脸");
                 }
                 if (faceBoxes.length > 1) {
-                    throw new RuntimeException("请保持画面只有一张人脸");
+                    return WsResponse.fail(wsRequest.getAction(), 404, "请保持画面只有一张人脸");
                 }
 
                 LivenessInfo[] liveInfos = Face.rgbLiveness(rgbMatAddr);
                 if (liveInfos == null || liveInfos.length == 0 || liveInfos[0].box == null) {
-                    throw new RuntimeException("未检测到人脸");
+                    return WsResponse.fail(wsRequest.getAction(), 404, "未检测到人脸");
                 }
 
                 float liveScore = liveInfos[0].livescore;
                 if (liveScore < faceThresholdConfig.getLiveScoreMin()) {
-                    throw new RuntimeException(String.format("检测到非活体,%.3f", liveScore));
+                    return WsResponse.fail(wsRequest.getAction(), 404, String.format("检测到非活体,%.3f", liveScore));
                 }
-
+                Face.loadDbFace();
                 String identifyResultJson = Face.identifyWithAllByMat(rgbMatAddr, LIFESTYLE_PHOTO);
                 FaceRecognitionReply reply = objectMapper.readValue(identifyResultJson, FaceRecognitionReply.class);
                 List<FaceRecognitionReply.FaceRecognitionData.FaceRecognitionResult> faceRecognitionResults = reply.getData().getResult();
 
                 // 人脸没有注册
                 if (faceRecognitionResults == null || faceRecognitionResults.size() < 1) {
-                    // 已经在锁内部，调用下面的注册方法是安全的
-                    return this.userAddByMat(bytes, rgbMatAddr);
+                    String url = this.userAddByMat(rgbBytes, rgbMatAddr);
+                    return WsResponse.success(wsRequest.getAction(), url);
                 }
-
+                // 拿到人脸相似度最高的用户
                 FaceRecognitionReply.FaceRecognitionData.FaceRecognitionResult best = faceRecognitionResults.stream()
                         .max(Comparator.comparingDouble(FaceRecognitionReply.FaceRecognitionData.FaceRecognitionResult::getScore))
                         .orElse(null);
 
                 // 找到相似人脸，但相似度太低
                 if (best.getScore() < faceThresholdConfig.getSimilarity()) {
-                    return this.userAddByMat(bytes, rgbMatAddr);
+                    String url = this.userAddByMat(rgbBytes, rgbMatAddr);
+                    return WsResponse.success(wsRequest.getAction(), url);
                 }
 
                 String userId = best.getUserId();
                 String userInfoJSON = Face.getUserInfo(userId, groupId);
-                FaceUserInfo faceUserInfo = objectMapper.readValue(userInfoJSON, FaceUserInfo.class);
-
-                return faceUserInfo.getData().getUserInfo();
+                FaceUserResponse faceUserInfo = objectMapper.readValue(userInfoJSON, FaceUserResponse.class);
+                if (faceUserInfo.getErrno() != 0) {
+                    return WsResponse.fail(wsRequest.getAction(), 500, faceUserInfo.getMsg());
+                }
+                return WsResponse.success(wsRequest.getAction(), faceUserInfo.getData().getResult().get(0).getUserInfo());
             } catch (Exception e) {
-                log.error("❌ faceDetect 内部异常: ", e);
+                log.error("faceDetect 内部异常: ", e);
                 throw new RuntimeException(e);
             } finally {
-                if (matOfByte != null) matOfByte.release();
-                if (rawMat != null) rawMat.release();
+                if (rgbMatOfByte != null) rgbMatOfByte.release();
+                if (rgbRawMat != null) rgbRawMat.release();
                 if (rgbMat != null) rgbMat.release();
             }
-        } // 锁释放点
+        }
+    }
+
+    @Override
+    public WsResponse activate(WsRequest wsRequest) throws Exception {
+        return WsResponse.success(wsRequest.getAction(), null);
+    }
+
+    @Override
+    public WsResponse getActivationStatus(WsRequest wsRequest) throws Exception {
+        return WsResponse.success(wsRequest.getAction(), null);
+    }
+
+    @Override
+    public WsResponse getBaiDuActivationStatus(WsRequest wsRequest) throws Exception {
+        return WsResponse.success(wsRequest.getAction(), null);
     }
 
     /**
-     * 注册方法同样使用代码块锁，防止被外部意外调用导致并发
+     * 注册用户
      */
     public String userAddByMat(byte[] frame, long rgbMatAddr) throws IOException {
         synchronized (SDK_NATIVE_LOCK) {
@@ -176,44 +195,11 @@ public class BaiduFaceServer implements IFaceServer {
             Files.write(path, frame);
             String url = accessPath + fileName;
 
-            // C++ 层的写入操作
-            Face.userAddByMat(rgbMatAddr, userId, groupId, url);
-
-            log.info("检测到新用户注册，刷新人脸库缓存...");
-            Face.loadDbFace();
+            // 注册人脸到百度人脸库
+            String userAddByMat = Face.userAddByMat(rgbMatAddr, userId, groupId, url);
+            log.info("人脸注册结果{}", userAddByMat);
 
             return url;
-        }
-    }
-
-    // ---------- 以下其他接口方法（目前空实现或简单返回），也统一加锁以防未来扩展 ----------
-    @Override
-    public void activate(String sdkKey) throws Exception {
-        // 若有实际 SDK 调用，请加锁
-        synchronized (SDK_NATIVE_LOCK) {
-            // 空实现
-        }
-    }
-
-    @Override
-    public void activate(String appId, String sdkKey) throws Exception {
-        synchronized (SDK_NATIVE_LOCK) {
-            // 空实现
-        }
-    }
-
-    @Override
-    public Map<String, String> getActivationStatus() throws Exception {
-        synchronized (SDK_NATIVE_LOCK) {
-            // 空实现
-            return Map.of();
-        }
-    }
-
-    @Override
-    public String getBaiDuActivationStatus() throws Exception {
-        synchronized (SDK_NATIVE_LOCK) {
-            return "";
         }
     }
 
@@ -279,7 +265,7 @@ public class BaiduFaceServer implements IFaceServer {
         synchronized (SDK_NATIVE_LOCK) {
             if (api == null) return;
             api.sdkDestroy();
-            api = null;  // 避免重复销毁
+            api = null;
             log.info("SDK已卸载");
         }
     }
