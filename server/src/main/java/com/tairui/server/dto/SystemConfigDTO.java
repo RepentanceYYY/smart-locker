@@ -22,4 +22,8 @@ public class SystemConfigDTO {
     private Integer tempHumidityLogInterval;
 
     private Integer enableFaceCapture;
+
+    private String silentLivenessEnabled;
+
+    private String baiduFaceLicenseKey;
 }

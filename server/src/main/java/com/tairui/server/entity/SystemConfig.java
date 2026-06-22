@@ -86,5 +86,15 @@ public class SystemConfig implements Serializable {
     @TableField("enable_face_capture")
     private Integer enableFaceCapture;
 
+    /**
+     * 是否启动红外活体检测：0-关闭，1-开启';
+     */
+    @TableField("silent_liveness_enabled")
+    private String silentLivenessEnabled;
 
+    /**
+     * 百度人脸离线SDK授权码
+     */
+    @TableField("baidu_face_license_key")
+    private String baiduFaceLicenseKey;
 }
