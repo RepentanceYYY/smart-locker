@@ -10,6 +10,8 @@ export interface SystemConfig {
     autoReturnTimeoutMinutes: number
     tempHumidityLogInterval: number
     enableFaceCapture: number   // 0-关闭，1-开启
+    silentLivenessEnabled:number 
+    baiduFaceLicenseKey:string 
 }
 
 export async function fetchSystemConfig(): Promise<SystemConfig> {

@@ -1,5 +1,12 @@
 <template>
   <div class="home-container">
+    <!-- 通知列表 -->
+    <div class="notification-container">
+      <div v-for="notify in notifications" :key="notify.id" class="notification" :class="notify.type">
+        {{ notify.text }}
+      </div>
+    </div>
+    
     <!-- 加载状态 -->
     <div v-if="loading" class="loading-mask">
       <div class="loading-spinner"></div>
@@ -24,7 +31,7 @@
           </div>
           <div class="header-right">
             <div class="time-wrapper">
-              <img src="/计时器.svg" alt="时间Logo" class="time-icon" />
+              <span class="time-icon">⏱️</span>
               <span class="header-time">{{ currentTime }}</span>
             </div>
           </div>
@@ -161,7 +168,7 @@
     </div>
 
     <!-- 相机弹窗 -->
-    <CameraModal v-model:visible="showCameraModal" :isBorrow="isBorrowMode" @confirm="handlePhotoConfirm" />
+    <CameraModal v-model:visible="showCameraModal" :isBorrow="isBorrowMode" @confirm="handlePhotoConfirm" @notify="addNotification" />
 
     <InventoryDialog :visible="showInventoryDialog" :inventoryResult="inventoryDialogResult"
                      @close="closeInventoryDialog" @cancel="closeInventoryDialog" @confirm="closeInventoryDialog" />
@@ -670,9 +677,13 @@ function connectWebSocket() {
     console.error('WebSocket 错误', error)
     addNotification('与服务器连接异常，请刷新页面重试', 'warning')
   }
-  socket.onclose = () => {
-    console.log('WebSocket 连接关闭')
+  socket.onclose = (event) => {
+    console.log('WebSocket 连接关闭', event.code, event.reason)
     wsConnected.value = false
+    // // 如果是因为相机打开失败或连接问题导致的关闭（code 1006 表示异常关闭）
+    // if (event.code === 1006 || event.code === 1011) {
+    //   addNotification('相机打开失败或连接异常，请检查设备后重试', 'warning')
+    // }
     if (allowReconnect) {
       setTimeout(() => connectWebSocket(), 3000)
     }
@@ -681,7 +692,11 @@ function connectWebSocket() {
 
 function sendMessage(type: string, data: any) {
   if (!socket || socket.readyState !== WebSocket.OPEN) {
-    addNotification('网络连接异常，请稍后重试', 'warning')
+    if (type === 'inventory') {
+      addNotification('相机服务未连接，请检查相机设备是否正常', 'warning')
+    } else {
+      addNotification('网络连接异常，请稍后重试', 'warning')
+    }
     return false
   }
   socket.send(JSON.stringify({ type, data }))
@@ -1665,6 +1680,54 @@ body,
 }
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* ========== 通知列表样式 ========== */
+.notification-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10001;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 350px;
+  pointer-events: none;
+}
+
+.notification {
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  animation: slideInRight 0.3s ease;
+  pointer-events: auto;
+}
+
+.notification.info,
+.notification.success {
+  background: rgba(34, 211, 238, 0.15);
+  color: #22d3ee;
+  border: 1px solid rgba(34, 211, 238, 0.4);
+}
+
+.notification.warning {
+  background: rgba(248, 113, 113, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 /* ---------- 响应式 ---------- */

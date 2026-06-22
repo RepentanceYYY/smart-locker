@@ -4,11 +4,11 @@
       <div class="camera-header">
         <div class="header-info">
           <h3>{{ isBorrow ? '领用登记' : '归还登记' }}</h3>
-          
-          <label class="anti-spoofing-toggle" style="margin-left: 15px; font-size: 13px; display: flex; align-items: center; gap: 4px; cursor: pointer; color: #666;">
-            <input type="checkbox" v-model="useAntiSpoofing" :disabled="isStreaming" />
+          <!-- <label class="anti-spoofing-toggle"
+            style="margin-left: 15px; font-size: 13px; display: flex; align-items: center; gap: 4px; color: #666;">
+            <input type="checkbox" :checked="useAntiSpoofing" disabled />
             <span>开启活体检测(红外双目)</span>
-          </label>
+          </label> -->
 
           <div class="timer-badge" :class="{ 'time-warning': cameraSecondsLeft <= 5 }">
             <svg class="timer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -28,32 +28,13 @@
 
       <div class="camera-body">
         <div class="video-wrapper" :class="{ 'has-photo': capturedImage }">
-          <video
-            v-if="!capturedImage"
-            ref="videoRef"
-            class="video-preview"
-            autoplay
-            playsinline
-            muted
-            @loadedmetadata="onVideoLoaded"
-            @canplay="onVideoCanPlay"
-          ></video>
-          
-          <video
-            v-if="!capturedImage && useAntiSpoofing"
-            ref="irVideoRef"
-            style="display: none;"
-            autoplay
-            playsinline
-            muted
-          ></video>
+          <video v-if="!capturedImage" ref="videoRef" class="video-preview" autoplay playsinline muted
+            @loadedmetadata="onVideoLoaded" @canplay="onVideoCanPlay"></video>
 
-          <img
-            v-else
-            :src="formatImageUrl(capturedImage)"
-            class="captured-preview"
-            alt="拍摄的照片"
-          />
+          <video v-if="!capturedImage && useAntiSpoofing" ref="irVideoRef" style="display: none;" autoplay playsinline
+            muted></video>
+
+          <img v-else :src="formatImageUrl(capturedImage)" class="captured-preview" alt="拍摄的照片" />
 
           <div v-if="!capturedImage" class="scan-frame">
             <div class="corner top-left"></div>
@@ -69,18 +50,11 @@
         </div>
 
         <div class="camera-actions">
-          <button
-            v-if="!capturedImage"
-            class="capture-btn"
-            :class="{ 'btn-disabled': !isCameraReady }"
-            :disabled="!isCameraReady"
-            @click="capturePhoto"
-          >
-            <div class="capture-ring">
-              <span class="capture-inner"></span>
-            </div>
-            <span>{{ isCameraReady ? '拍照' : '相机启动中...' }}</span>
-          </button>
+          <div v-if="!capturedImage" class="auto-scan-tip">
+            <div v-if="isProcessing" class="scan-loading-effect">正在识别人脸...</div>
+            <div v-else-if="isCameraReady" class="scan-searching-effect">正在自动寻焦...</div>
+          </div>
+          
           <div v-else class="capture-actions">
             <button class="recapture-btn" @click="resetCapture">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -90,7 +64,7 @@
               </svg>
               <span>重拍</span>
             </button>
-            <button class="confirm-btn" @click="confirmPhoto">
+            <button v-if="isShowButton" class="confirm-btn" @click="confirmPhoto">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <polyline points="20 6 9 17 4 12" />
               </svg>
@@ -99,13 +73,13 @@
           </div>
         </div>
 
-        <div class="camera-tip">
+        <div class="camera-tip" :class="{ 'tip-error': wsErrorMessage }">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10" />
             <line x1="12" y1="8" x2="12" y2="16" />
             <line x1="8" y1="12" x2="16" y2="12" />
           </svg>
-          <span>{{ useAntiSpoofing ? '双目活体检测已开启，请正对相机' : '请将人脸对准相机，保持光线充足' }}</span>
+          <span>{{ wsErrorMessage || (useAntiSpoofing ? '双目活体检测已开启，请正对相机' : '请将人脸对准相机，保持光线充足') }}</span>
         </div>
       </div>
     </div>
@@ -116,10 +90,11 @@
 import { ref, onBeforeUnmount, watch, computed, nextTick, onMounted } from 'vue'
 import { useCountdown } from '@/composables/useCountdown'
 import { formatImageUrl } from '@/utils/fileUtils'
+import { useSystemConfigStore } from '@/stores/systemConfig'
 
 interface Props {
   visible: boolean
-  isBorrow: boolean // true: 领用, false: 归还
+  isBorrow: boolean 
 }
 
 const props = defineProps<Props>()
@@ -127,33 +102,44 @@ const emit = defineEmits<{
   (e: 'update:visible', value: boolean): void
   (e: 'confirm', imageData: string): void
   (e: 'close'): void
+  (e: 'notify', text: string, type: 'info' | 'success' | 'warning'): void
 }>()
 
 // --- DOM 引用 ---
 const videoRef = ref<HTMLVideoElement | null>(null)
-const irVideoRef = ref<HTMLVideoElement | null>(null) // 红外隐藏预览引用
+const irVideoRef = ref<HTMLVideoElement | null>(null) 
 
-// --- 控制变量与状态 ---
-const useAntiSpoofing = ref<boolean>(true) // ⭐ 是否启动活体检测变量（默认开启，可供你随业务控制）
+// 系统配置
+const systemConfigStore = useSystemConfigStore()
+
+const useAntiSpoofing = computed(() => {
+  return Number(systemConfigStore.silentLivenessEnabled) === 1
+})
 const isCameraReady = ref<boolean>(false)
 const isStreaming = ref<boolean>(false)
 const capturedImage = ref<string>('')
 let isCameraStarting = ref<boolean>(false)
 let checkReadyInterval: number | null = null
 let isResettingCamera = ref<boolean>(false)
+const isShowButton = ref(true)
+
+// ==================== ✨ 【核心重构：流控锁与防内存泄漏定时器】 ====================
+const isProcessing = ref<boolean>(false)      // 真正涉及核心接口往返的排他主锁
+let autoCaptureTimeout: number | null = null   // 严格保有的全局唯一自动抓拍定时器句柄
 
 // --- 摄像头多路流与设备管理 ---
-let stream: MediaStream | null = null   // RGB 视频流
-let irStream: MediaStream | null = null // IR 视频流
+let stream: MediaStream | null = null   
+let irStream: MediaStream | null = null 
 const videoDevices = ref<MediaDeviceInfo[]>([])
 const selectedRgbId = ref<string>('')
 const selectedIrId = ref<string>('')
 
 // --- WebSocket 变量定义 ---
 let ws: WebSocket | null = null
-const wsUrl = 'ws://localhost:8081/ws'
+const wsUrl = 'ws://localhost:8080/ws/face'
+const wsErrorMessage = ref<string>('')
 
-// 使用通用倒计时
+// 倒计时
 const {
   secondsLeft: cameraSecondsLeft,
   stop: stopTimer,
@@ -172,7 +158,6 @@ const {
   }
 })
 
-// 格式化时间显示
 const formattedTime = computed(() => {
   const mins = Math.floor(cameraSecondsLeft.value / 60)
   const secs = cameraSecondsLeft.value % 60
@@ -180,32 +165,33 @@ const formattedTime = computed(() => {
 })
 
 /**
- * 设备检测与分类检测 (引入优先级策略)
+ * 设备检测与分类
  */
 const loadDeviceList = async () => {
   try {
-    // 唤起权限，用完立刻关闭
     const tempStream = await navigator.mediaDevices.getUserMedia({ video: true })
     tempStream.getTracks().forEach(track => track.stop())
 
     const devices = await navigator.mediaDevices.enumerateDevices()
-    // 过滤出所有摄像头
     const allCameras = devices.filter(device => device.kind === 'videoinput')
     videoDevices.value = allCameras
-    
+
     if (allCameras.length === 0) {
       console.warn('未检测到任何摄像头设备')
       return
     }
 
-    // 重置选择
     selectedRgbId.value = ''
     selectedIrId.value = ''
 
-    // 分类阶段：根据特征显性归类
-    const bothPool:any = [] // 同时带 IR 和 RGB 特征的设备
-    const irPool:any = []   // 纯 IR 特征的设备
-    const rgbPool:any = []  // 纯 RGB 特征的设备
+    if (!useAntiSpoofing.value) {
+      selectedRgbId.value = allCameras[0].deviceId
+      return
+    }
+
+    const bothPool: any = [] 
+    const irPool: any = []   
+    const rgbPool: any = []  
 
     allCameras.forEach(device => {
       const label = device.label.toLowerCase()
@@ -221,60 +207,36 @@ const loadDeviceList = async () => {
       }
     })
 
-    // ==========================================
-    // 选拔阶段：按优先级填充 selectedRgbId 和 selectedIrId
-    // ==========================================
-    
-    // 【最高优先级】优先从“同时具备 IR 和 RGB”的池子里挑（比如某些高质量双目融合摄像头）
-    // 如果存在多个这种设备，我们把第一个给 RGB，第二个给 IR（或者视业务而定）
     if (bothPool.length > 0) {
       selectedRgbId.value = bothPool[0].deviceId
-      if (bothPool[1]) {
-        selectedIrId.value = bothPool[1].deviceId
-      } else {
-        // 如果只有一台双目一体机，它可能在同一个 ID 下，也可能需要和常规池配合，先占个位
-        selectedIrId.value = bothPool[0].deviceId 
-      }
+      selectedIrId.value = bothPool[1] ? bothPool[1].deviceId : bothPool[0].deviceId
     }
 
-    // 【常规优先级】如果刚才最高优先级没填满，用单模精准池补充
-    if (!selectedRgbId.value && rgbPool.length > 0) {
-      selectedRgbId.value = rgbPool[0].deviceId
-    }
-    if (!selectedIrId.value && irPool.length > 0) {
-      selectedIrId.value = irPool[0].deviceId
-    }
+    if (!selectedRgbId.value && rgbPool.length > 0) selectedRgbId.value = rgbPool[0].deviceId
+    if (!selectedIrId.value && irPool.length > 0) selectedIrId.value = irPool[0].deviceId
 
-    // ==========================================
-    // 3. 兜底阶段：物理索引盲切与交叉补偿
-    // ==========================================
-    // 如果两路都空（意味着所有摄像头的 Label 都没有任何特征词，比如都叫 "Camera"）
     if (!selectedRgbId.value && !selectedIrId.value) {
       if (allCameras[0]) selectedRgbId.value = allCameras[0].deviceId
-      if (allCameras[1]) {
-        selectedIrId.value = allCameras[1].deviceId
-      } else if (allCameras[0]) {
-        selectedIrId.value = allCameras[0].deviceId
-      }
+      if (allCameras[1]) selectedIrId.value = allCameras[1].deviceId
     } else {
-      // 交叉补偿：如果只匹配到了其中一个，把剩下没被选中的物理设备分给另一个空的
       if (!selectedRgbId.value) {
         const remaining = allCameras.find(d => d.deviceId !== selectedIrId.value)
         if (remaining) selectedRgbId.value = remaining.deviceId
       }
       if (!selectedIrId.value) {
         const remaining = allCameras.find(d => d.deviceId !== selectedRgbId.value)
-        if (remaining) selectedIrId.value = remaining.deviceId
+        if (remaining) selectedRgbId.value = remaining.deviceId
       }
     }
-
     console.log(`设备分流结果 -> RGB ID: ${selectedRgbId.value}, IR ID: ${selectedIrId.value}`)
   } catch (err) {
     console.warn('获取多模摄像头设备列表失败:', err)
   }
 }
 
-// --- WebSocket 初始化与断开 ---
+/**
+ * WebSocket 初始化与业务响应控制
+ */
 function initWebSocket() {
   if (ws) closeWebSocket()
   console.log('正在连接 WebSocket...', wsUrl)
@@ -286,13 +248,46 @@ function initWebSocket() {
     try {
       const response = JSON.parse(event.data)
       console.log('收到 WebSocket 服务端响应:', response)
+      
+      // 收到响应，首先进入分发判断流程
       if (response.code === 200) {
-        console.log('人脸识别/注册成功，文件路径:', response.data)
+        // 🎯 解决 2：在这里确定设置且截取最后一帧，保证快照时机统一
+        if (videoRef.value && !capturedImage.value) {
+          const finalFrame = getFrameBase64(videoRef.value)
+          if (finalFrame) capturedImage.value = finalFrame
+        }
+        
+        console.log('人脸识别成功')
+        wsErrorMessage.value = '' 
+        isShowButton.value = true
+        isProcessing.value = false
+
+        // 成功后，立刻切断相机流
+        stopLiveStreaming()
+      } else if (response.code === 404) {
+        // 🎯 解决 3、4：提供更温和、精准的 UI 提示
+        console.warn('未识别到人脸或不匹配，准备重新自动捕获')
+        wsErrorMessage.value = response.message || '未检测到清晰人脸，请微调位置并正对镜头...'
+        
+        // 释放排他锁，并拉起下一次自动轮询抓拍
+        isProcessing.value = false
+        triggerAutoCaptureDelay()
       } else {
-        console.error('业务处理失败:', response.message)
+        // 【其它非 200/404 致命异常】
+        console.error('业务处理失败，严重异常错误:', response.message)
+        wsErrorMessage.value = response.message || '人脸识别失败'
+        isShowButton.value = false
+        isProcessing.value = false
+        
+        stopLiveStreaming()
+        emit('notify', wsErrorMessage.value, 'warning')
+        setTimeout(() => { close() }, 1500)
       }
     } catch (e) {
       console.error('解析 WebSocket 消息失败:', e, event.data)
+      wsErrorMessage.value = '人脸识别服务异常'
+      isProcessing.value = false
+      stopLiveStreaming()
     }
   }
 }
@@ -305,12 +300,35 @@ function closeWebSocket() {
   }
 }
 
-// 启动计时器判断
+// 🎯 解决 1：封装统一安全的延迟捕获注册方法
+function triggerAutoCaptureDelay() {
+  clearAutoCaptureTimeout() // 每次注册新定时器前，无条件清除老旧定时器
+  
+  // 严格的安全过滤：处于正常状态流、未拍下照片、未被锁、且弹窗确实可见
+  if (isCameraReady.value && !capturedImage.value && !isProcessing.value && props.visible) {
+    autoCaptureTimeout = window.setTimeout(() => {
+      autoCaptureFrame()
+    }, 2000) 
+  }
+}
+
+// 🎯 解决 5：资源彻底清理方法
+function clearAutoCaptureTimeout() {
+  if (autoCaptureTimeout) {
+    clearTimeout(autoCaptureTimeout)
+    autoCaptureTimeout = null
+  }
+}
+
+// 启动计时器
 function startTimerIfCameraReady() {
   if (isCameraReady.value && !capturedImage.value && !isCameraStarting.value && !isResettingCamera.value) {
     resetTimer()
     startTimer()
-    console.log('倒计时已启动，时长:', cameraSecondsLeft.value)
+    console.log('倒计时已启动')
+    
+    // 基础流就绪后，激活首次自动抓拍
+    triggerAutoCaptureDelay()
   }
 }
 
@@ -328,10 +346,8 @@ function startCheckReadyStatus() {
     if (videoRef.value && !capturedImage.value && !isResettingCamera.value) {
       const video = videoRef.value
       const irVideo = irVideoRef.value
-      
-      // 基础验证：RGB 必须就绪
+
       let isRgbReady = video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0
-      // 进阶验证：如果开启活体，IR 也必须就绪
       let isIrReady = !useAntiSpoofing.value || (irVideo && irVideo.readyState >= 2 && irVideo.videoWidth > 0 && irVideo.videoHeight > 0)
 
       if (isRgbReady && isIrReady) {
@@ -347,78 +363,57 @@ function startCheckReadyStatus() {
   }, 100)
 }
 
-function onVideoLoaded() {
-  startCheckReadyStatus()
-}
+function onVideoLoaded() { startCheckReadyStatus() }
+function onVideoCanPlay() { startCheckReadyStatus() }
 
-function onVideoCanPlay() {
-  startCheckReadyStatus()
-}
-
-async function updateCameraReadyStatus() {
-  return new Promise<void>((resolve) => {
-    startCheckReadyStatus()
-    setTimeout(() => {
-      resolve()
-    }, 1500)
-  })
-}
-
-// --- 初始化单路/双路相机（增加严格约束与降级） ---
+// --- 初始化单路/双路相机 ---
 async function initCamera() {
   try {
     isCameraReady.value = false
-    isCameraStarting.value = true // 标记正在启动中
+    isCameraStarting.value = true 
     isResettingCamera.value = false
     isStreaming.value = false
+    isProcessing.value = false
 
     stopTimer()
     resetTimer()
-    stopTimer()
     stopCheckReadyInterval()
+    clearAutoCaptureTimeout()
 
-    // 彻底释放旧的流媒体通道（关键：两路都要干净利落地释放）
-    if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
-    if (irStream) { irStream.getTracks().forEach(track => track.stop()); irStream = null; }
-    if (videoRef.value) videoRef.value.srcObject = null
-    if (irVideoRef.value) irVideoRef.value.srcObject = null
+    // 彻底释放旧的流媒体通道
+    releaseTracks()
 
-    // 重新校准设备列表
     await loadDeviceList()
 
     if (!selectedRgbId.value) {
       throw new Error('没有可用的可见光摄像头 ID')
     }
 
-    // 1. 启动 RGB 摄像头 (使用 exact 强制指定 ID，不让浏览器瞎选)
     const rgbConstraints: MediaStreamConstraints = {
-      video: { 
-        deviceId: { exact: selectedRgbId.value }, 
-        width: { ideal: 640 }, 
-        height: { ideal: 480 } 
+      video: {
+        deviceId: { exact: selectedRgbId.value },
+        width: { ideal: 640 },
+        height: { ideal: 480 }
       }
     }
     stream = await navigator.mediaDevices.getUserMedia(rgbConstraints)
     if (videoRef.value) videoRef.value.srcObject = stream
 
-    // 2. 只有开启活体检测，且明确拿到了不同的 IR ID 时，才启动红外
     if (useAntiSpoofing.value && selectedIrId.value && selectedIrId.value !== selectedRgbId.value) {
       try {
         const irConstraints: MediaStreamConstraints = {
-          video: { 
-            deviceId: { exact: selectedIrId.value }, 
-            width: { ideal: 640 }, 
-            height: { ideal: 480 } 
+          video: {
+            deviceId: { exact: selectedIrId.value },
+            width: { ideal: 640 },
+            height: { ideal: 480 }
           }
         }
         irStream = await navigator.mediaDevices.getUserMedia(irConstraints)
         await nextTick()
-        if (irVideoRef.value) {
-          irVideoRef.value.srcObject = irStream
-        }
+        if (irVideoRef.value) irVideoRef.value.srcObject = irStream
         console.log('红外 IR 隐藏流成功绑定')
       } catch (irErr) {
-        console.error('红外镜头独占打开失败(可能被其他应用占用):', irErr)
+        console.error('红外镜头打开失败:', irErr)
       }
     }
 
@@ -427,12 +422,12 @@ async function initCamera() {
   } catch (error) {
     isCameraStarting.value = false
     console.error('相机工作流初始化失败:', error)
-    alert('无法访问双目相机，请检查设备连接及浏览器权限允许')
+    emit('notify', '无法访问相机，请检查设备连接及浏览器权限允许', 'warning')
     close()
   }
 }
 
-// --- 辅助工具：提取 Canvas 帧的 Base64 ---
+// 提取 Canvas 帧的 Base64
 function getFrameBase64(videoElement: HTMLVideoElement | null): string | null {
   if (!videoElement || videoElement.readyState < 2 || videoElement.videoWidth === 0) return null
   const canvas = document.createElement('canvas')
@@ -444,61 +439,85 @@ function getFrameBase64(videoElement: HTMLVideoElement | null): string | null {
   return canvas.toDataURL('image/jpeg', 0.8)
 }
 
-// --- 拍照动作 ---
-const capturePhoto=()=> {
-  if (!isCameraReady.value || !videoRef.value) {
-    console.warn('摄像头流未全部就绪')
+/**
+ * 🎯 解决 6：并发抓拍边缘问题优化
+ */
+const autoCaptureFrame = () => {
+  // 严格执行防并发二次校验
+  if (isProcessing.value || !isCameraReady.value || !videoRef.value || capturedImage.value) {
     return
   }
 
-  // 1. 抓拍可见光图
-  const rgbBase64 = getFrameBase64(videoRef.value)
-  if (!rgbBase64) return
-  
-  capturedImage.value = rgbBase64
-  stopTimer()
-  stopCheckReadyInterval()
+  // 挂载发送状态排他锁
+  isProcessing.value = true
 
-  // 2. 如果启用了活体检测，同步抓取隐藏红外镜头的帧
+  // 1. 抓拍可见光
+  const rgbBase64 = getFrameBase64(videoRef.value)
+  if (!rgbBase64) {
+    isProcessing.value = false // 捕获失败立刻释放排他锁
+    triggerAutoCaptureDelay()  // 重新排队挂载下一次尝试
+    return
+  }
+
+  // 2. 双目活体红外流抓拍
   let irBase64: string | null = null
   if (useAntiSpoofing.value && irVideoRef.value) {
     irBase64 = getFrameBase64(irVideoRef.value)
   }
 
-  // 拍照后立刻彻底关闭并释放摄像头
-  if (stream) {
-    stream.getTracks().forEach(track => track.stop())
-    stream = null
-  }
-  if (irStream) {
-    irStream.getTracks().forEach(track => track.stop())
-    irStream = null
-  }
-  if (videoRef.value) videoRef.value.srcObject = null
-  if (irVideoRef.value) irVideoRef.value.srcObject = null
-  isCameraReady.value = false
-  isStreaming.value = false
-
-  // 构建统一消息结构体发送
+  // 发送消息到后端
   if (ws && ws.readyState === WebSocket.OPEN) {
     const payload = {
-      action: "registerFaceIfNotExist",
-      requestId: "1008613",
-      data: { rgbBase64, irBase64 }
+      action: "detectFace",
+      requestId: "10086",
+      data: {
+        rgbBase64, 
+        irBase64,
+        silentLivenessEnabled: useAntiSpoofing.value
+      }
     }
     ws.send(JSON.stringify(payload))
+    console.log('自动捕获人脸完成，已向后端发送报文')
+  } else {
+    isProcessing.value = false
+    console.warn('WebSocket 未处于开启状态，释放锁并取消本次请求')
   }
+}
+
+/**
+ * 提取抽离：人脸识别成功或发生严重异常时，彻底截断释放所有的视频流和后台轮询
+ */
+function stopLiveStreaming() {
+  stopTimer()
+  stopCheckReadyInterval()
+  clearAutoCaptureTimeout()
+  releaseTracks()
+  
+  isCameraReady.value = false
+  isStreaming.value = false
+}
+
+// 释放媒体流 Tracks
+function releaseTracks() {
+  if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
+  if (irStream) { irStream.getTracks().forEach(track => track.stop()); irStream = null; }
+  if (videoRef.value) videoRef.value.srcObject = null
+  if (irVideoRef.value) irVideoRef.value.srcObject = null
 }
 
 // 重置拍摄
 async function resetCapture() {
   isResettingCamera.value = true
+  isProcessing.value = false
   stopCheckReadyInterval()
+  clearAutoCaptureTimeout()
 
   capturedImage.value = ''
   isCameraReady.value = false
   isCameraStarting.value = false
   isStreaming.value = false
+  isShowButton.value = true 
+  wsErrorMessage.value = ''
 
   resetTimer()
   startTimer()
@@ -512,6 +531,7 @@ function confirmPhoto() {
   if (capturedImage.value) {
     stopTimer()
     stopCheckReadyInterval()
+    clearAutoCaptureTimeout()
     emit('confirm', capturedImage.value)
     close()
   }
@@ -520,12 +540,17 @@ function confirmPhoto() {
 function close() {
   stopTimer()
   stopCheckReadyInterval()
+  clearAutoCaptureTimeout()
   closeWebSocket()
+  releaseTracks()
+  
   capturedImage.value = ''
   isCameraReady.value = false
   isCameraStarting.value = false
   isResettingCamera.value = false
   isStreaming.value = false
+  isProcessing.value = false
+  wsErrorMessage.value = '' 
   emit('update:visible', false)
   emit('close')
 }
@@ -537,46 +562,44 @@ watch(() => props.visible, async (newVal, oldVal) => {
     isCameraReady.value = false
     isCameraStarting.value = false
     isResettingCamera.value = false
+    isProcessing.value = false
     stopCheckReadyInterval()
+    clearAutoCaptureTimeout()
 
     stopTimer()
     resetTimer()
-    stopTimer()
 
     initWebSocket()
     await initCamera()
   } else if (oldVal === true) {
     stopTimer()
     stopCheckReadyInterval()
+    clearAutoCaptureTimeout()
     closeWebSocket()
-    
-    if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
-    if (irStream) { irStream.getTracks().forEach(track => track.stop()); irStream = null; }
-    if (videoRef.value) videoRef.value.srcObject = null
-    if (irVideoRef.value) irVideoRef.value.srcObject = null
-    
+    releaseTracks()
+
     cleanupTimer()
     isCameraReady.value = false
     isStreaming.value = false
+    isProcessing.value = false
   }
 })
 
 onMounted(() => {
-  // 页面加载阶段可静默读取一次设备指纹
   loadDeviceList()
 })
 
 onBeforeUnmount(() => {
-  if (stream) stream.getTracks().forEach(track => track.stop())
-  if (irStream) irStream.getTracks().forEach(track => track.stop())
+  releaseTracks()
   stopCheckReadyInterval()
+  clearAutoCaptureTimeout()
   cleanupTimer()
   closeWebSocket()
 })
 </script>
 
 <style lang="css" scoped>
-/* 样式保持不变 */
+/* 原有样式保持不变 */
 .camera-overlay {
   position: fixed;
   top: 0;
@@ -766,87 +789,32 @@ onBeforeUnmount(() => {
   border-width: 0;
 }
 
-.top-left {
-  top: 20px;
-  left: 20px;
-  border-top-width: 3px;
-  border-left-width: 3px;
-}
-
-.top-right {
-  top: 20px;
-  right: 20px;
-  border-top-width: 3px;
-  border-right-width: 3px;
-}
-
-.bottom-left {
-  bottom: 20px;
-  left: 20px;
-  border-bottom-width: 3px;
-  border-left-width: 3px;
-}
-
-.bottom-right {
-  bottom: 20px;
-  right: 20px;
-  border-bottom-width: 3px;
-  border-right-width: 3px;
-}
+.top-left { top: 20px; left: 20px; border-top-width: 3px; border-left-width: 3px; }
+.top-right { top: 20px; right: 20px; border-top-width: 3px; border-right-width: 3px; }
+.bottom-left { bottom: 20px; left: 20px; border-bottom-width: 3px; border-left-width: 3px; }
+.bottom-right { bottom: 20px; right: 20px; border-bottom-width: 3px; border-right-width: 3px; }
 
 .camera-actions {
   display: flex;
   justify-content: center;
   margin-bottom: 20px;
+  min-height: 48px; /* 维持操作栏基础高度 */
 }
 
-.capture-btn {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  color: white;
-  font-size: 14px;
+/* 新增：自动检测时的动效提示样式 */
+.auto-scan-tip {
+  font-size: 15px;
   font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.capture-btn.btn-disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-.capture-ring {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
-  border: 1px solid rgba(255, 255, 255, 0.3);
 }
-
-.capture-inner {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #22d3ee, #3b82f6);
-  transition: all 0.2s ease;
+.scan-searching-effect {
+  color: #38bdf8;
 }
-
-.capture-btn:active .capture-ring {
-  transform: scale(0.92);
-  background: rgba(255, 255, 255, 0.25);
-}
-
-.capture-btn:active .capture-inner {
-  transform: scale(0.96);
+.scan-loading-effect {
+  color: #10b981;
+  animation: pulse 1s ease infinite;
 }
 
 .capture-actions {
@@ -901,31 +869,25 @@ onBeforeUnmount(() => {
   background: rgba(0, 0, 0, 0.3);
   border-radius: 40px;
   backdrop-filter: blur(4px);
+  transition: all 0.3s ease;
+}
+
+.camera-tip.tip-error {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.15);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  animation: shake 0.5s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
 }
 
 @media (max-width: 480px) {
-  .camera-container {
-    width: 92%;
-  }
-
-  .camera-body {
-    padding: 20px;
-  }
-
-  .capture-ring {
-    width: 64px;
-    height: 64px;
-  }
-
-  .capture-inner {
-    width: 52px;
-    height: 52px;
-  }
-
-  .recapture-btn,
-  .confirm-btn {
-    padding: 10px 22px;
-    font-size: 14px;
-  }
+  .camera-container { width: 92%; }
+  .camera-body { padding: 20px; }
+  .recapture-btn, .confirm-btn { padding: 10px 22px; font-size: 14px; }
 }
 </style>

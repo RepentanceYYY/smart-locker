@@ -14,7 +14,9 @@ export const useSystemConfigStore = defineStore('systemConfig', () => {
         borrowPeriod: '',
         autoReturnTimeoutMinutes: 5,
         tempHumidityLogInterval: 5,
-        enableFaceCapture: 0      // 默认关闭
+        enableFaceCapture: 0 ,     // 默认关闭
+        silentLivenessEnabled:0,
+        baiduFaceLicenseKey:''
     })
 
     const loaded = ref(false)
@@ -30,6 +32,8 @@ export const useSystemConfigStore = defineStore('systemConfig', () => {
     const autoReturnTimeoutMinutes = computed(() => config.value.autoReturnTimeoutMinutes)
     const tempHumidityLogInterval = computed(() => config.value.tempHumidityLogInterval)
     const enableFaceCapture = computed(() => config.value.enableFaceCapture)
+    const silentLivenessEnabled=computed(()=>config.value.silentLivenessEnabled)
+    const baiduFaceLicenseKey=computed(()=>config.value.baiduFaceLicenseKey)
 
     // 初始化加载配置（只调用一次）
     async function loadConfig() {
@@ -103,6 +107,8 @@ export const useSystemConfigStore = defineStore('systemConfig', () => {
         autoReturnTimeoutMinutes,
         tempHumidityLogInterval,
         enableFaceCapture,
+        silentLivenessEnabled,
+        baiduFaceLicenseKey,
         // 方法
         loadConfig,
         updateConfig,
