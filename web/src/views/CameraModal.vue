@@ -54,7 +54,7 @@
             <div v-if="isProcessing" class="scan-loading-effect">正在识别人脸...</div>
             <div v-else-if="isCameraReady" class="scan-searching-effect">正在自动寻焦...</div>
           </div>
-          
+
           <div v-else class="capture-actions">
             <button class="recapture-btn" @click="resetCapture">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -94,7 +94,7 @@ import { useSystemConfigStore } from '@/stores/systemConfig'
 
 interface Props {
   visible: boolean
-  isBorrow: boolean 
+  isBorrow: boolean
 }
 
 const props = defineProps<Props>()
@@ -107,7 +107,7 @@ const emit = defineEmits<{
 
 // --- DOM 引用 ---
 const videoRef = ref<HTMLVideoElement | null>(null)
-const irVideoRef = ref<HTMLVideoElement | null>(null) 
+const irVideoRef = ref<HTMLVideoElement | null>(null)
 
 // 系统配置
 const systemConfigStore = useSystemConfigStore()
@@ -123,13 +123,13 @@ let checkReadyInterval: number | null = null
 let isResettingCamera = ref<boolean>(false)
 const isShowButton = ref(true)
 
-// ==================== ✨ 【核心重构：流控锁与防内存泄漏定时器】 ====================
+// ==================== 【核心重构：流控锁与防内存泄漏定时器】 ====================
 const isProcessing = ref<boolean>(false)      // 真正涉及核心接口往返的排他主锁
 let autoCaptureTimeout: number | null = null   // 严格保有的全局唯一自动抓拍定时器句柄
 
 // --- 摄像头多路流与设备管理 ---
-let stream: MediaStream | null = null   
-let irStream: MediaStream | null = null 
+let stream: MediaStream | null = null
+let irStream: MediaStream | null = null
 const videoDevices = ref<MediaDeviceInfo[]>([])
 const selectedRgbId = ref<string>('')
 const selectedIrId = ref<string>('')
@@ -189,9 +189,9 @@ const loadDeviceList = async () => {
       return
     }
 
-    const bothPool: any = [] 
-    const irPool: any = []   
-    const rgbPool: any = []  
+    const bothPool: any = []
+    const irPool: any = []
+    const rgbPool: any = []
 
     allCameras.forEach(device => {
       const label = device.label.toLowerCase()
@@ -248,50 +248,51 @@ function initWebSocket() {
     try {
       const response = JSON.parse(event.data)
       console.log('收到 WebSocket 服务端响应:', response)
-      
-      // 收到响应，首先进入分发判断流程
-      if (response.code === 200) {
-        // 🎯 解决 2：在这里确定设置且截取最后一帧，保证快照时机统一
-        if (videoRef.value && !capturedImage.value) {
-          const finalFrame = getFrameBase64(videoRef.value)
-          if (finalFrame) capturedImage.value = finalFrame
-        }
-        
-        console.log('人脸识别成功')
-        wsErrorMessage.value = '' 
-        isShowButton.value = true
-        isProcessing.value = false
 
-        // 成功后，立刻切断相机流
+      if (response.code === 200) {
+        console.log('人脸识别成功')
+        wsErrorMessage.value = ''
+        isShowButton.value = true
+
+        // 1. 立刻切断、释放所有前端摄像头流
         stopLiveStreaming()
+
+        // 2.  修复图片展示逻辑
+        if (response.data) {
+          const imgData = response.data.trim()
+
+          if (imgData.startsWith('/uploads') || imgData.startsWith('http')) {
+            capturedImage.value = imgData
+          }
+        }
+        // 3. 释放锁
+        isProcessing.value = false
       } else if (response.code === 404) {
-        // 🎯 解决 3、4：提供更温和、精准的 UI 提示
-        console.warn('未识别到人脸或不匹配，准备重新自动捕获')
+        console.warn('未识别到人脸，准备重新自动捕获')
         wsErrorMessage.value = response.message || '未检测到清晰人脸，请微调位置并正对镜头...'
-        
-        // 释放排他锁，并拉起下一次自动轮询抓拍
+
+        // 失败：2秒控锁闭环，释放锁，并重新拉起下一次自动抓拍
         isProcessing.value = false
         triggerAutoCaptureDelay()
       } else {
-        // 【其它非 200/404 致命异常】
-        console.error('业务处理失败，严重异常错误:', response.message)
+        // 其他非 200/404 致命异常处理
+        console.error('严重异常错误:', response.message)
         wsErrorMessage.value = response.message || '人脸识别失败'
         isShowButton.value = false
         isProcessing.value = false
-        
+
         stopLiveStreaming()
         emit('notify', wsErrorMessage.value, 'warning')
         setTimeout(() => { close() }, 1500)
       }
     } catch (e) {
-      console.error('解析 WebSocket 消息失败:', e, event.data)
+      console.error('解析消息失败:', e, event.data)
       wsErrorMessage.value = '人脸识别服务异常'
       isProcessing.value = false
       stopLiveStreaming()
     }
   }
 }
-
 function closeWebSocket() {
   if (ws) {
     ws.close()
@@ -300,19 +301,19 @@ function closeWebSocket() {
   }
 }
 
-// 🎯 解决 1：封装统一安全的延迟捕获注册方法
+// 解决 1：封装统一安全的延迟捕获注册方法
 function triggerAutoCaptureDelay() {
   clearAutoCaptureTimeout() // 每次注册新定时器前，无条件清除老旧定时器
-  
+
   // 严格的安全过滤：处于正常状态流、未拍下照片、未被锁、且弹窗确实可见
   if (isCameraReady.value && !capturedImage.value && !isProcessing.value && props.visible) {
     autoCaptureTimeout = window.setTimeout(() => {
       autoCaptureFrame()
-    }, 2000) 
+    }, 2000)
   }
 }
 
-// 🎯 解决 5：资源彻底清理方法
+// 解决 5：资源彻底清理方法
 function clearAutoCaptureTimeout() {
   if (autoCaptureTimeout) {
     clearTimeout(autoCaptureTimeout)
@@ -326,7 +327,7 @@ function startTimerIfCameraReady() {
     resetTimer()
     startTimer()
     console.log('倒计时已启动')
-    
+
     // 基础流就绪后，激活首次自动抓拍
     triggerAutoCaptureDelay()
   }
@@ -370,7 +371,7 @@ function onVideoCanPlay() { startCheckReadyStatus() }
 async function initCamera() {
   try {
     isCameraReady.value = false
-    isCameraStarting.value = true 
+    isCameraStarting.value = true
     isResettingCamera.value = false
     isStreaming.value = false
     isProcessing.value = false
@@ -422,7 +423,7 @@ async function initCamera() {
   } catch (error) {
     isCameraStarting.value = false
     console.error('相机工作流初始化失败:', error)
-    emit('notify', '无法访问相机，请检查设备连接及浏览器权限允许', 'warning')
+    emit('notify', '请检查设备连接和软件权限允许', 'warning')
     close()
   }
 }
@@ -430,17 +431,23 @@ async function initCamera() {
 // 提取 Canvas 帧的 Base64
 function getFrameBase64(videoElement: HTMLVideoElement | null): string | null {
   if (!videoElement || videoElement.readyState < 2 || videoElement.videoWidth === 0) return null
+
   const canvas = document.createElement('canvas')
+  //  直接使用摄像头输出的真实原始宽高
   canvas.width = videoElement.videoWidth
   canvas.height = videoElement.videoHeight
+
   const ctx = canvas.getContext('2d')
   if (!ctx) return null
+
+  //  原封不动全面绘制，不做任何裁剪
   ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height)
+
   return canvas.toDataURL('image/jpeg', 0.8)
 }
 
 /**
- * 🎯 解决 6：并发抓拍边缘问题优化
+ *  解决 6：并发抓拍边缘问题优化
  */
 const autoCaptureFrame = () => {
   // 严格执行防并发二次校验
@@ -471,7 +478,7 @@ const autoCaptureFrame = () => {
       action: "detectFace",
       requestId: "10086",
       data: {
-        rgbBase64, 
+        rgbBase64,
         irBase64,
         silentLivenessEnabled: useAntiSpoofing.value
       }
@@ -492,7 +499,7 @@ function stopLiveStreaming() {
   stopCheckReadyInterval()
   clearAutoCaptureTimeout()
   releaseTracks()
-  
+
   isCameraReady.value = false
   isStreaming.value = false
 }
@@ -516,7 +523,7 @@ async function resetCapture() {
   isCameraReady.value = false
   isCameraStarting.value = false
   isStreaming.value = false
-  isShowButton.value = true 
+  isShowButton.value = true
   wsErrorMessage.value = ''
 
   resetTimer()
@@ -543,14 +550,14 @@ function close() {
   clearAutoCaptureTimeout()
   closeWebSocket()
   releaseTracks()
-  
+
   capturedImage.value = ''
   isCameraReady.value = false
   isCameraStarting.value = false
   isResettingCamera.value = false
   isStreaming.value = false
   isProcessing.value = false
-  wsErrorMessage.value = '' 
+  wsErrorMessage.value = ''
   emit('update:visible', false)
   emit('close')
 }
@@ -631,6 +638,7 @@ onBeforeUnmount(() => {
     opacity: 0;
     transform: translateY(30px) scale(0.96);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -687,8 +695,15 @@ onBeforeUnmount(() => {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
 }
 
 .timer-icon {
@@ -768,7 +783,9 @@ onBeforeUnmount(() => {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .scan-frame {
@@ -789,16 +806,40 @@ onBeforeUnmount(() => {
   border-width: 0;
 }
 
-.top-left { top: 20px; left: 20px; border-top-width: 3px; border-left-width: 3px; }
-.top-right { top: 20px; right: 20px; border-top-width: 3px; border-right-width: 3px; }
-.bottom-left { bottom: 20px; left: 20px; border-bottom-width: 3px; border-left-width: 3px; }
-.bottom-right { bottom: 20px; right: 20px; border-bottom-width: 3px; border-right-width: 3px; }
+.top-left {
+  top: 20px;
+  left: 20px;
+  border-top-width: 3px;
+  border-left-width: 3px;
+}
+
+.top-right {
+  top: 20px;
+  right: 20px;
+  border-top-width: 3px;
+  border-right-width: 3px;
+}
+
+.bottom-left {
+  bottom: 20px;
+  left: 20px;
+  border-bottom-width: 3px;
+  border-left-width: 3px;
+}
+
+.bottom-right {
+  bottom: 20px;
+  right: 20px;
+  border-bottom-width: 3px;
+  border-right-width: 3px;
+}
 
 .camera-actions {
   display: flex;
   justify-content: center;
   margin-bottom: 20px;
-  min-height: 48px; /* 维持操作栏基础高度 */
+  min-height: 48px;
+  /* 维持操作栏基础高度 */
 }
 
 /* 新增：自动检测时的动效提示样式 */
@@ -809,9 +850,11 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
 }
+
 .scan-searching-effect {
   color: #38bdf8;
 }
+
 .scan-loading-effect {
   color: #10b981;
   animation: pulse 1s ease infinite;
@@ -880,14 +923,34 @@ onBeforeUnmount(() => {
 }
 
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-5px);
+  }
+
+  75% {
+    transform: translateX(5px);
+  }
 }
 
 @media (max-width: 480px) {
-  .camera-container { width: 92%; }
-  .camera-body { padding: 20px; }
-  .recapture-btn, .confirm-btn { padding: 10px 22px; font-size: 14px; }
+  .camera-container {
+    width: 92%;
+  }
+
+  .camera-body {
+    padding: 20px;
+  }
+
+  .recapture-btn,
+  .confirm-btn {
+    padding: 10px 22px;
+    font-size: 14px;
+  }
 }
 </style>
