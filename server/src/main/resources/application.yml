@@ -21,7 +21,7 @@ lock:
 face-detect-provider: Baidu
 # 百度人脸配置
 baidu-face-config:
-  use-fixed-path: true # 是否使用固定目录模型
+  use-fixed-path: false # 是否使用固定目录模型
   fixed-path: D:\Baidu-Face-Resources # 固定目录
   group-id: "common" # 固定组名
 
