@@ -330,6 +330,36 @@ public class QianMingLockDeviceServiceManager extends BaseDeviceServiceManager<Q
         }
     }
 
+    /**
+     * 仅凭通信类型和端口，动态构建或获取设备服务
+     */
+    public QianMingLockDeviceService getOrCreateDeviceServiceByRawArgs(String commType, String commPort) {
+        if (!org.springframework.util.StringUtils.hasText(commType) || !org.springframework.util.StringUtils.hasText(commPort)) {
+            throw new RuntimeException("通信类型或通信端口不能为空");
+        }
+
+        // 优先从现有缓存拿
+        if (deviceServiceMap.containsKey(commPort)) {
+            return deviceServiceMap.get(commPort);
+        }
+
+        // 额外校验 485 串口波特率冲突（直接复用基类校验）
+        if ("485".equalsIgnoreCase(commType)) {
+            this.validateSerialPortConflict(commPort, "锁板");
+        }
+
+        // 裸创底层通信调度器
+        CommDispatcher dispatcher = this.createDispatcher(commType, commPort);
+
+        // 实例化纯粹的服务对象
+        QianMingLockDeviceService qianMingLockDeviceService = new QianMingLockDeviceService();
+        qianMingLockDeviceService.setCommDispatcher(dispatcher);
+        dispatcher.addDevice(qianMingLockDeviceService);
+        qianMingLockDeviceService.setSimulationMode(this.simulationMode);
+
+        return qianMingLockDeviceService;
+    }
+
 
     /**
      * 辅助方法

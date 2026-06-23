@@ -18,13 +18,15 @@ public class WebSocketConfig implements WebSocketConfigurer {
     private final InventoryWebSocketHandler inventoryWebSocketHandler;
     private final DehumidifierWebSocketHandler dehumidifierWebSocketHandler;
     private final FaceWebSocketHandler faceWebSocketHandler;
+    private final BoxAddressConfigHandler boxAddressConfigHandler;
 
-    public WebSocketConfig(ReturnWebSocketHandler returnWebSocketHandler, BorrowWebSocketHandler borrowWebSocketHandler, InventoryWebSocketHandler inventoryWebSocketHandler, DehumidifierWebSocketHandler dehumidifierWebSocketHandler, FaceWebSocketHandler faceWebSocketHandler) {
+    public WebSocketConfig(ReturnWebSocketHandler returnWebSocketHandler, BorrowWebSocketHandler borrowWebSocketHandler, InventoryWebSocketHandler inventoryWebSocketHandler, DehumidifierWebSocketHandler dehumidifierWebSocketHandler, FaceWebSocketHandler faceWebSocketHandler, BoxAddressConfigHandler boxAddressConfigHandler) {
         this.returnWebSocketHandler = returnWebSocketHandler;
         this.borrowWebSocketHandler = borrowWebSocketHandler;
         this.inventoryWebSocketHandler = inventoryWebSocketHandler;
         this.dehumidifierWebSocketHandler = dehumidifierWebSocketHandler;
         this.faceWebSocketHandler = faceWebSocketHandler;
+        this.boxAddressConfigHandler = boxAddressConfigHandler;
     }
 
     @Override
@@ -34,6 +36,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
                 .addHandler(inventoryWebSocketHandler, "/ws/inventory")
                 .addHandler(dehumidifierWebSocketHandler, "/ws/dehumidifier")
                 .addHandler(faceWebSocketHandler, "/ws/face")
+                .addHandler(boxAddressConfigHandler, "/ws/boxAddressConfig")
                 .setAllowedOrigins("*");
     }
     /**

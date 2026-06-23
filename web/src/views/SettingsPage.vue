@@ -565,6 +565,24 @@ function formatDisplayValue(key: keyof SystemConfig): string {
 // 配置格口柜格口地址相关
 let longPressTimer: ReturnType<typeof setTimeout> | null = null
 const isPressing = ref(false)
+const slotAddressModalVisible = ref(false)
+const isWsConnectingForBoxAddressConfig = ref(false)
+const wsStatusMessage = ref('')
+
+interface CabinetSlotConfig {
+  communicationType: 'tcp' | 'serial'; // 硬件通信类型
+  communicationAddress: string;       // 硬件通信地址  
+  startAddress: string | number;      // 起始地址
+  endAddress: string | number;        // 结束地址
+}
+
+const slotConfigForm = ref<CabinetSlotConfig>({
+  communicationAddress: '',
+  communicationType: 'tcp',
+  startAddress: '',
+  endAddress: ''
+})
+
 // 开始长按计时
 function startPress() {
   handleUserOperation() // 刷新页面倒计时
@@ -580,7 +598,7 @@ function startPress() {
   }, 5000)
 }
 
-// 取消长按（不管是松开鼠标、鼠标移出、还是移动端手指抬起，都算取消）
+// 取消长按
 function cancelPress() {
   if (longPressTimer) {
     clearTimeout(longPressTimer)
@@ -588,22 +606,12 @@ function cancelPress() {
   }
   isPressing.value = false
 }
-const slotAddressModalVisible = ref(false)
-interface CabinetSlotConfig {
-  communicationAddress: string;       // 硬件通信地址
-  communicationType: 'tcp' | 'serial'; // 硬件通信类型
-  startAddress: string | number;      // 起始地址
-  endAddress: string | number;        // 结束地址
-}
-const slotConfigForm = ref<CabinetSlotConfig>({
-  communicationAddress: '',
-  communicationType: 'tcp',
-  startAddress: '',
-  endAddress: ''
-})
+
 // 控制格口地址设置模态框打开的方法
 const openSlotAddressModal = (existingConfig?: Partial<CabinetSlotConfig>) => {
   handleUserOperation() // 刷新页面操作倒计时
+
+  wsStatusMessage.value = ''
 
   if (existingConfig) {
     // 如果有历史配置，回显数据
@@ -626,8 +634,94 @@ const openSlotAddressModal = (existingConfig?: Partial<CabinetSlotConfig>) => {
 }
 
 // 控制格口地址设置模态框关闭的方法
-function closeSlotAddressModal() {
+const closeSlotAddressModal = () => {
+  if (isWsConnectingForBoxAddressConfig.value) {
+    showMessage('正在与硬件通信中，请稍候...')
+    return // 防止在阻塞等待硬件响应时用户误触关闭
+  }
   slotAddressModalVisible.value = false
+}
+
+const sendConfigViaWebSocket = (payloadData: any) => {
+  if (isWsConnectingForBoxAddressConfig.value) return
+
+  isWsConnectingForBoxAddressConfig.value = true
+  wsStatusMessage.value = '正在建立硬件连接通道...'
+
+  const wsUrl = `${import.meta.env.VITE_WS_BASE_URL}/boxAddressConfig`
+  let socket: WebSocket | null = null
+
+  try {
+    socket = new WebSocket(wsUrl)
+
+    // 连接成功后发送请求 JSON
+    socket.onopen = () => {
+      const timestamp = String(Date.now())
+
+      const requestPayload = {
+        action: 'boxAddressConfig',
+        requestId: timestamp,
+        timestamp: timestamp,
+        data: payloadData
+      }
+
+      socket?.send(JSON.stringify(requestPayload))
+    }
+
+    // 接收后端推送
+    socket.onmessage = (event) => {
+      try {
+        const response = JSON.parse(event.data)
+        const { code, message } = response
+
+        if (code === 201) {
+          wsStatusMessage.value = message || '等待硬件响应中...'
+          showMessage(wsStatusMessage.value)
+          return
+        }
+
+        // 处理最终成功状态
+        if (code === 200) {
+          showMessage(message || '格口柜地址设置成功')
+          isWsConnectingForBoxAddressConfig.value = false
+          closeSlotAddressModal()
+          socket?.close()
+        } else {
+          // 处理业务失败状态
+          showMessage(message || '设置失败')
+          isWsConnectingForBoxAddressConfig.value = false
+          wsStatusMessage.value = ''
+          socket?.close()
+        }
+
+      } catch (err) {
+        console.error('解析后端 WebSocket 数据失败:', err)
+        showMessage('解析服务器响应失败')
+        isWsConnectingForBoxAddressConfig.value = false
+        socket?.close()
+      }
+    }
+
+    // 连接关闭
+    socket.onclose = (event) => {
+      console.log('WebSocket 通道已关闭:', event.reason)
+      isWsConnectingForBoxAddressConfig.value = false
+    }
+
+    // 异常处理
+    socket.onerror = (error) => {
+      console.error('WebSocket 发生异常:', error)
+      showMessage('连接服务器失败，请检查网络或后端服务')
+      isWsConnectingForBoxAddressConfig.value = false
+      wsStatusMessage.value = ''
+    }
+
+  } catch (error) {
+    console.error('初始化 WebSocket 失败:', error)
+    showMessage('无法创建网络连接')
+    isWsConnectingForBoxAddressConfig.value = false
+    wsStatusMessage.value = ''
+  }
 }
 
 // 提交格口地址设置表单保存的方法
@@ -635,7 +729,7 @@ const confirmSlotAddress = () => {
   const { communicationAddress, communicationType, startAddress, endAddress } = slotConfigForm.value
   const addrTrimmed = communicationAddress.trim()
 
-  // 1. 表单非空基本校验
+  // 表单非空基本校验
   if (!addrTrimmed) {
     showMessage('硬件通信地址不能为空')
     return
@@ -649,26 +743,24 @@ const confirmSlotAddress = () => {
     return
   }
 
-  // 2. 硬件通信格式精准校验
+  // 硬件通信格式精准校验
   if (communicationType === 'serial') {
-    // 串口格式校验：必须包含 @
     if (!addrTrimmed.includes('@')) {
       showMessage('串口格式错误，正确格式如：COM1@9600')
       return
     }
 
     const [port, baudRate] = addrTrimmed.split('@')
-    if (!port.trim()) {
+
+    if (!port?.trim()) {
       showMessage('串口通信地址错误：串口号（如COM1）不能为空')
       return
     }
-    // 校验波特率是否为纯数字
-    if (!baudRate.trim() || !/^\d+$/.test(baudRate.trim())) {
+    if (!baudRate?.trim() || !/^\d+$/.test(baudRate.trim())) {
       showMessage('串口通信地址错误：波特率必须为纯数字（如9600）')
       return
     }
   } else if (communicationType === 'tcp') {
-    // TCP 格式校验：支持兼容中英文冒号
     const hasEnglishColon = addrTrimmed.includes(':')
     const hasChineseColon = addrTrimmed.includes('：')
 
@@ -677,26 +769,21 @@ const confirmSlotAddress = () => {
       return
     }
 
-    // 统一按冒号切割
     const separator = hasEnglishColon ? ':' : '：'
     const [ip, portStr] = addrTrimmed.split(separator)
 
-    // 验证 IP 格式 (极简正则或基础非空验证，这里采用标准的 IPv4 正则)
-    const ipRegex = /^((25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)$/
-    if (!ip.trim() || !ipRegex.test(ip.trim())) {
+    if (!ip?.trim() || !/^((25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)$/.test(ip.trim())) {
       showMessage('TCP通信地址错误：IP 地址格式不合法')
       return
     }
 
-    // 验证端口是否在 0 - 65535 之间
-    const portNum = parseInt(portStr.trim(), 10)
-    if (!portStr.trim() || !/^\d+$/.test(portStr.trim()) || isNaN(portNum) || portNum < 0 || portNum > 65535) {
+    const portNum = parseInt(portStr?.trim() || '', 10)
+    if (!portStr?.trim() || !/^\d+$/.test(portStr.trim()) || isNaN(portNum) || portNum < 0 || portNum > 65535) {
       showMessage('TCP通信地址错误：端口号必须是 0 ~ 65535 之间的数字')
       return
     }
   }
 
-  // 3. 起始/结束地址数字范围安全卡控
   const startNum = parseInt(String(startAddress).trim(), 10)
   const endNum = parseInt(String(endAddress).trim(), 10)
   if (isNaN(startNum) || startNum <= 0 || isNaN(endNum) || endNum <= 0) {
@@ -708,19 +795,12 @@ const confirmSlotAddress = () => {
     return
   }
 
-  // 4. 验证通过，执行提交逻辑
-  try {
-    // TODO: 调用你的后端 API 或 Store 方法提交配置
-    // 示例：await systemConfigStore.updateCabinetSlotConfig(slotConfigForm.value)
-
-    console.log('提交的格口柜配置数据：', slotConfigForm.value)
-
-    showMessage('格口柜地址设置成功')
-    closeSlotAddressModal()
-  } catch (error: any) {
-    console.error('设置格口柜配置失败:', error)
-    showMessage(error?.message || '设置失败，请稍后重试')
-  }
+  sendConfigViaWebSocket({
+    communicationType,
+    communicationAddress: addrTrimmed,
+    startAddress: startNum,
+    endAddress: endNum
+  })
 }
 
 // 编辑配置模态框

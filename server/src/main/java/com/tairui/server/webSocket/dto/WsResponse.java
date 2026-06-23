@@ -39,4 +39,21 @@ public class WsResponse<T> {
         response.setTimestamp(System.currentTimeMillis());
         return response;
     }
+
+    /**
+     * 表示指令已被接收，正在处理中
+     */
+    public static <T> WsResponse<T> progress(String action, String message, T data) {
+        WsResponse<T> response = new WsResponse<>();
+        response.setAction(action);
+        response.setCode(201);
+        response.setMessage(message != null ? message : "processing");
+        response.setTimestamp(System.currentTimeMillis());
+        response.setData(data);
+        return response;
+    }
+
+    public static <T> WsResponse<T> progress(String action, String message) {
+        return progress(action, message, null);
+    }
 }
