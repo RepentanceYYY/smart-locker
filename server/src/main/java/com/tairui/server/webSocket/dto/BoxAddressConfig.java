@@ -8,4 +8,5 @@ public class BoxAddressConfig {
     private String communicationAddress;
     private Integer startAddress;
     private Integer endAddress;
+    private Integer timeout;
 }

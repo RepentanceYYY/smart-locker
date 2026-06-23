@@ -78,7 +78,7 @@ public class BoxAddressConfigHandler extends TextWebSocketHandler {
                 deviceService.open();
 
                 // 推送中间状态给前端（进度/继续）
-                wsResponse = WsResponse.progress(wsRequest.getAction(), "等待按按钮中，倒计时60秒");
+                wsResponse = WsResponse.progress(wsRequest.getAction(), "等待按按钮中，倒计时 " + boxAddressConfig.getTimeout() + " 秒");
                 session.sendMessage(new TextMessage(objectMapper.writeValueAsString(wsResponse)));
             } catch (Exception e) {
                 wsResponse = WsResponse.fail(wsRequest.getAction(), 400, "初始化连接失败：" + e.getMessage());
@@ -86,9 +86,9 @@ public class BoxAddressConfigHandler extends TextWebSocketHandler {
                 return;
             }
 
-            // 阻塞等待硬件响应结果（60秒超时）
+            // 阻塞等待硬件响应结果
             try {
-                boolean setResult = deviceService.setBoxRangeSync(boxAddressConfig.getStartAddress(), boxAddressConfig.getEndAddress(), 60 * 1000);
+                boolean setResult = deviceService.setBoxRangeSync(boxAddressConfig.getStartAddress(), boxAddressConfig.getEndAddress(), boxAddressConfig.getTimeout() * 1000);
                 if (setResult) {
                     wsResponse = WsResponse.success(wsRequest.getAction(), "设置成功", null);
                 } else {

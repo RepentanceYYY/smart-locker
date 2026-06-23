@@ -225,7 +225,7 @@ public class QianMingLockDevice extends DeviceCore {
         System.arraycopy(intToTwoBytes(startBox), 0, data, 0, 2);
         System.arraycopy(intToTwoBytes(endBox), 0, data, 2, 2);
         byte[] frame = buildFrame(FUNC_SET_BOX_RANGE, data);
-        Boolean result = writeSync(frame, 3, timeout, (readBytes, writeBytes) -> parseSetRangeResponse(readBytes));
+        Boolean result = writeSync(frame, 0, timeout, (readBytes, writeBytes) -> parseSetRangeResponse(readBytes));
         return result != null && result;
     }
 

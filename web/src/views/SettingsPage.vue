@@ -295,13 +295,30 @@
 
     <!-- 格口柜格口地址设置 -->
     <div v-if="slotAddressModalVisible" class="modal-mask" @click.self="closeSlotAddressModal">
-      <div class="modal-container slot-modal" style="width: 480px; max-width: 95%;">
+      <div class="modal-container slot-modal" style="width: 480px; max-width: 95%; position: relative;">
+
+        <div v-if="isWsConnectingForBoxAddressConfig" class="hw-loading-overlay" style="
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px);
+      z-index: 10; display: flex; flex-direction: column; align-items: center; 
+      justify-content: center; padding: 24px; text-align: center; border-radius: inherit;
+    ">
+          <div class="hw-spinner"></div>
+
+          <h3 style="color: #f1f5f9; font-size: 18px; font-weight: 600; margin-bottom: 8px;">硬件配置中...</h3>
+          <p style="color: #22d3ee; font-size: 15px; line-height: 1.5; max-width: 80%;">
+            {{ wsStatusMessage || '正在建立硬件连接通道...' }}
+          </p>
+          <span style="color: #94a3b8; font-size: 13px; margin-top: 16px;">请按照硬件提示进行操作，在此期间请勿关闭页面</span>
+        </div>
+
         <div class="modal-header" style="font-size: 18px; padding: 18px 24px;">
           <span style="display: flex; align-items: center; gap: 10px;">
             <img src="/密码锁.svg" alt="锁" class="icon" style="color: #22d3ee; width: 1.4em; height: 1.4em;" />
             格口柜格口地址设置
           </span>
-          <button class="modal-close" @click="closeSlotAddressModal" style="font-size: 20px;">✕</button>
+          <button v-if="!isWsConnectingForBoxAddressConfig" class="modal-close" @click="closeSlotAddressModal"
+            style="font-size: 20px;">✕</button>
         </div>
 
         <div class="modal-body" style="padding: 28px 24px;">
@@ -313,11 +330,13 @@
             </label>
             <div class="type-selector">
               <button type="button" class="type-btn" :class="{ active: slotConfigForm.communicationType === 'serial' }"
-                @click="slotConfigForm.communicationType = 'serial'" style="height: 46px; font-size: 16px; gap: 10px;">
+                :disabled="isWsConnectingForBoxAddressConfig" @click="slotConfigForm.communicationType = 'serial'"
+                style="height: 46px; font-size: 16px; gap: 10px;">
                 <img src="/rs485.svg" alt="RS485" class="icon" style="width: 18px; height: 18px;" /> 串口通信
               </button>
               <button type="button" class="type-btn" :class="{ active: slotConfigForm.communicationType === 'tcp' }"
-                @click="slotConfigForm.communicationType = 'tcp'" style="height: 46px; font-size: 16px; gap: 10px;">
+                :disabled="isWsConnectingForBoxAddressConfig" @click="slotConfigForm.communicationType = 'tcp'"
+                style="height: 46px; font-size: 16px; gap: 10px;">
                 <img src="/TCP-.svg" alt="TCP" class="icon" style="width: 18px; height: 18px;" /> TCP 网络通信
               </button>
             </div>
@@ -330,7 +349,23 @@
               硬件通信地址 <span style="color: #f87171;">*</span>
             </label>
             <input v-model="slotConfigForm.communicationAddress" type="text" class="modal-input large-input"
+              :disabled="isWsConnectingForBoxAddressConfig"
               :placeholder="slotConfigForm.communicationType === 'serial' ? '如: COM1@9600' : '如: 192.168.0.1:8252'" />
+          </div>
+
+          <div class="modal-form-group" style="margin-bottom: 24px;">
+            <label class="form-label"
+              style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: #cbd5e1; font-size: 16px; font-weight: 500;">
+              <img src="/计时器.svg" alt="超时" class="icon" style="width: 18px; height: 18px;" />
+              超时时间（秒）<span style="color: #f87171;">*</span>
+            </label>
+
+            <input v-model="slotConfigForm.timeout" type="text" class="modal-input large-input"
+              :disabled="isWsConnectingForBoxAddressConfig" placeholder="如: 30" />
+
+            <div style="margin-top: 6px; color: #94a3b8; font-size: 13px;">
+              超过设定时间未完成配置将自动断开连接
+            </div>
           </div>
 
           <div class="modal-form-group-row" style="gap: 20px;">
@@ -341,7 +376,7 @@
                 起始地址 <span style="color: #f87171;">*</span>
               </label>
               <input v-model="slotConfigForm.startAddress" type="text" class="modal-input large-input"
-                placeholder="如: 1" />
+                :disabled="isWsConnectingForBoxAddressConfig" placeholder="如: 1" />
             </div>
             <div class="modal-form-group" style="margin-bottom: 0;">
               <label class="form-label"
@@ -350,14 +385,20 @@
                 结束地址 <span style="color: #f87171;">*</span>
               </label>
               <input v-model="slotConfigForm.endAddress" type="text" class="modal-input large-input" placeholder="如: 24"
-                @keyup.enter="confirmSlotAddress" />
+                :disabled="isWsConnectingForBoxAddressConfig"
+                @keyup.enter="!isWsConnectingForBoxAddressConfig && confirmSlotAddress()" />
             </div>
           </div>
         </div>
 
         <div class="modal-footer" style="padding: 16px 24px 28px; gap: 16px;">
-          <button class="modal-btn cancel large-btn" @click="closeSlotAddressModal">取消</button>
-          <button class="modal-btn confirm large-btn" @click="confirmSlotAddress">确认保存</button>
+          <button class="modal-btn cancel large-btn" :disabled="isWsConnectingForBoxAddressConfig"
+            @click="closeSlotAddressModal">取消</button>
+          <button class="modal-btn confirm large-btn" :disabled="isWsConnectingForBoxAddressConfig"
+            @click="confirmSlotAddress" style="position: relative;">
+            <span v-if="isWsConnectingForBoxAddressConfig">同步中...</span>
+            <span v-else>确认保存</span>
+          </button>
         </div>
       </div>
     </div>
@@ -574,13 +615,15 @@ interface CabinetSlotConfig {
   communicationAddress: string;       // 硬件通信地址  
   startAddress: string | number;      // 起始地址
   endAddress: string | number;        // 结束地址
+  timeout: string | number // 超时时间
 }
 
 const slotConfigForm = ref<CabinetSlotConfig>({
   communicationAddress: '',
   communicationType: 'tcp',
   startAddress: '',
-  endAddress: ''
+  endAddress: '',
+  timeout: ''
 })
 
 // 开始长按计时
@@ -619,7 +662,8 @@ const openSlotAddressModal = (existingConfig?: Partial<CabinetSlotConfig>) => {
       communicationAddress: existingConfig.communicationAddress || '',
       communicationType: existingConfig.communicationType || 'tcp',
       startAddress: existingConfig.startAddress || '',
-      endAddress: existingConfig.endAddress || ''
+      endAddress: existingConfig.endAddress || '',
+      timeout: existingConfig.timeout || '',
     }
   } else {
     // 否则清空表单，恢复默认
@@ -627,7 +671,8 @@ const openSlotAddressModal = (existingConfig?: Partial<CabinetSlotConfig>) => {
       communicationAddress: '',
       communicationType: 'tcp',
       startAddress: '',
-      endAddress: ''
+      endAddress: '',
+      timeout: '',
     }
   }
   slotAddressModalVisible.value = true
@@ -726,12 +771,16 @@ const sendConfigViaWebSocket = (payloadData: any) => {
 
 // 提交格口地址设置表单保存的方法
 const confirmSlotAddress = () => {
-  const { communicationAddress, communicationType, startAddress, endAddress } = slotConfigForm.value
+  const { communicationAddress, communicationType, startAddress, endAddress, timeout } = slotConfigForm.value
   const addrTrimmed = communicationAddress.trim()
 
   // 表单非空基本校验
   if (!addrTrimmed) {
     showMessage('硬件通信地址不能为空')
+    return
+  }
+  if (!timeout) {
+    showMessage('超时时间不能为空')
     return
   }
   if (!String(startAddress).trim()) {
@@ -784,6 +833,13 @@ const confirmSlotAddress = () => {
     }
   }
 
+  const timoutNum = parseInt(String(timeout).trim(), 10)
+  if (isNaN(timoutNum) || timoutNum <= 0) {
+    showMessage('超时时间必须为正整数')
+    return
+  }
+
+
   const startNum = parseInt(String(startAddress).trim(), 10)
   const endNum = parseInt(String(endAddress).trim(), 10)
   if (isNaN(startNum) || startNum <= 0 || isNaN(endNum) || endNum <= 0) {
@@ -799,7 +855,8 @@ const confirmSlotAddress = () => {
     communicationType,
     communicationAddress: addrTrimmed,
     startAddress: startNum,
-    endAddress: endNum
+    endAddress: endNum,
+    timeout:timoutNum,
   })
 }
 
@@ -2145,5 +2202,26 @@ onUnmounted(() => {
 .modal-form-group-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
+}
+
+.hw-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-top: 4px solid #22d3ee;
+  border-radius: 50%;
+  box-sizing: border-box;
+  animation: hw-spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes hw-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>
