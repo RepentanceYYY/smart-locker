@@ -784,39 +784,33 @@ function handleSettings() {
 }
 
 function handlePhotoConfirm(imageData: string) {
-  const operationData = {
-    imageData: imageData,
-    timestamp: Date.now()
-  }
-  sessionStorage.setItem('toolOperationData', JSON.stringify(operationData))
+  console.log('用户点击确认，图片数据:', imageData)
+  
+  // 跳转到对应页面，通过query参数传递图片数据
   if (isBorrowMode.value) {
-    router.push('/borrow')
+    console.log('跳转到领用页面')
+    router.push({
+      path: '/borrow',
+      query: {
+        faceImage: imageData,
+        timestamp: Date.now().toString()
+      }
+    })
   } else {
-    router.push('/return')
+    console.log('跳转到归还页面')
+    router.push({
+      path: '/return',
+      query: {
+        faceImage: imageData,
+        timestamp: Date.now().toString()
+      }
+    })
   }
 }
 
 // 人脸识别成功后处理
 function handleFaceRecognized(faceImageUrl: string) {
   console.log('人脸识别成功，图片URL:', faceImageUrl)
-  // 将人脸图片数据传递到领用页面
-  const operationData = {
-    imageData: faceImageUrl,
-    imageFile: null,
-    timestamp: Date.now()
-  }
-  sessionStorage.setItem('toolOperationData', JSON.stringify(operationData))
-  
-  // 跳转到对应页面
-  setTimeout(() => {
-    if (isBorrowMode.value) {
-      console.log('跳转到领用页面')
-      // router.push('/borrow')
-    } else {
-      console.log('跳转到归还页面')
-      // router.push('/return')
-    }
-  }, 600)
 }
 
 // ================== 性能优化：温湿度更新只改当前柜子 ==================

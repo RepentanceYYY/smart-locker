@@ -268,13 +268,6 @@ function initWebSocket() {
           }
         }
               
-        // 将人脸图片数据传递到领用页面
-        sessionStorage.setItem('toolOperationData', JSON.stringify({
-          imageData: faceImageUrl,
-          imageFile: null,
-          timestamp: Date.now()
-        }))
-              
         isProcessing.value = false
               
         // 通知父组件人脸识别成功,携带图片URL

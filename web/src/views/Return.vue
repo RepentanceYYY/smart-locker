@@ -1099,16 +1099,12 @@ async function onReturnSubmit(data: {
 }
 
 function loadPhotoData() {
-  const storedData = sessionStorage.getItem('toolOperationData')
-  if (storedData) {
-    try {
-      const data = JSON.parse(storedData)
-      if (data.imageData) {
-        photoData.value = data.imageData
-      }
-    } catch (e) {
-      console.error(e)
-    }
+  // 从路由 query 参数获取人脸图片
+  const faceImage = router.currentRoute.value.query.faceImage as string
+  if (faceImage) {
+    console.log('从路由参数加载人脸图片URL:', faceImage)
+    photoData.value = faceImage
+    return
   }
 }
 
