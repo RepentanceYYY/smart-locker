@@ -325,7 +325,7 @@ public class BaiduFaceServer implements IFaceServer {
     public String userAddByMat(byte[] frame, long rgbMatAddr) throws IOException {
         synchronized (SDK_NATIVE_LOCK) {
             String userId = UUID.randomUUID().toString().replace("-", "");
-            String fileName = userId + ".jpg";
+            String fileName = "face_" + userId + ".jpg";
             Path path = Paths.get(uploadPath, fileName);
             Files.write(path, frame);
             String url = accessPath + fileName;

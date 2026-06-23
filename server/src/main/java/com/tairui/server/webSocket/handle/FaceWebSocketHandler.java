@@ -6,6 +6,7 @@ import com.tairui.server.webSocket.dto.WsRequest;
 import com.tairui.server.webSocket.dto.WsResponse;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.socket.CloseStatus;
@@ -16,11 +17,18 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 import jakarta.annotation.PreDestroy;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import static cn.hutool.core.codec.Base64.isBase64;
 
 @Component
 @Log4j2
@@ -34,6 +42,13 @@ public class FaceWebSocketHandler extends TextWebSocketHandler {
 
     @Autowired
     private IFaceServer faceServer;
+
+    // 本地目录
+    @Value("${spring.application.file.upload.borrow-photo-path}")
+    private String uploadPath;
+    // 网络路径
+    @Value("${spring.application.file.upload.borrow-photo-access}")
+    private String accessPath;
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
@@ -88,6 +103,13 @@ public class FaceWebSocketHandler extends TextWebSocketHandler {
                         log.error("单线程执行人脸检测异常", e);
                     }
                 });
+                break;
+            case "saveFaceImage":
+                try {
+                    handleSaveFaceImage(session, wsRequest);
+                } catch (Exception e) {
+                    log.error("保存图片异常", e);
+                }
                 break;
             default:
                 wsResponse = WsResponse.fail(wsRequest.getAction(), 400, "未知消息类型");
@@ -151,6 +173,42 @@ public class FaceWebSocketHandler extends TextWebSocketHandler {
                 session.sendMessage(new TextMessage(objectMapper.writeValueAsString(WsResponse.fail(wsRequest.getAction(), 500, e.getMessage()))));
             }
         }
+    }
+
+    private void handleSaveFaceImage(WebSocketSession session, WsRequest wsRequest) throws Exception {
+        Object data = wsRequest.getData();
+        if (data == null) {
+            session.sendMessage(new TextMessage(objectMapper.writeValueAsString(WsResponse.fail(wsRequest.getAction(), 400, "data为空"))));
+            return;
+        }
+
+        String base64 = data.toString().trim();
+
+        if (base64.contains(",")) {
+            base64 = base64.substring(base64.indexOf(",") + 1);
+        }
+
+        // 简单格式校验
+        if (!isBase64(base64)) {
+            session.sendMessage(new TextMessage(objectMapper.writeValueAsString(WsResponse.fail(wsRequest.getAction(), 400, "非法Base64图片数据"))));
+            return;
+        }
+
+        // 解码
+        byte[] imageBytes;
+        try {
+            imageBytes = Base64.getDecoder().decode(base64);
+        } catch (IllegalArgumentException e) {
+            session.sendMessage(new TextMessage(objectMapper.writeValueAsString(WsResponse.fail(wsRequest.getAction(), 400, "非法Base64图片数据"))));
+            return;
+        }
+
+        String userId = UUID.randomUUID().toString().replace("-", "");
+        String fileName = "face_" + userId + ".jpg";
+        Path path = Paths.get(uploadPath, fileName);
+        Files.write(path, imageBytes);
+        String url = accessPath + fileName;
+        session.sendMessage(new TextMessage(objectMapper.writeValueAsString(WsResponse.success(wsRequest.getAction(), url))));
     }
 
     /**
