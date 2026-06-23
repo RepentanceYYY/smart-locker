@@ -878,26 +878,26 @@ const requestOpenLock = (cabinetId: number, cellId: number, cellNumber: string):
  * 处理后端websocket返回的消息
  * @param msg
  */
-const handleWebSocketMessage = async (msg: any) => {
-  const { type, code, data, message: msgText } = msg
-  switch (type) {
+const handleWebSocketMessage = async (receive: any) => {
+  const { action, code, data, message } = receive
+  switch (action) {
     case 'openLock':
-      handleUnLockReply(msg)
+      handleUnLockReply(receive)
       return;
     case 'checkAllLockStatus':
-      handleCheckAllLockStatus(msg)
+      handleCheckAllLockStatus(receive)
       return;
     case 'closeAndCheck':
-      handleCloseAndCheck(msg)
+      handleCloseAndCheck(receive)
       return;
   }
 }
 /**
  * 处理开锁回复
- * @param msg
+ * @param receive
  */
-const handleUnLockReply = async (msg: any) => {
-  const { type, code, data, message: msgText } = msg
+const handleUnLockReply = async (receive: any) => {
+  const { action, code, data, message } = receive
   switch (code) {
     case 200:
       // 开锁成功
@@ -923,16 +923,16 @@ const handleUnLockReply = async (msg: any) => {
       }
       break;
     default:
-      addNotification(msgText, 'warning')
+      addNotification(message, 'warning')
   }
   unlocking.value = false;
 }
 /**
  * 处理检测关锁和储物状态回复
- * @param msg
+ * @param receive
  */
-const handleCloseAndCheck = async (msg: any) => {
-  const { type, code, data, message: msgText } = msg
+const handleCloseAndCheck = async (receive: any) => {
+  const { action, code, data, message } = receive
   const { cabinetId, cellId, cellNumber, toolName, borrowTime } = data
   switch (code) {
     case 200:
@@ -981,7 +981,6 @@ const handleCloseAndCheck = async (msg: any) => {
       break;
     case 500:
       // 锁状态查询失败，后续不检测是否储物
-      console.log(`进入500`)
       stopCloseAndCheckPolling()
       addNotification('门锁状态检测失败，请联系管理员', 'warning')
       break;
@@ -991,10 +990,10 @@ const handleCloseAndCheck = async (msg: any) => {
 }
 /**
  * 处理检测所有锁关闭状态回复
- * @param msg
+ * @param receive
  */
-const handleCheckAllLockStatus = async (msg: any) => {
-  const { type, code, data, message: msgText } = msg
+const handleCheckAllLockStatus = async (receive: any) => {
+  const { action, code, data, message } = receive
   switch (code) {
     case 200:
       if (borrowItems.value.length === 0) {
@@ -1004,20 +1003,19 @@ const handleCheckAllLockStatus = async (msg: any) => {
       showBorrowSummary.value = true
       break;
     case 501:
-      addNotification(msgText, 'warning')
-      startSuccessCountdown(0)
+      addNotification(message, 'warning')
       break;
     default:
       addNotification('尚有柜门未关闭，请先关闭柜门完成领用', 'warning')
   }
 }
 
-const sendMessage = (type: string, data: any) => {
+const sendMessage = (action: string, data: any) => {
   if (!socket || socket.readyState !== WebSocket.OPEN) {
     addNotification('网络连接异常，请稍后重试', 'warning')
     return false
   }
-  socket.send(JSON.stringify({ type, data }))
+  socket.send(JSON.stringify({ action, data,requestId:Date.now().toString(),timestamp:Date.now().toString() }))
   return true
 }
 

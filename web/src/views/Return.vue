@@ -40,7 +40,7 @@
           <!-- 手动输入后门 -->
           <div class="manual-input-area">
             <input type="text" v-model="manualQRCode" placeholder="手动输入二维码号" @keyup.enter="submitManualQRCode"
-                   class="manual-input" />
+              class="manual-input" />
             <button @click="submitManualQRCode" class="manual-submit-btn">提交</button>
           </div>
 
@@ -78,7 +78,7 @@
             <div class="carousel-cylinder">
               <div class="carousel-3d" :style="{ minHeight: carouselHeight + 'px' }">
                 <div v-for="(cab, idx) in cabinets" :key="cab.id" class="cabinet-item"
-                     :class="{ 'center-highlight': idx === currentIndex }" :style="{
+                  :class="{ 'center-highlight': idx === currentIndex }" :style="{
                     ...getCabinetStyle(idx),
                     width: cab.width || '280px', height: cab.height || 'auto',
                   }">
@@ -88,7 +88,7 @@
                       <template v-for="(cell, cellIdx) in cab.flatCells" :key="cellIdx">
                         <!-- 普通格口 -->
                         <div v-if="cell.type === 'cell'" class="cell-container"
-                             :style="[getCellPosition(cell), cell.cellStyle]">
+                          :style="[getCellPosition(cell), cell.cellStyle]">
                           <div class="cell-inner"></div>
                           <div class="cabinet-cell" :class="{
                             'empty-door': cell.isEmpty,
@@ -100,11 +100,11 @@
                         </div>
                         <!-- 图片格口 -->
                         <div v-else-if="cell.type === 'image'" class="custom-image-cell"
-                             :style="[getCellPosition(cell), cell.cellStyle]">
+                          :style="[getCellPosition(cell), cell.cellStyle]">
                           <img :src="formatImageUrl(cell.imageUrl)" :alt="cell.label || '图标'" />
                           <span v-if="cell.label" class="image-label">{{
-                              truncateText(cell.label, 10)
-                            }}</span>
+                            truncateText(cell.label, 10)
+                          }}</span>
                         </div>
                       </template>
                     </div>
@@ -175,7 +175,7 @@
 
     <!-- 归还汇总模态框 -->
     <ReturnSummaryModal v-model:visible="showReturnSummary" :return-items="returnRecords" :photo-data="photoData"
-                        @submit="onReturnSubmit" />
+      @submit="onReturnSubmit" />
 
     <!-- 无归还记录提示模态框 -->
     <Teleport to="body">
@@ -231,7 +231,7 @@ import { submitReturnRecords } from '@/api/return'
 import ReturnSummaryModal from './ReturnSummaryModal.vue'
 import { useDehumidifierStore } from '@/stores/useDehumidifier'
 import type { CSSProperties } from 'vue'
-import {formatImageUrl} from '@/utils/fileUtils'
+import { formatImageUrl } from '@/utils/fileUtils'
 
 const dehumidifierStore = useDehumidifierStore()
 
@@ -642,7 +642,7 @@ const stopCloseAndCheckPolling = () => {
   }
 }
 
-const wsUrl  = `${import.meta.env.VITE_WS_BASE_URL}/return`
+const wsUrl = `${import.meta.env.VITE_WS_BASE_URL}/return`
 let socket: WebSocket | null = null
 const wsConnected = ref(false)
 
@@ -672,31 +672,31 @@ function connectWebSocket() {
   }
 }
 
-const sendMessage = (type: string, data: any) => {
+const sendMessage = (action: string, data: any) => {
   if (!socket || socket.readyState !== WebSocket.OPEN) {
     addNotification('网络连接异常，请稍后重试', 'warning')
     return false
   }
-  socket.send(JSON.stringify({ type, data }))
+  socket.send(JSON.stringify({ action, data, requestId: Date.now().toString(), timestamp: Date.now().toString() }))
   return true
 }
 
 // 处理后端返回的消息
-const handleWebSocketMessage = async (msg: any) => {
-  const { type, code, data, message: msgText } = msg
-  if (type === 'openLock') {
-    await handleUnLockReply(msg)
-  } else if (type === 'closeAndCheck') {
-    await handleCloseAndCheck(msg)
+const handleWebSocketMessage = async (receive: any) => {
+  const { action, code, data, message } = receive
+  if (action === 'openLock') {
+    await handleUnLockReply(receive)
+  } else if (action === 'closeAndCheck') {
+    await handleCloseAndCheck(receive)
     isWaiting.value = false
-  } else if (type === 'checkAllLockStatus') {
-    handleCheckAllLockStatus(msg)
+  } else if (action === 'checkAllLockStatus') {
+    handleCheckAllLockStatus(receive)
   }
 }
 
-const handleUnLockReply = async (msg: any) => {
+const handleUnLockReply = async (receive: any) => {
 
-  const { type, code, data, message: msgText } = msg
+  const { action, code, data, message } = receive
 
   if (code === 200) {
     // 开锁成功
@@ -731,13 +731,13 @@ const handleUnLockReply = async (msg: any) => {
       }
     }
   } else {
-    addNotification(msgText || '开锁失败', 'warning')
+    addNotification(message || '开锁失败', 'warning')
     resetScanState()
   }
 }
 
-const handleCloseAndCheck = async (msg: any) => {
-  const { type, code, data, message: msgText } = msg
+const handleCloseAndCheck = async (receive: any) => {
+  const { action, code, data, message } = receive
   const { cabinetId, cellId, cellNumber, toolName, returnTime } = data
   switch (code) {
     case 200:
@@ -809,8 +809,8 @@ const handleCloseAndCheck = async (msg: any) => {
   isWaiting.value = false
 }
 
-const handleCheckAllLockStatus = (msg: any) => {
-  const { type, code, data, message: msgText } = msg
+const handleCheckAllLockStatus = (receive: any) => {
+  const { action, code, data, message } = receive
   switch (code) {
     case 200:
       if (returnRecords.value.length === 0) {
@@ -820,8 +820,7 @@ const handleCheckAllLockStatus = (msg: any) => {
       showReturnSummary.value = true
       break;
     case 501:
-      addNotification(msgText, 'warning')
-      startReturnSuccessCountdown(0)
+      addNotification(message, 'warning')
       break;
     default:
       addNotification('尚有柜门未关闭，请先关闭柜门完成归还', 'warning')
@@ -1477,6 +1476,7 @@ body,
   backface-visibility: hidden;
   max-width: 88vw;
 }
+
 .cabinet-item.center-highlight {
   border: 2px solid #6fcf97;
   box-shadow: 0 0 12px rgba(100, 220, 160, 0.5);
@@ -1956,7 +1956,9 @@ body,
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .empty-state {
@@ -2047,6 +2049,7 @@ body,
   border-top: 1px solid rgba(34, 211, 238, 0.2);
   background: rgba(0, 0, 0, 0.3);
 }
+
 .modal-icon {
   width: 28px;
   height: 28px;
@@ -2139,54 +2142,222 @@ body,
 
 /* ---------- 响应式 – 无动画 ---------- */
 @media (max-width: 680px) {
-  .page-header { height: 50px; gap: 8px; }
-  .title-icon { width: 26px; height: 26px; }
-  .page-header h1 { font-size: 20px; }
-  .upper-area { height: calc(100vh - 350px - 50px - 50px); }
-  .info-area { width: 320px; padding: 8px; }
-  .info-header, .info-row { grid-template-columns: 1fr 0.7fr 1fr 1.3fr; gap: 8px; }
-  .header-item, .row-item { font-size: 10px; }
-  .complete-btn .btn-icon { width: 32px; height: 32px; }
-  .complete-btn .btn-label { font-size: 14px; }
-  .complete-btn { padding: 16px 12px; min-height: 80px; }
-  .temp-card, .humidity-card { padding: 3px 10px; top: 4px; }
-  .card-value { font-size: 14px; min-width: 35px; }
-  .scanner-prompt { padding: 6px 12px; margin: 0 12px; }
-  .scanner-text { font-size: 11px; }
-  .manual-input { width: 120px; font-size: 11px; padding: 4px 8px; }
-  .manual-submit-btn { padding: 3px 8px; font-size: 10px; }
-  .empty-icon { width: 26px; height: 26px; }
-  .modal-icon { width: 24px; height: 24px; }
-  .card-icon { width: 18px; height: 18px; }
+  .page-header {
+    height: 50px;
+    gap: 8px;
+  }
+
+  .title-icon {
+    width: 26px;
+    height: 26px;
+  }
+
+  .page-header h1 {
+    font-size: 20px;
+  }
+
+  .upper-area {
+    height: calc(100vh - 350px - 50px - 50px);
+  }
+
+  .info-area {
+    width: 320px;
+    padding: 8px;
+  }
+
+  .info-header,
+  .info-row {
+    grid-template-columns: 1fr 0.7fr 1fr 1.3fr;
+    gap: 8px;
+  }
+
+  .header-item,
+  .row-item {
+    font-size: 10px;
+  }
+
+  .complete-btn .btn-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .complete-btn .btn-label {
+    font-size: 14px;
+  }
+
+  .complete-btn {
+    padding: 16px 12px;
+    min-height: 80px;
+  }
+
+  .temp-card,
+  .humidity-card {
+    padding: 3px 10px;
+    top: 4px;
+  }
+
+  .card-value {
+    font-size: 14px;
+    min-width: 35px;
+  }
+
+  .scanner-prompt {
+    padding: 6px 12px;
+    margin: 0 12px;
+  }
+
+  .scanner-text {
+    font-size: 11px;
+  }
+
+  .manual-input {
+    width: 120px;
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+
+  .manual-submit-btn {
+    padding: 3px 8px;
+    font-size: 10px;
+  }
+
+  .empty-icon {
+    width: 26px;
+    height: 26px;
+  }
+
+  .modal-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .card-icon {
+    width: 18px;
+    height: 18px;
+  }
 }
 
 @media (max-width: 480px) {
-  .page-header h1 { font-size: 18px; }
-  .title-icon { width: 22px; height: 22px; }
-  .cabinet-item { width: 260px !important; }
-  .bottom-container { gap: 8px; }
-  .info-area { width: 260px; padding: 6px; }
-  .info-header, .info-row { grid-template-columns: 1fr 0.6fr 0.9fr 1.2fr; gap: 6px; }
-  .header-item, .row-item { font-size: 9px; }
-  .info-row { padding: 6px 4px; }
-  .complete-btn .btn-icon { width: 28px; height: 28px; }
-  .complete-btn .btn-label { font-size: 12px; }
-  .complete-btn { padding: 12px 8px; min-height: 70px; gap: 6px; }
-  .placeholder-icon { width: 24px; height: 24px; }
-  .photo-placeholder span { font-size: 9px; }
-  .temp-card, .humidity-card { padding: 2px 8px; gap: 4px; }
-  .card-icon { width: 16px; height: 16px; }
-  .card-value { font-size: 12px; min-width: 30px; }
-  .card-label { font-size: 8px; }
-  .scanner-prompt { padding: 4px 8px; }
-  .scanner-icon { font-size: 18px; }
-  .scanner-text { font-size: 10px; }
-  .reset-scan-btn { font-size: 10px; padding: 2px 8px; }
-  .manual-input { width: 100px; font-size: 10px; padding: 3px 6px; }
-  .manual-submit-btn { padding: 2px 6px; font-size: 9px; }
-  .modal-icon { width: 20px; height: 20px; }
-  .empty-icon { width: 22px; height: 22px; }
+  .page-header h1 {
+    font-size: 18px;
+  }
+
+  .title-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .cabinet-item {
+    width: 260px !important;
+  }
+
+  .bottom-container {
+    gap: 8px;
+  }
+
+  .info-area {
+    width: 260px;
+    padding: 6px;
+  }
+
+  .info-header,
+  .info-row {
+    grid-template-columns: 1fr 0.6fr 0.9fr 1.2fr;
+    gap: 6px;
+  }
+
+  .header-item,
+  .row-item {
+    font-size: 9px;
+  }
+
+  .info-row {
+    padding: 6px 4px;
+  }
+
+  .complete-btn .btn-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .complete-btn .btn-label {
+    font-size: 12px;
+  }
+
+  .complete-btn {
+    padding: 12px 8px;
+    min-height: 70px;
+    gap: 6px;
+  }
+
+  .placeholder-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .photo-placeholder span {
+    font-size: 9px;
+  }
+
+  .temp-card,
+  .humidity-card {
+    padding: 2px 8px;
+    gap: 4px;
+  }
+
+  .card-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .card-value {
+    font-size: 12px;
+    min-width: 30px;
+  }
+
+  .card-label {
+    font-size: 8px;
+  }
+
+  .scanner-prompt {
+    padding: 4px 8px;
+  }
+
+  .scanner-icon {
+    font-size: 18px;
+  }
+
+  .scanner-text {
+    font-size: 10px;
+  }
+
+  .reset-scan-btn {
+    font-size: 10px;
+    padding: 2px 8px;
+  }
+
+  .manual-input {
+    width: 100px;
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+
+  .manual-submit-btn {
+    padding: 2px 6px;
+    font-size: 9px;
+  }
+
+  .modal-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .empty-icon {
+    width: 22px;
+    height: 22px;
+  }
 }
+
 .empty-icon {
   width: 32px;
   height: 32px;
@@ -2194,5 +2365,4 @@ body,
   flex-shrink: 0;
   filter: drop-shadow(0 0 4px #f97316);
 }
-
 </style>

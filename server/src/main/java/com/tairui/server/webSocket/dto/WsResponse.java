@@ -56,4 +56,14 @@ public class WsResponse<T> {
     public static <T> WsResponse<T> progress(String action, String message) {
         return progress(action, message, null);
     }
+
+    public static <T> WsResponse<T> response(String action, Integer code, String message, T data) {
+        WsResponse<T> response = new WsResponse<>();
+        response.setAction(action);
+        response.setCode(code);
+        response.setMessage(message);
+        response.setData(data);
+        response.setTimestamp(System.currentTimeMillis());
+        return response;
+    }
 }

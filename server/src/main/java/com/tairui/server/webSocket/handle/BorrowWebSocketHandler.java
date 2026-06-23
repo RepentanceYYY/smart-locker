@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tairui.server.deviceService.QianMingLockDeviceServiceManager;
 import com.tairui.server.dto.CabinetFullDTO;
 import com.tairui.server.service.CabinetConfigService;
+import com.tairui.server.webSocket.dto.WsRequest;
+import com.tairui.server.webSocket.dto.WsResponse;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -14,6 +16,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -40,22 +43,29 @@ public class BorrowWebSocketHandler extends TextWebSocketHandler {
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         String payload = message.getPayload();
-        Map<String, Object> msg = objectMapper.readValue(payload, Map.class);
-        String type = (String) msg.get("type");
-        Map<String, Object> data = (Map<String, Object>) msg.get("data");
+        WsRequest wsRequest;
+        WsResponse wsResponse;
+        try {
+            wsRequest = objectMapper.readValue(payload, WsRequest.class);
+        } catch (Exception e) {
+            wsResponse = WsResponse.fail("invalid", 400, "不支持的JSON格式");
+            session.sendMessage(new TextMessage(objectMapper.writeValueAsString(wsResponse)));
+            return;
+        }
 
-        switch (type) {
+        switch (wsRequest.getAction()) {
             case "openLock":
-                handleOpenLock(session, data);
+                handleOpenLock(session, wsRequest);
                 break;
             case "closeAndCheck":
-                handleCloseAndCheck(session, data);
+                handleCloseAndCheck(session, wsRequest);
                 break;
             case "checkAllLockStatus":
-                handleAllCellLockStatus(session);
+                handleAllCellLockStatus(session, wsRequest);
                 break;
             default:
-                sendError(session, "未知消息类型: " + type);
+                wsResponse = WsResponse.fail(wsRequest.getAction(), 400, "未知消息类型: " + wsRequest.getAction());
+                session.sendMessage(new TextMessage(objectMapper.writeValueAsString(wsResponse)));
         }
     }
 
@@ -63,27 +73,22 @@ public class BorrowWebSocketHandler extends TextWebSocketHandler {
      * 开锁处理器
      *
      * @param session
-     * @param data
+     * @param wsRequest
      * @throws Exception
      */
-    private void handleOpenLock(WebSocketSession session, Map<String, Object> data) throws Exception {
+    private void handleOpenLock(WebSocketSession session, WsRequest wsRequest) throws Exception {
+
+        Map<String, Object> data = objectMapper.convertValue(wsRequest.getData(), HashMap.class);
+
         Integer cabinetId = (Integer) data.get("cabinetId");
         Integer cellId = (Integer) data.get("cellId");
         String cellNumber = (String) data.get("cellNumber");
-
-        int boxNo;
-        try {
-            boxNo = Integer.parseInt(cellNumber);
-        } catch (NumberFormatException e) {
-            sendResponse(session, "openLock", 400, "格口号格式错误", null);
-            return;
-        }
 
         boolean success;
         try {
             success = qianMingLockDeviceServiceManager.openBoxSync(cellId, 3000);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("打开格口锁失败，原因:{}", e.getMessage());
             success = false;
         }
 
@@ -95,9 +100,13 @@ public class BorrowWebSocketHandler extends TextWebSocketHandler {
                     "cellNumber", cellNumber,
                     "toolName", toolName
             );
-            sendResponse(session, "openLock", 200, "开锁成功", result);
+
+            WsResponse wsResponse = WsResponse.success(wsRequest.getAction(), "开锁成功", result);
+            session.sendMessage(new TextMessage(objectMapper.writeValueAsString(wsResponse)));
+
         } else {
-            sendResponse(session, "openLock", 500, "开锁失败，请检查硬件连接", null);
+            WsResponse wsResponse = WsResponse.fail(wsRequest.getAction(), 500, "开锁失败，请检查硬件连接");
+            session.sendMessage(new TextMessage(objectMapper.writeValueAsString(wsResponse)));
         }
     }
 
@@ -105,10 +114,10 @@ public class BorrowWebSocketHandler extends TextWebSocketHandler {
      * 获取指定格口的门锁状态和储物状态
      *
      * @param session
-     * @param data
+     * @param wsRequest
      * @throws Exception
      */
-    private void handleCloseAndCheck(WebSocketSession session, Map<String, Object> data) throws Exception {
+    private void handleCloseAndCheck(WebSocketSession session, WsRequest wsRequest) throws Exception {
         /**
          * 响应码对照：
          * 400 请求数据错误
@@ -118,52 +127,52 @@ public class BorrowWebSocketHandler extends TextWebSocketHandler {
          * 204 已关锁，有物品
          *
          */
-
+        Map<String, Object> data = objectMapper.convertValue(wsRequest.getData(), HashMap.class);
         Integer cabinetId = (Integer) data.get("cabinetId");
         Integer cellId = (Integer) data.get("cellId");
         String cellNumber = (String) data.get("cellNumber");
         String toolName = (String) data.get("toolName");
+        WsResponse wsResponse;
 
         try {
             boolean isOpen = qianMingLockDeviceServiceManager.querySingleBoxStatusSync(cellId, 500L);
             if (isOpen == true) {
-                sendResponse(session, "closeAndCheck", 409, "锁未关", null);
+                wsResponse = WsResponse.fail(wsRequest.getAction(), 409, "锁未关");
+                session.sendMessage(new TextMessage(objectMapper.writeValueAsString(wsResponse)));
                 return;
             }
         } catch (Exception e) {
-            e.printStackTrace();
-            sendResponse(session, "closeAndCheck", 500, "查询锁状态失败", null);
+            log.error("锁状态查询失败，原因:{}", e.getMessage());
+            wsResponse = WsResponse.fail(wsRequest.getAction(), 409, "查询锁状态失败");
+            session.sendMessage(new TextMessage(objectMapper.writeValueAsString(wsResponse)));
             return;
         }
         Thread.sleep(200L);
         // 是否有物品
         boolean hasGoods;
+
         try {
             hasGoods = qianMingLockDeviceServiceManager.querySingleGoodsStatusSync(cellId, 3000L);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("物品状态查询失败，原因:{}", e.getMessage());
             hasGoods = true;
         }
-        String operationTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        if (hasGoods) {
 
-            Map<String, Object> result = Map.of(
-                    "cabinetId", cabinetId,
-                    "cellId", cellId,
-                    "cellNumber", cellNumber,
-                    "toolName", toolName
-            );
-            sendResponse(session, "closeAndCheck", 204, "已关锁，检测到物品", result);
+        String operationTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        Map<String, Object> result = Map.of(
+                "cabinetId", cabinetId,
+                "cellId", cellId,
+                "cellNumber", cellNumber,
+                "toolName", toolName,
+                "borrowTime", operationTime
+        );
+        if (hasGoods) {
+            wsResponse = WsResponse.response(wsRequest.getAction(), 204, "已关锁，检测到物品", result);
         } else {
-            Map<String, Object> result = Map.of(
-                    "cabinetId", cabinetId,
-                    "cellId", cellId,
-                    "cellNumber", cellNumber,
-                    "toolName", toolName,
-                    "borrowTime", operationTime
-            );
-            sendResponse(session, "closeAndCheck", 200, "已关锁，未检测到物品", result);
+            wsResponse = WsResponse.success(wsRequest.getAction(), "已关锁，检测到物品", result);
         }
+
+        session.sendMessage(new TextMessage(objectMapper.writeValueAsString(wsResponse)));
     }
 
     /**
@@ -172,7 +181,7 @@ public class BorrowWebSocketHandler extends TextWebSocketHandler {
      * @param session
      * @throws Exception
      */
-    private void handleAllCellLockStatus(WebSocketSession session) throws Exception {
+    private void handleAllCellLockStatus(WebSocketSession session, WsRequest wsRequest) throws Exception {
 
         List<CabinetFullDTO> cabinets = cabinetConfigService.getFullConfigList();
         // 所有柜子的所有格口都关锁了
@@ -206,38 +215,26 @@ public class BorrowWebSocketHandler extends TextWebSocketHandler {
             try {
                 allClosed = qianMingLockDeviceServiceManager.isAllActiveCellsClosed(cabinet.getId(), macList);
             } catch (Exception e) {
-                sendResponse(session, "checkAllLockStatus", 501, e.getMessage(), null);
+                WsResponse wsResponse = WsResponse.fail(wsRequest.getAction(), 501, "硬件连接异常，无法完成");
+                session.sendMessage(new TextMessage(objectMapper.writeValueAsString(wsResponse)));
                 return;
             }
             if (allClosed == false) {
                 allCabinetAllClosed = false;
             }
         }
-
+        WsResponse wsResponse;
         if (allCabinetAllClosed == true) {
-            sendResponse(session, "checkAllLockStatus", 200, "所有锁都已关闭", null);
+            wsResponse = WsResponse.success(wsRequest.getAction(), "所有锁都已关闭", null);
         } else {
-            sendResponse(session, "checkAllLockStatus", 500, "部分锁未关闭", null);
+            wsResponse = WsResponse.fail(wsRequest.getAction(), 500, "部分锁未关闭");
         }
-    }
-
-    private void sendError(WebSocketSession session, String errorMsg) throws IOException {
-        sendResponse(session, "error", 500, errorMsg, null);
+        session.sendMessage(new TextMessage(objectMapper.writeValueAsString(wsResponse)));
     }
 
     private String getToolNameByCell(Integer cabinetId, Integer cellId, String cellNumber) {
         // TODO: 从数据库或缓存中查询该格口对应的工具名称
         return "工具-" + cellNumber;
-    }
-
-    private void sendResponse(WebSocketSession session, String type, int code, String message, Map<String, Object> data) throws IOException {
-        Map<String, Object> response = Map.of(
-                "type", type,
-                "code", code,
-                "message", message,
-                "data", data == null ? Map.of() : data
-        );
-        session.sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
     }
 
 }
