@@ -6,7 +6,7 @@
         {{ notify.text }}
       </div>
     </div>
-    
+
     <!-- 加载状态 -->
     <div v-if="loading" class="loading-mask">
       <div class="loading-spinner"></div>
@@ -62,13 +62,9 @@
 
             <div class="carousel-cylinder">
               <div class="carousel-3d" :style="{ minHeight: carouselHeight + 'px' }">
-                <div
-                    v-for="(cab, idx) in cabinets"
-                    :key="cab.id"
-                    class="cabinet-item"
-                    :class="{ 'center-highlight': idx === currentIndex }"
-                    :style="[cabinetStyles[idx], { width: cab.width || '280px', height: cab.height || 'auto' }]"
-                >
+                <div v-for="(cab, idx) in cabinets" :key="cab.id" class="cabinet-item"
+                  :class="{ 'center-highlight': idx === currentIndex }"
+                  :style="[cabinetStyles[idx], { width: cab.width || '280px', height: cab.height || 'auto' }]">
                   <div class="cabinet-header">
                     {{ cab.title }}
                   </div>
@@ -76,8 +72,8 @@
                     <div class="cabinet-grid" v-memo="[cab.id]" :style="getGridStyle(cab)">
                       <template v-for="(cell, cellIdx) in cab.flatCells" :key="cellIdx">
                         <div v-if="cell.type === 'cell'" class="cell-container"
-                             :style="[getCellPosition(cell), cell.cellStyle]" :class="{ 'empty-door': cell.isEmpty }"
-                             @click="showCellDetail(cell)">
+                          :style="[getCellPosition(cell), cell.cellStyle]" :class="{ 'empty-door': cell.isEmpty }"
+                          @click="showCellDetail(cell)">
                           <div class="cell-inner"></div>
                           <div class="cabinet-cell" :class="{ 'empty-door': cell.isEmpty }">
                             <div class="hinge"></div>
@@ -87,7 +83,7 @@
                           </div>
                         </div>
                         <div v-else-if="cell.type === 'image'" class="custom-image-cell"
-                             :style="[getCellPosition(cell), cell.cellStyle]">
+                          :style="[getCellPosition(cell), cell.cellStyle]">
                           <img :src="formatImageUrl(cell.imageUrl)" :alt="cell.label || '图标'" />
                           <span v-if="cell.label" class="image-label">{{ truncateText(cell.label, 10) }}</span>
                         </div>
@@ -168,10 +164,13 @@
     </div>
 
     <!-- 相机弹窗 -->
-    <CameraModal v-model:visible="showCameraModal" :isBorrow="isBorrowMode" @confirm="handlePhotoConfirm" @notify="addNotification" @faceRecognized="handleFaceRecognized" />
+    <CameraModal v-if="systemConfigStore.enableFaceCapture" v-model:visible="showCameraModal" :isBorrow="isBorrowMode"
+      @confirm="handlePhotoConfirm" @notify="addNotification" @faceRecognized="handleFaceRecognized" />
 
+    <ManualCameraModal v-else v-model:visible="showCameraModal" :isBorrow="isBorrowMode"
+      @confirm="handleManualPhotoConfirm" @notify="addNotification" />
     <InventoryDialog :visible="showInventoryDialog" :inventoryResult="inventoryDialogResult"
-                     @close="closeInventoryDialog" @cancel="closeInventoryDialog" @confirm="closeInventoryDialog" />
+      @close="closeInventoryDialog" @cancel="closeInventoryDialog" @confirm="closeInventoryDialog" />
 
     <!-- 密码弹窗（设置验证） -->
     <div v-if="showPasswordDialog" class="dialog-overlay" @click="closePasswordDialog">
@@ -191,8 +190,8 @@
             </span>
           </div>
           <div class="password-input-group">
-            <input ref="passwordInputRef" type="password" v-model="passwordInput" placeholder="请输入管理员密码" class="password-input"
-                   @keyup.enter="verifyPassword" @input="onPasswordInput" autofocus />
+            <input ref="passwordInputRef" type="password" v-model="passwordInput" placeholder="请输入管理员密码"
+              class="password-input" @keyup.enter="verifyPassword" @input="onPasswordInput" autofocus />
             <div v-if="passwordError" class="password-error">
               ❌ {{ passwordError }}
             </div>
@@ -223,7 +222,7 @@ import { useDehumidifierStore } from '@/stores/useDehumidifier'
 import { useCountdown } from '@/composables/useCountdown'
 import type { CSSProperties } from 'vue'
 import { formatImageUrl } from '@/utils/fileUtils'
-
+import ManualCameraModal from './ManualCameraModal.vue'
 
 const router = useRouter()
 const systemConfigStore = useSystemConfigStore()
@@ -598,7 +597,20 @@ function closeDialog() {
 function handleDialogAction() {
   closeDialog()
 }
-
+// 3. 处理手动拍照成功后的回调 (对应 ManualCameraModal 的 @confirm)
+function handleManualPhotoConfirm(uploadImageUrl: string) {
+  console.log('手动拍照成功并后端验证通过，获取到图片路径:', uploadImageUrl)
+  
+  // 跳转到对应领用/归还页面
+  const targetPath = isBorrowMode.value ? '/borrow' : '/return'
+  router.push({
+    path: targetPath,
+    query: {
+      faceImage: uploadImageUrl, // 传递后端返回的图片路径
+      timestamp: Date.now().toString()
+    }
+  })
+}
 // ================== 三大按钮 ==================
 function handleBorrow() {
   if (isAllowClickButton.value) {
@@ -606,7 +618,7 @@ function handleBorrow() {
     return
   }
   isBorrowMode.value = true
-  showCameraModal.value = true
+  showCameraModal.value = true // 唤起弹窗（会自动根据 store 中的 enableFaceCapture 渲染对应组件）
 }
 
 function handleReturn() {
@@ -785,7 +797,7 @@ function handleSettings() {
 
 function handlePhotoConfirm(imageData: string) {
   console.log('用户点击确认，图片数据:', imageData)
-  
+
   // 跳转到对应页面，通过query参数传递图片数据
   if (isBorrowMode.value) {
     console.log('跳转到领用页面')
@@ -937,10 +949,10 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="css" scoped>
-
 .confirm-btn.settings-confirm-btn {
   background: linear-gradient(135deg, #22d3ee, #3b82f6) !important;
 }
+
 .confirm-btn.inventory-confirm-btn {
   background: linear-gradient(135deg, #8b5cf6, #6d28d9) !important;
 }
@@ -986,10 +998,12 @@ body,
   align-items: center;
   justify-content: space-between;
 }
+
 .app-header::before,
 .app-header::after {
   display: none;
 }
+
 .app-header:hover {
   background: rgba(8, 20, 26, 0.95);
   border-bottom-color: rgba(34, 211, 238, 0.7);
@@ -1007,6 +1021,7 @@ body,
   align-items: center;
   justify-content: center;
 }
+
 .logo-icon {
   width: 36px;
   height: 36px;
@@ -1033,6 +1048,7 @@ body,
   flex-direction: column;
   line-height: 1.2;
 }
+
 .title-text {
   font-size: 22px;
   font-weight: 800;
@@ -1043,6 +1059,7 @@ body,
   letter-spacing: 1.5px;
   text-shadow: 0 0 8px rgba(34, 211, 238, 0.3);
 }
+
 .title-sub {
   font-size: 9px;
   font-weight: 500;
@@ -1062,6 +1079,7 @@ body,
   align-items: center;
   gap: 20px;
 }
+
 .time-wrapper {
   display: flex;
   align-items: center;
@@ -1072,10 +1090,12 @@ body,
   border: 1px solid rgba(34, 211, 238, 0.5);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
+
 .time-wrapper:hover {
   background: rgba(34, 211, 238, 0.2);
   border-color: #22d3ee;
 }
+
 .time-icon {
   width: 20px;
   height: 20px;
@@ -1083,6 +1103,7 @@ body,
   flex-shrink: 0;
   filter: drop-shadow(0 0 2px #22d3ee);
 }
+
 .header-time {
   font-size: 20px;
   font-weight: 700;
@@ -1102,6 +1123,7 @@ body,
   flex-direction: column;
   overflow: hidden;
 }
+
 .top-section {
   flex: 1;
   position: relative;
@@ -1128,20 +1150,24 @@ body,
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
+
 .temp-card {
   left: 20px;
   border-left: 3px solid #f87171;
 }
+
 .humidity-card {
   right: 20px;
   border-right: 3px solid #4ade80;
 }
+
 .card-icon {
   width: 28px;
   height: 28px;
   display: block;
   flex-shrink: 0;
 }
+
 .card-value {
   font-size: 18px;
   font-weight: 700;
@@ -1150,14 +1176,17 @@ body,
   min-width: 45px;
   text-align: center;
 }
+
 .temp-card .card-value {
   color: #f87171;
   text-shadow: 0 0 4px rgba(248, 113, 113, 0.3);
 }
+
 .humidity-card .card-value {
   color: #4ade80;
   text-shadow: 0 0 4px rgba(74, 222, 128, 0.3);
 }
+
 .card-label {
   font-size: 11px;
   color: #94a3b8;
@@ -1167,6 +1196,7 @@ body,
   padding: 2px 6px;
   border-radius: 20px;
 }
+
 .temp-card:hover,
 .humidity-card:hover {
   background: rgba(0, 0, 0, 0.8);
@@ -1185,6 +1215,7 @@ body,
   height: 100%;
   overflow: hidden;
 }
+
 .carousel-3d {
   position: relative;
   width: 100%;
@@ -1212,6 +1243,7 @@ body,
   backface-visibility: hidden;
   max-width: 88vw;
 }
+
 .cabinet-item.center-highlight {
   border: 2px solid #6fcf97;
   box-shadow: 0 0 12px rgba(100, 220, 160, 0.5);
@@ -1231,6 +1263,7 @@ body,
   justify-content: center;
   gap: 6px;
 }
+
 .cabinet-body {
   padding: 12px;
   position: relative;
@@ -1238,6 +1271,7 @@ body,
   display: flex;
   flex-direction: column;
 }
+
 .cabinet-grid {
   display: grid;
   gap: 8px;
@@ -1253,6 +1287,7 @@ body,
   margin: 4px 0 2px;
   flex-shrink: 0;
 }
+
 .indicator-text {
   background: rgba(0, 0, 0, 0.6);
   padding: 4px 16px;
@@ -1262,6 +1297,7 @@ body,
   color: #c2f0e0;
   border: 1px solid rgba(34, 211, 238, 0.5);
 }
+
 .divider {
   width: 85%;
   height: 2px;
@@ -1282,6 +1318,7 @@ body,
   overflow: hidden;
   background: transparent;
 }
+
 .big-buttons-container {
   display: flex;
   gap: 16px;
@@ -1290,6 +1327,7 @@ body,
   margin: 0 auto;
   padding: 0 10px;
 }
+
 .big-action-btn {
   flex: 1;
   display: flex;
@@ -1307,6 +1345,7 @@ body,
   color: white;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
+
 .btn-icon {
   width: 36px;
   height: 36px;
@@ -1314,6 +1353,7 @@ body,
   flex-shrink: 0;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
+
 .btn-label {
   font-size: 18px;
   letter-spacing: 2px;
@@ -1323,6 +1363,7 @@ body,
   background: linear-gradient(135deg, #10b981, #059669);
   border: 1px solid rgba(52, 211, 153, 0.6);
 }
+
 .borrow-btn:hover {
   background: linear-gradient(135deg, #34d399, #10b981);
 }
@@ -1331,6 +1372,7 @@ body,
   background: linear-gradient(135deg, #f59e0b, #d97706);
   border: 1px solid rgba(251, 191, 36, 0.6);
 }
+
 .return-btn:hover {
   background: linear-gradient(135deg, #fbbf24, #f59e0b);
 }
@@ -1339,6 +1381,7 @@ body,
   background: linear-gradient(135deg, #8b5cf6, #6d28d9);
   border: 1px solid rgba(167, 139, 250, 0.6);
 }
+
 .inventory-btn:hover {
   background: linear-gradient(135deg, #a78bfa, #8b5cf6);
 }
@@ -1347,6 +1390,7 @@ body,
   background: linear-gradient(135deg, #3b82f6, #2563eb);
   border: 1px solid rgba(96, 165, 250, 0.6);
 }
+
 .settings-btn:hover {
   background: linear-gradient(135deg, #60a5fa, #3b82f6);
 }
@@ -1373,26 +1417,32 @@ body,
   letter-spacing: 1px;
   white-space: nowrap;
 }
+
 .nav-btn-left {
   left: 12px;
 }
+
 .nav-btn-right {
   right: 12px;
 }
+
 .arrow {
   font-size: 1.3rem;
   line-height: 1;
 }
+
 .btn-text {
   font-size: 0.85rem;
   font-weight: 600;
 }
+
 .nav-btn-left:hover:not(.disabled),
 .nav-btn-right:hover:not(.disabled) {
   background: rgba(14, 165, 233, 0.9);
   border-color: #7dd3fc;
   color: #0a1a1f;
 }
+
 .nav-btn-left.disabled,
 .nav-btn-right.disabled {
   opacity: 0.35;
@@ -1408,6 +1458,7 @@ body,
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7), 0 2px 8px rgba(0, 0, 0, 0.02);
   cursor: pointer;
 }
+
 .cell-container:hover {
   border-color: #22d3ee;
   box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.7);
@@ -1450,10 +1501,12 @@ body,
   justify-content: center;
   align-items: center;
 }
+
 .cabinet-cell.empty-door {
   background: rgba(255, 255, 245, 0.6);
   border-color: rgba(140, 180, 160, 0.6);
 }
+
 .cell-number {
   position: absolute;
   top: 3px;
@@ -1467,6 +1520,7 @@ body,
   z-index: 2;
   white-space: nowrap;
 }
+
 .tool-name {
   font-size: 8px;
   font-weight: 600;
@@ -1482,15 +1536,18 @@ body,
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
 .empty-door .tool-name {
   display: none;
 }
+
 .custom-image-cell img {
   max-width: 75%;
   max-height: 65%;
   object-fit: contain;
   border-radius: 8px;
 }
+
 .image-label {
   margin-top: 6px;
   font-size: 9px;
@@ -1513,6 +1570,7 @@ body,
   justify-content: center;
   z-index: 10000;
 }
+
 .dialog-content {
   width: 85%;
   max-width: 400px;
@@ -1522,6 +1580,7 @@ body,
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
   overflow: hidden;
 }
+
 .dialog-header {
   display: flex;
   justify-content: space-between;
@@ -1530,6 +1589,7 @@ body,
   background: rgba(34, 211, 238, 0.15);
   border-bottom: 1px solid rgba(34, 211, 238, 0.3);
 }
+
 .dialog-header h3 {
   margin: 0;
   font-size: 20px;
@@ -1539,6 +1599,7 @@ body,
   align-items: center;
   gap: 10px;
 }
+
 .lock-icon {
   width: 24px;
   height: 24px;
@@ -1546,6 +1607,7 @@ body,
   flex-shrink: 0;
   filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.4));
 }
+
 .dialog-close {
   background: none;
   border: none;
@@ -1560,13 +1622,16 @@ body,
   align-items: center;
   justify-content: center;
 }
+
 .dialog-close:hover {
   background: rgba(255, 255, 255, 0.1);
   color: white;
 }
+
 .dialog-body {
   padding: 24px 20px;
 }
+
 .detail-row {
   margin-bottom: 16px;
   display: flex;
@@ -1574,25 +1639,30 @@ body,
   align-items: baseline;
   font-size: 16px;
 }
+
 .detail-label {
   width: 80px;
   color: #94a3b8;
   font-weight: 500;
 }
+
 .detail-value {
   flex: 1;
   color: #e2e8f0;
   font-weight: 500;
   word-break: break-word;
 }
+
 .empty-warning .detail-value {
   color: #fbbf24;
 }
+
 .dialog-footer {
   padding: 16px 20px 24px;
   display: flex;
   justify-content: center;
 }
+
 .dialog-action-btn {
   background: linear-gradient(135deg, #22d3ee, #3b82f6);
   border: none;
@@ -1609,6 +1679,7 @@ body,
 .password-dialog {
   max-width: 380px;
 }
+
 .password-timer {
   display: flex;
   align-items: center;
@@ -1619,6 +1690,7 @@ body,
   background: rgba(34, 211, 238, 0.15);
   border-radius: 40px;
 }
+
 .timer-icon {
   width: 22px;
   height: 22px;
@@ -1626,17 +1698,21 @@ body,
   flex-shrink: 0;
   filter: drop-shadow(0 0 2px #22d3ee);
 }
+
 .timer-text {
   font-size: 16px;
   font-weight: 600;
   color: #22d3ee;
 }
+
 .timer-warning {
   color: #f97316;
 }
+
 .password-input-group {
   margin-bottom: 16px;
 }
+
 .password-input {
   width: 100%;
   padding: 14px 16px;
@@ -1649,23 +1725,28 @@ body,
   text-align: center;
   letter-spacing: 2px;
 }
+
 .password-input:focus {
   border-color: #22d3ee;
   box-shadow: 0 0 6px rgba(34, 211, 238, 0.3);
 }
+
 .password-error {
   margin-top: 8px;
   text-align: center;
   color: #f87171;
   font-size: 13px;
 }
+
 .password-footer {
   gap: 12px;
   padding: 16px 20px 24px;
 }
+
 .cancel-btn {
   background: rgba(100, 116, 139, 0.8) !important;
 }
+
 .confirm-btn {
   background: linear-gradient(135deg, #22d3ee, #3b82f6) !important;
 }
@@ -1687,6 +1768,7 @@ body,
   font-size: 1.2rem;
   gap: 16px;
 }
+
 .loading-spinner {
   width: 48px;
   height: 48px;
@@ -1695,8 +1777,11 @@ body,
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
+
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ========== 通知列表样式 ========== */
@@ -1741,6 +1826,7 @@ body,
     opacity: 0;
     transform: translateX(100px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -1749,43 +1835,179 @@ body,
 
 /* ---------- 响应式 ---------- */
 @media (max-width: 680px) {
-  .app-header { height: 56px; padding: 0 16px; }
-  .logo-icon { width: 28px; height: 28px; }
-  .title-text { font-size: 16px; }
-  .title-sub { display: none; }
-  .time-wrapper { padding: 4px 12px; gap: 6px; }
-  .header-time { font-size: 16px; min-width: 55px; }
-  .time-icon { width: 16px; height: 16px; }
-  .temp-card, .humidity-card { padding: 3px 10px; top: 8px; }
-  .card-icon { width: 20px; height: 20px; }
-  .card-value { font-size: 14px; min-width: 35px; }
-  .card-label { font-size: 9px; padding: 1px 4px; }
-  .nav-btn-left, .nav-btn-right { padding: 8px 16px; }
-  .btn-icon { width: 28px; height: 28px; }
-  .btn-label { font-size: 14px; }
-  .big-action-btn { padding: 12px 6px; min-height: 60px; }
-  .dialog-content { width: 90%; }
-  .lock-icon { width: 20px; height: 20px; }
-  .timer-icon { width: 18px; height: 18px; }
+  .app-header {
+    height: 56px;
+    padding: 0 16px;
+  }
+
+  .logo-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .title-text {
+    font-size: 16px;
+  }
+
+  .title-sub {
+    display: none;
+  }
+
+  .time-wrapper {
+    padding: 4px 12px;
+    gap: 6px;
+  }
+
+  .header-time {
+    font-size: 16px;
+    min-width: 55px;
+  }
+
+  .time-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .temp-card,
+  .humidity-card {
+    padding: 3px 10px;
+    top: 8px;
+  }
+
+  .card-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .card-value {
+    font-size: 14px;
+    min-width: 35px;
+  }
+
+  .card-label {
+    font-size: 9px;
+    padding: 1px 4px;
+  }
+
+  .nav-btn-left,
+  .nav-btn-right {
+    padding: 8px 16px;
+  }
+
+  .btn-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .btn-label {
+    font-size: 14px;
+  }
+
+  .big-action-btn {
+    padding: 12px 6px;
+    min-height: 60px;
+  }
+
+  .dialog-content {
+    width: 90%;
+  }
+
+  .lock-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .timer-icon {
+    width: 18px;
+    height: 18px;
+  }
 }
+
 @media (max-width: 480px) {
-  .app-header { padding: 0 12px; }
-  .header-time { font-size: 14px; min-width: 48px; }
-  .title-text { font-size: 14px; letter-spacing: 1px; }
-  .logo-icon { width: 22px; height: 22px; }
-  .time-wrapper { padding: 2px 10px; }
-  .time-icon { width: 14px; height: 14px; }
-  .cabinet-item { width: 260px !important; }
-  .nav-btn-left, .nav-btn-right { padding: 6px 12px; }
-  .btn-icon { width: 24px; height: 24px; }
-  .btn-label { font-size: 12px; }
-  .big-action-btn { padding: 10px 4px; min-height: 55px; }
-  .big-buttons-container { gap: 10px; }
-  .temp-card, .humidity-card { padding: 2px 8px; gap: 4px; top: 6px; }
-  .card-icon { width: 16px; height: 16px; }
-  .card-value { font-size: 12px; min-width: 30px; }
-  .card-label { font-size: 8px; }
-  .lock-icon { width: 18px; height: 18px; }
-  .timer-icon { width: 16px; height: 16px; }
+  .app-header {
+    padding: 0 12px;
+  }
+
+  .header-time {
+    font-size: 14px;
+    min-width: 48px;
+  }
+
+  .title-text {
+    font-size: 14px;
+    letter-spacing: 1px;
+  }
+
+  .logo-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .time-wrapper {
+    padding: 2px 10px;
+  }
+
+  .time-icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  .cabinet-item {
+    width: 260px !important;
+  }
+
+  .nav-btn-left,
+  .nav-btn-right {
+    padding: 6px 12px;
+  }
+
+  .btn-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .btn-label {
+    font-size: 12px;
+  }
+
+  .big-action-btn {
+    padding: 10px 4px;
+    min-height: 55px;
+  }
+
+  .big-buttons-container {
+    gap: 10px;
+  }
+
+  .temp-card,
+  .humidity-card {
+    padding: 2px 8px;
+    gap: 4px;
+    top: 6px;
+  }
+
+  .card-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .card-value {
+    font-size: 12px;
+    min-width: 30px;
+  }
+
+  .card-label {
+    font-size: 8px;
+  }
+
+  .lock-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .timer-icon {
+    width: 16px;
+    height: 16px;
+  }
 }
 </style>
