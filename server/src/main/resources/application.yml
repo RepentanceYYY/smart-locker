@@ -33,4 +33,6 @@ face-threshold-config:
   blur-max: 0.2
   similarity: 80.0
   faceOcclusion: 0.6
+  head-yam-pose-max: 15
+  head-pitch-pose-max: 10
 

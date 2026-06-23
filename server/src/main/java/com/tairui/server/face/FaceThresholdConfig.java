@@ -35,4 +35,12 @@ public class FaceThresholdConfig {
      * 最高面部遮挡置信度
      */
     private float faceOcclusion = 0.6f;
+    /**
+     * 最高左右偏头置信度
+     */
+    private  float headYamPoseMax = 20f;
+    /**
+     * 最高抬头低头置信度
+     */
+    private float headPitchPoseMax = 10f;
 }

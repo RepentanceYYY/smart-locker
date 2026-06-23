@@ -142,6 +142,18 @@ public class BaiduFaceServer implements IFaceServer {
                 if (faceBoxes.length > 1) {
                     return WsResponse.fail(wsRequest.getAction(), 404, "请保持画面只有一张人脸");
                 }
+                // 人脸姿态角检测
+                HeadPose[] headPoses = Face.faceHeadPose(rgbMatAddr);
+                HeadPose singleHeadPose = headPoses[0];
+                if (Math.abs(singleHeadPose.yaw) > faceThresholdConfig.getHeadYamPoseMax()) {
+                    return WsResponse.fail(wsRequest.getAction(), 404, "请脸部正对摄像头");
+                }
+                if (Math.abs(singleHeadPose.pitch) > faceThresholdConfig.getHeadPitchPoseMax() && singleHeadPose.pitch < 0) {
+                    return WsResponse.fail(wsRequest.getAction(), 404, "请低头让脸部正对摄像头");
+                }
+                if (Math.abs(singleHeadPose.pitch) > faceThresholdConfig.getHeadPitchPoseMax() && singleHeadPose.pitch > 0) {
+                    return WsResponse.fail(wsRequest.getAction(), 404, "请抬头让脸部正对摄像头");
+                }
                 // 遮挡度检测
                 Occlusion[] occlusions = Face.faceOcclusion(rgbMatAddr);
                 Occlusion occlusion = occlusions[0];
@@ -166,14 +178,12 @@ public class BaiduFaceServer implements IFaceServer {
 
                 // 嘴巴闭合检测
                 float[] mouthCloseScore = Face.faceMouthClose(rgbMatAddr);
-                log.debug("请闭合嘴巴检测结果:{}", objectMapper.writeValueAsString(mouthCloseScore));
                 if (mouthCloseScore[0] < faceThresholdConfig.getMouthCloseScoreMin()) {
                     return WsResponse.fail(wsRequest.getAction(), 404, "请闭合嘴巴");
                 }
 
                 // 眼睛闭合检测
                 EyeClose[] eyeCloses = Face.faceEyeClose(rgbMatAddr);
-                log.debug("眼睛闭合检测结果:{}", objectMapper.writeValueAsString(eyeCloses));
                 if (eyeCloses == null || eyeCloses.length < 1) {
                     return WsResponse.fail(wsRequest.getAction(), 404, "请睁开眼睛");
                 }
@@ -184,9 +194,8 @@ public class BaiduFaceServer implements IFaceServer {
 
                 // 人脸模糊度检测
                 float[] blurList = Face.faceBlur(rgbMatAddr);
-                log.debug("人脸模糊度检测检测结果:{}", objectMapper.writeValueAsString(blurList));
                 if (blurList == null || blurList.length == 0) {
-                    return WsResponse.fail(wsRequest.getAction(), 404, "请保持人脸在画面中");
+                    return WsResponse.fail(wsRequest.getAction(), 404, "请保持脸部在画面中");
                 }
                 if (blurList[0] > faceThresholdConfig.getBlurMax()) {
                     return WsResponse.fail(wsRequest.getAction(), 404, "人脸太模糊");
@@ -353,11 +362,6 @@ public class BaiduFaceServer implements IFaceServer {
             return;
         }
         SystemConfig systemConfig = systemConfigs.get(0);
-        Integer enableFaceCapture = systemConfig.getEnableFaceCapture();
-        if (enableFaceCapture != 1) {
-            log.info("未启用人脸抓拍，跳过加载人脸SDK");
-            return;
-        }
         String baiduFaceLicenseKey = systemConfig.getBaiduFaceLicenseKey();
         // 将数据库中的授权码写入到授权文件中
         String faceModelDir = useFixedPath ? fixedPath : System.getProperty("user.dir");
