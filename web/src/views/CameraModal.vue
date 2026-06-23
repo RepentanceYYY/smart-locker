@@ -4,11 +4,6 @@
       <div class="camera-header">
         <div class="header-info">
           <h3>{{ isBorrow ? '领用登记' : '归还登记' }}</h3>
-          <!-- <label class="anti-spoofing-toggle"
-            style="margin-left: 15px; font-size: 13px; display: flex; align-items: center; gap: 4px; color: #666;">
-            <input type="checkbox" :checked="useAntiSpoofing" disabled />
-            <span>开启活体检测(红外双目)</span>
-          </label> -->
 
           <div class="timer-badge" :class="{ 'time-warning': cameraSecondsLeft <= 5 }">
             <svg class="timer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -137,7 +132,7 @@ const selectedIrId = ref<string>('')
 
 // --- WebSocket 变量定义 ---
 let ws: WebSocket | null = null
-const wsUrl = 'ws://localhost:8080/ws/face'
+const wsUrl = `${import.meta.env.VITE_WS_BASE_URL}/face`
 const wsErrorMessage = ref<string>('')
 
 // 倒计时

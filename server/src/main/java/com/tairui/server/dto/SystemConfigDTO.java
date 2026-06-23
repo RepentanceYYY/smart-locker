@@ -23,7 +23,7 @@ public class SystemConfigDTO {
 
     private Integer enableFaceCapture;
 
-    private String silentLivenessEnabled;
+    private Integer silentLivenessEnabled;
 
     private String baiduFaceLicenseKey;
 }

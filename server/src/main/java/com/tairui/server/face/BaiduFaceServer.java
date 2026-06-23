@@ -2,10 +2,7 @@ package com.tairui.server.face;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jni.face.Face;
-import com.jni.struct.EyeClose;
-import com.jni.struct.FaceBox;
-import com.jni.struct.LivenessInfo;
-import com.jni.struct.Occlusion;
+import com.jni.struct.*;
 import com.tairui.server.entity.SystemConfig;
 import com.tairui.server.mapper.SystemConfigMapper;
 import com.tairui.server.webSocket.dto.WsRequest;

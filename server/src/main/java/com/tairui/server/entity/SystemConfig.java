@@ -90,7 +90,7 @@ public class SystemConfig implements Serializable {
      * 是否启动红外活体检测：0-关闭，1-开启';
      */
     @TableField("silent_liveness_enabled")
-    private String silentLivenessEnabled;
+    private Integer silentLivenessEnabled;
 
     /**
      * 百度人脸离线SDK授权码

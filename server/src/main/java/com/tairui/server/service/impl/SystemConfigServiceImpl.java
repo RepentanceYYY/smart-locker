@@ -79,6 +79,8 @@ public class SystemConfigServiceImpl extends ServiceImpl<SystemConfigMapper, Sys
         config.setAutoReturnTimeoutMinutes(5);
         config.setTempHumidityLogInterval(5);
         config.setEnableFaceCapture(0);
+        config.setBaiduFaceLicenseKey("");
+        config.setSilentLivenessEnabled(0);
         return config;
     }
 
