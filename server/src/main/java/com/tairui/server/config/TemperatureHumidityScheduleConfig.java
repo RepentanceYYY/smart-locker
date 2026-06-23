@@ -45,8 +45,7 @@ public class TemperatureHumidityScheduleConfig implements SchedulingConfigurer {
 
                     // 使用 PeriodicTrigger，并指定单位为分钟（TimeUnit.MINUTES）
                     PeriodicTrigger periodicTrigger = new PeriodicTrigger(minutes, TimeUnit.MINUTES);
-
-                    periodicTrigger.setInitialDelay(minutes);
+                    
 
                     // 只有在上一次实际执行时间为 null 时（代表刚启动），才设置初始延迟
                     if (triggerContext.lastActualExecutionTime() == null) {
