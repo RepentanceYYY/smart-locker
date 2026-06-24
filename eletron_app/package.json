@@ -1,7 +1,7 @@
 {
   "name": "Smart-Lockerd",
   "version": "1.0.0",
-  "description": "智能格口柜",
+  "description": "智能工具柜系统",
   "author": {
     "name": "深圳泰锐通用科技有限公司",
     "email": "trdq888@126.com"
@@ -19,7 +19,7 @@
   },
   "build": {
     "appId": "com.sztr.app",
-    "productName": "智能格口柜",
+    "productName": "智能工具柜系统",
     "copyright": "Copyright © 2025 深圳",
     "artifactName": "${productName}-Setup-${version}.${ext}",
     "directories": {
@@ -47,10 +47,11 @@
     "extraResources": [
       "icon.jpg",
       "icon.ico",
-      "extraResources/**/*" 
+      "extraResources/**/*"
     ],
     "win": {
       "icon": "icon.ico",
+      "requestedExecutionLevel": "requireAdministrator",
       "target": [
         {
           "target": "nsis",

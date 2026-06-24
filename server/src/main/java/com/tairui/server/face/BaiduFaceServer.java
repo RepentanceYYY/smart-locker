@@ -281,6 +281,7 @@ public class BaiduFaceServer implements IFaceServer {
             systemConfig.setBaiduFaceLicenseKey(baiduFaceLicenseKey);
             systemConfigMapper.updateById(systemConfig);
             // 将数据库中的授权码写入到授权文件中
+            log.info("授权文件所在目录:{}",System.getProperty("user.dir"));
             String faceModelDir = useFixedPath ? fixedPath : System.getProperty("user.dir");
             File licenseKeyFile = new File(faceModelDir, "license/license.key");
             if (licenseKeyFile.exists()) {
@@ -404,6 +405,7 @@ public class BaiduFaceServer implements IFaceServer {
             } else {
                 resourcesPath = System.getProperty("user.dir");
             }
+            log.info("人脸模型所在目录:{}",resourcesPath);
             sdkInitCode = api.sdkInit(resourcesPath);
             // 获取设备指纹
             String deviceId = api.getDeviceId();

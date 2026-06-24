@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Component
 @Log4j2
@@ -60,6 +61,7 @@ public class InventoryWebSocketHandler extends TextWebSocketHandler {
             session.sendMessage(new TextMessage(objectMapper.writeValueAsString(wsResponse)));
             return;
         }
+        List<String> errorCabinetTitle = new ArrayList<>();
 
         List<CabinetFullDTO> cabinets = cabinetConfigService.getFullConfigList();
 
@@ -101,6 +103,7 @@ public class InventoryWebSocketHandler extends TextWebSocketHandler {
                 goodsStatusMap = qianMingLockDeviceServiceManager.querySingleCabinetGoodsStatusSync(cabinet.getId(), macList, 500L);
             } catch (Exception e) {
                 log.error("查询单个柜子所有有效格口的储物状态出现异常，消息:{}", e.getMessage());
+                errorCabinetTitle.add(cabinet.getTitle());
                 continue;
             }
 
@@ -157,23 +160,19 @@ public class InventoryWebSocketHandler extends TextWebSocketHandler {
                 "borrowItems", borrowItems,
                 "returnItems", returnItems
         );
+        if (errorCabinetTitle.size() > 0 && errorCabinetTitle.size() == cabinets.size()) {
+            wsResponse = WsResponse.fail(wsRequest.getAction(), 500, "盘点失败，请检查硬件连接");
+        } else if (errorCabinetTitle.size() > 0) {
+            String errorMessage = errorCabinetTitle.stream()
+                    .filter(title -> title != null && !title.isEmpty())
+                    .collect(Collectors.joining(","));
+            errorMessage += "盘点失败，请检测硬件连接";
+            wsResponse = WsResponse.response(wsRequest.getAction(), 206, errorMessage, result);
+        } else {
+            wsResponse = WsResponse.success(wsRequest.getAction(), "盘点完成", result);
+        }
 
-        wsResponse=WsResponse.success(wsRequest.getAction(), "盘点完成", result);
         session.sendMessage(new TextMessage(objectMapper.writeValueAsString(wsResponse)));
-    }
-
-    private void sendResponse(WebSocketSession session, String type, int code, String message, Map<String, Object> data) throws IOException {
-        Map<String, Object> response = Map.of(
-                "type", type,
-                "code", code,
-                "message", message,
-                "data", data == null ? Map.of() : data
-        );
-        session.sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
-    }
-
-    private void sendError(WebSocketSession session, String errorMsg) throws IOException {
-        sendResponse(session, "error", 500, errorMsg, null);
     }
 
     @Override

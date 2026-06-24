@@ -613,8 +613,8 @@ function handleManualPhotoConfirm(uploadImageUrl: string) {
 }
 // ================== 三大按钮 ==================
 function handleBorrow() {
-  if(!cabinets.value || cabinets.value.length === 0){
-    addNotification('暂无可用柜子，请稍后重试','info')
+  if (!cabinets.value || cabinets.value.length === 0) {
+    addNotification('暂无可用柜子，请稍后重试', 'info')
     return
   }
   if (isAllowClickButton.value) {
@@ -626,8 +626,8 @@ function handleBorrow() {
 }
 
 function handleReturn() {
-  if(!cabinets.value || cabinets.value.length === 0){
-    addNotification('暂无可用柜子，请稍后重试','info')
+  if (!cabinets.value || cabinets.value.length === 0) {
+    addNotification('暂无可用柜子，请稍后重试', 'info')
     return
   }
   if (isAllowClickButton.value) {
@@ -639,8 +639,8 @@ function handleReturn() {
 }
 
 function handleInventory() {
-  if(!cabinets.value || cabinets.value.length === 0){
-    addNotification('暂无可用柜子，请稍后重试','info')
+  if (!cabinets.value || cabinets.value.length === 0) {
+    addNotification('暂无可用柜子，请稍后重试', 'info')
     return
   }
   if (isAllowClickButton.value) {
@@ -742,6 +742,7 @@ async function handleWebSocketMessage(msg: any) {
 
 function handleInventoryReply(msg: any) {
   const { code, data, message: msgText } = msg || {}
+  console.log(msgText)
   if (code === 200) {
     const payload = {
       ...data,
@@ -750,6 +751,20 @@ function handleInventoryReply(msg: any) {
     inventoryDialogResult.value = payload
     isAllowClickButton.value = true
     showInventoryDialog.value = true
+    return
+  } else if (code === 206) {
+    const payload = {
+      ...data,
+      inventoryTime: new Date().toISOString(),
+    }
+    inventoryDialogResult.value = payload
+    isAllowClickButton.value = true
+    showInventoryDialog.value = true
+    addNotification(msgText, 'warning')
+    return
+  } else if (code === 500) {
+    isAllowClickButton.value = false
+    addNotification(msgText, 'warning')
     return
   }
   isAllowClickButton.value = false
