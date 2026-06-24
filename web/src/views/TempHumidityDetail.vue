@@ -74,7 +74,11 @@
                   </td>
                 </tr>
                 <tr v-if="filteredTotal === 0">
-                  <td colspan="5" class="empty-row">暂无温湿度记录</td>
+                  <td colspan="11" class="empty-row">
+                    <div class="empty-content">
+                      暂无温湿度记录
+                    </div>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -82,7 +86,7 @@
           
           <div class="table-footer">
             <div class="footer-left">
-              <div class="record-count">共 {{ filteredTotal }} 条记录</div>
+              <div class="record-count" v-if="filteredTotal>0">共 {{ filteredTotal }} 条记录</div>
               
               <div class="page-size-selector" v-if="filteredTotal > 0">
                 <span class="size-label">每页显示:</span>
@@ -239,7 +243,7 @@ const currentPage = ref(1)
 const pageSize = ref(10)          // 默认每页展示10条
 const inputPageValue = ref(1)     // 跳转目标页码
 
-// 针对你 CSS 中预留的 custom-size-input 扩展变量（若以后开放自定义行数输入）
+
 const customPageSize = ref(-1)    // 标记自定义行数的特殊 value，若不用可保持默认
 const customInputValue = ref(10)  // 自定义每页行数的输入值
 
@@ -271,16 +275,7 @@ function handlePageSizeChange() {
   inputPageValue.value = 1
 }
 
-// 失去焦点或回车应用自定义输入的行数 (对应 CSS 中的扩展需求)
-function applyCustomPageSize() {
-  handleUserOperation()
-  if (!customInputValue.value || customInputValue.value < 10) {
-    customInputValue.value = 10
-    showMessage('每页最少展示 10 条记录')
-  }
-  currentPage.value = 1
-  inputPageValue.value = 1
-}
+
 
 // 切换页码事件
 function changePage(page: number) {
@@ -295,7 +290,7 @@ function changePage(page: number) {
   }
 }
 
-// 对应模板中的跳页逻辑（解决原代码未定义函数报错）
+// 对应模板中的跳页逻辑
 function jumpToPage() {
   handleUserOperation()
   let targetPage = Math.floor(inputPageValue.value)
@@ -444,6 +439,7 @@ function handleSearch() {
 function handleReset() {
   currentPage.value = 1 
   inputPageValue.value = 1
+  pageSize.value=10
   handleUserOperation()
   filters.value = {
     cabinetTitle: '',
@@ -771,9 +767,14 @@ onUnmounted(() => {
 }
 
 .empty-row {
-  text-align: center;
-  vertical-align: middle;
-  padding: 60px !important;
+  padding: 0 !important;
+}
+
+.empty-content {
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #5b6e8c;
   font-size: 14px;
 }

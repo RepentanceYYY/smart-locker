@@ -26,7 +26,8 @@
           <video v-if="!capturedImage" ref="videoRef" class="video-preview" autoplay playsinline muted
             @loadedmetadata="onVideoLoaded" @canplay="onVideoCanPlay"></video>
 
-          <video v-if="!capturedImage && useAntiSpoofing" ref="irVideoRef" style="display: none;" autoplay playsinline muted></video>
+          <video v-if="!capturedImage && useAntiSpoofing" ref="irVideoRef" style="display: none;" autoplay playsinline
+            muted></video>
 
           <img v-else :src="capturedImage.startsWith('data:') ? capturedImage : formatImageUrl(capturedImage)"
             class="captured-preview" alt="人脸识别照片" />
@@ -87,7 +88,7 @@ const emit = defineEmits<{
   (e: 'close'): void
   (e: 'notify', text: string, type: 'info' | 'success' | 'warning'): void
   (e: 'faceRecognized', imageUrl: string): void
-}>()  
+}>()
 
 // --- DOM 引用 ---
 const videoRef = ref<HTMLVideoElement | null>(null)
@@ -164,49 +165,86 @@ const loadDeviceList = async () => {
     selectedRgbId.value = ''
     selectedIrId.value = ''
 
-    if (!useAntiSpoofing.value) {
-      selectedRgbId.value = allCameras[0].deviceId
-      return
-    }
-
-    const bothPool: any = []
-    const irPool: any = []
-    const rgbPool: any = []
+    const bothPool: MediaDeviceInfo[] = []
+    const rgbPool: MediaDeviceInfo[] = []
+    const irPool: MediaDeviceInfo[] = []
 
     allCameras.forEach(device => {
       const label = device.label.toLowerCase()
-      const isIrWord = label.includes('ir') || label.includes('infra') || label.includes('红外') || label.includes('850') || label.includes('940')
-      const isRgbWord = label.includes('rgb') || label.includes('color') || label.includes('visible') || label.includes('彩色')
 
-      if (isIrWord && isRgbWord) bothPool.push(device)
-      else if (isIrWord) irPool.push(device)
-      else if (isRgbWord) rgbPool.push(device)
+      const isIr =
+        label.includes('ir') ||
+        label.includes('infra') ||
+        label.includes('红外') ||
+        label.includes('850') ||
+        label.includes('940')
+
+      const isRgb =
+        label.includes('rgb') ||
+        label.includes('color') ||
+        label.includes('visible') ||
+        label.includes('彩色')
+
+      if (isIr && isRgb) {
+        bothPool.push(device)
+      } else if (isIr) {
+        irPool.push(device)
+      } else if (isRgb) {
+        rgbPool.push(device)
+      }
     })
 
-    if (bothPool.length > 0) {
-      selectedRgbId.value = bothPool[0].deviceId
-      selectedIrId.value = bothPool[1] ? bothPool[1].deviceId : bothPool[0].deviceId
+    // =========================
+    // RGB优先选择
+    // =========================
+
+    if (rgbPool.length > 0) {
+      selectedRgbId.value = rgbPool[0].deviceId
     }
 
-    if (!selectedRgbId.value && rgbPool.length > 0) selectedRgbId.value = rgbPool[0].deviceId
-    if (!selectedIrId.value && irPool.length > 0) selectedIrId.value = irPool[0].deviceId
+    if (irPool.length > 0) {
+      selectedIrId.value = irPool[0].deviceId
+    }
 
-    if (!selectedRgbId.value && !selectedIrId.value) {
-      if (allCameras[0]) selectedRgbId.value = allCameras[0].deviceId
-      if (allCameras[1]) selectedIrId.value = allCameras[1].deviceId
-    } else {
-      if (!selectedRgbId.value) {
-        const remaining = allCameras.find(d => d.deviceId !== selectedIrId.value)
-        if (remaining) selectedRgbId.value = remaining.deviceId
-      }
-      if (!selectedIrId.value) {
-        const remaining = allCameras.find(d => d.deviceId !== selectedRgbId.value)
-        if (remaining) selectedRgbId.value = remaining.deviceId
+    // 一些设备名称没有 RGB/IR 标识
+    if (!selectedRgbId.value) {
+      const firstNonIr = allCameras.find(device => {
+        const label = device.label.toLowerCase()
+
+        return !(
+          label.includes('ir') ||
+          label.includes('infra') ||
+          label.includes('红外') ||
+          label.includes('850') ||
+          label.includes('940')
+        )
+      })
+
+      if (firstNonIr) {
+        selectedRgbId.value = firstNonIr.deviceId
       }
     }
-    console.log(`设备分流结果 -> RGB ID: ${selectedRgbId.value}, IR ID: ${selectedIrId.value}`)
+
+    // 如果还没找到RGB
+    if (!selectedRgbId.value) {
+      selectedRgbId.value = allCameras[0].deviceId
+    }
+
+    // 如果开启活体检测但没找到IR
+    if (
+      useAntiSpoofing.value &&
+      !selectedIrId.value
+    ) {
+      const irCandidate = allCameras.find(
+        d => d.deviceId !== selectedRgbId.value
+      )
+
+      if (irCandidate) {
+        selectedIrId.value = irCandidate.deviceId
+      }
+    }
   } catch (err) {
-    console.warn('获取多模摄像头设备列表失败:', err)
+    console.warn('获取摄像头列表失败:', err)
   }
 }
 
@@ -227,7 +265,7 @@ function initWebSocket() {
       if (response.code === 200) {
         wsErrorMessage.value = ''
         stopLiveStreaming()
-      
+
         // 修复图片展示逻辑:只在返回标准路径或完整链接时渲染
         let faceImageUrl = ''
         if (response.data) {
@@ -516,35 +554,287 @@ onBeforeUnmount(() => { close(); cleanupTimer(); })
 
 <style scoped>
 /* 引用通用样式 */
-.camera-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; z-index: 10000; }
-.camera-container { width: 90%; max-width: 500px; background: rgba(18, 25, 45, 0.95); backdrop-filter: blur(20px); border-radius: 40px; border: 1px solid rgba(56, 189, 248, 0.4); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); overflow: hidden; animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
-@keyframes slideUp { from { opacity: 0; transform: translateY(30px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
-.camera-header { display: flex; justify-content: space-between; align-items: center; padding: 18px 24px; background: rgba(15, 23, 42, 0.8); border-bottom: 1px solid rgba(56, 189, 248, 0.2); }
-.header-info { display: flex; align-items: center; gap: 16px; }
-.camera-header h3 { margin: 0; font-size: 20px; font-weight: 600; background: linear-gradient(135deg, #e2e8f0, #94a3b8); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-.timer-badge { display: flex; align-items: center; gap: 6px; background: rgba(0, 0, 0, 0.5); padding: 5px 12px; border-radius: 40px; font-size: 14px; color: #a5f3fc; border: 1px solid rgba(56, 189, 248, 0.3); }
-.timer-badge.time-warning { color: #f87171; border-color: #f87171; background: rgba(248, 113, 113, 0.15); animation: pulse 0.8s ease infinite; }
-@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
-.timer-icon { width: 14px; height: 14px; }
-.close-btn { background: rgba(255, 255, 255, 0.08); border: none; color: #94a3b8; cursor: pointer; padding: 8px; border-radius: 32px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; }
-.camera-body { padding: 24px; }
-.video-wrapper { width: 100%; aspect-ratio: 4 / 3; background: #0a0f1a; border-radius: 28px; overflow: hidden; margin-bottom: 24px; position: relative; border: 1px solid rgba(56, 189, 248, 0.2); }
-.video-preview, .captured-preview { width: 100%; height: 100%; object-fit: cover; }
-.camera-loading { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: rgba(10, 15, 26, 0.9); backdrop-filter: blur(8px); color: #94a3b8; }
-.loading-spinner { width: 32px; height: 32px; border: 3px solid rgba(56, 189, 248, 0.2); border-top-color: #38bdf8; border-radius: 50%; animation: spin 0.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.scan-frame { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; }
-.corner { position: absolute; width: 24px; height: 24px; border-color: rgba(56, 189, 248, 0.8); border-style: solid; border-width: 0; }
-.top-left { top: 20px; left: 20px; border-top-width: 3px; border-left-width: 3px; }
-.top-right { top: 20px; right: 20px; border-top-width: 3px; border-right-width: 3px; }
-.bottom-left { bottom: 20px; left: 20px; border-bottom-width: 3px; border-left-width: 3px; }
-.bottom-right { bottom: 20px; right: 20px; border-bottom-width: 3px; border-right-width: 3px; }
-.camera-actions { display: flex; justify-content: center; margin-bottom: 20px; min-height: 48px; }
-.auto-scan-tip { font-size: 15px; font-weight: 500; display: flex; align-items: center; justify-content: center; }
-.scan-searching-effect { color: #38bdf8; }
-.scan-loading-effect { color: #10b981; animation: pulse 1s ease infinite; }
-.confirm-btn { display: flex; align-items: center; justify-content: center; padding: 12px 28px; border-radius: 60px; font-size: 15px; font-weight: 600; border: none; background: linear-gradient(135deg, #10b981, #059669); color: white; }
-.camera-tip { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 12px; color: #94a3b8; padding: 10px 16px; background: rgba(0, 0, 0, 0.3); border-radius: 40px; }
-.camera-tip.tip-error { color: #f87171; background: rgba(248, 113, 113, 0.15); border: 1px solid rgba(248, 113, 113, 0.3); animation: shake 0.5s ease; }
-@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+.camera-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.camera-container {
+  width: 90%;
+  max-width: 500px;
+  background: rgba(18, 25, 45, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 40px;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.camera-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 24px;
+  background: rgba(15, 23, 42, 0.8);
+  border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.header-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.camera-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #e2e8f0, #94a3b8);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.timer-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 5px 12px;
+  border-radius: 40px;
+  font-size: 14px;
+  color: #a5f3fc;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.timer-badge.time-warning {
+  color: #f87171;
+  border-color: #f87171;
+  background: rgba(248, 113, 113, 0.15);
+  animation: pulse 0.8s ease infinite;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.timer-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.close-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 32px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.camera-body {
+  padding: 24px;
+}
+
+.video-wrapper {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #0a0f1a;
+  border-radius: 28px;
+  overflow: hidden;
+  margin-bottom: 24px;
+  position: relative;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.video-preview,
+.captured-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.camera-loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(10, 15, 26, 0.9);
+  backdrop-filter: blur(8px);
+  color: #94a3b8;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(56, 189, 248, 0.2);
+  border-top-color: #38bdf8;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.scan-frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.corner {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-color: rgba(56, 189, 248, 0.8);
+  border-style: solid;
+  border-width: 0;
+}
+
+.top-left {
+  top: 20px;
+  left: 20px;
+  border-top-width: 3px;
+  border-left-width: 3px;
+}
+
+.top-right {
+  top: 20px;
+  right: 20px;
+  border-top-width: 3px;
+  border-right-width: 3px;
+}
+
+.bottom-left {
+  bottom: 20px;
+  left: 20px;
+  border-bottom-width: 3px;
+  border-left-width: 3px;
+}
+
+.bottom-right {
+  bottom: 20px;
+  right: 20px;
+  border-bottom-width: 3px;
+  border-right-width: 3px;
+}
+
+.camera-actions {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+  min-height: 48px;
+}
+
+.auto-scan-tip {
+  font-size: 15px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scan-searching-effect {
+  color: #38bdf8;
+}
+
+.scan-loading-effect {
+  color: #10b981;
+  animation: pulse 1s ease infinite;
+}
+
+.confirm-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 28px;
+  border-radius: 60px;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+}
+
+.camera-tip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #94a3b8;
+  padding: 10px 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 40px;
+}
+
+.camera-tip.tip-error {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.15);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  animation: shake 0.5s ease;
+}
+
+@keyframes shake {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-5px);
+  }
+
+  75% {
+    transform: translateX(5px);
+  }
+}
 </style>

@@ -107,16 +107,19 @@
                   </td>
                 </tr>
                 <tr v-if="filteredTotal === 0">
-                  <td colspan="11" class="empty-row">暂无数据</td>
+                  <td colspan="11" class="empty-row">
+                    <div class="empty-content">
+                      暂无日志记录
+                    </div>
+                  </td>
                 </tr>
               </tbody>
             </table>
           </div>
-          
+
           <div class="table-footer">
             <div class="footer-left">
-              <div class="record-count">共 {{ filteredTotal }} 条记录</div>
-              
+              <div class="record-count" v-if="filteredTotal>0">共 {{ filteredTotal }} 条记录</div>
               <div class="page-size-selector" v-if="filteredTotal > 0">
                 <span class="size-label">每页显示:</span>
                 <select v-model="pageSize" class="size-select" @change="handlePageSizeChange">
@@ -128,15 +131,8 @@
 
               <div class="page-jump-selector" v-if="filteredTotal > 0">
                 <span class="jump-label">跳至</span>
-                <input 
-                  type="number" 
-                  v-model.number="inputPageValue" 
-                  class="jump-page-input"
-                  min="1"
-                  :max="totalPages"
-                  @blur="jumpToPage"
-                  @keyup.enter="jumpToPage"
-                />
+                <input type="number" v-model.number="inputPageValue" class="jump-page-input" min="1" :max="totalPages"
+                  @blur="jumpToPage" @keyup.enter="jumpToPage" />
                 <span class="jump-unit">页</span>
               </div>
             </div>
@@ -144,7 +140,8 @@
             <div class="pagination-container" v-if="filteredTotal > 0">
               <button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">上一页</button>
               <span class="page-info">{{ currentPage }} / {{ totalPages }}</span>
-              <button class="page-btn" :disabled="currentPage === totalPages" @click="changePage(currentPage + 1)">下一页</button>
+              <button class="page-btn" :disabled="currentPage === totalPages"
+                @click="changePage(currentPage + 1)">下一页</button>
             </div>
           </div>
         </div>
@@ -342,27 +339,27 @@ const currentPageData = computed(() => {
 // 改变下拉每页展示数量
 function handlePageSizeChange() {
   handleUserOperation()
-  currentPage.value = 1 
+  currentPage.value = 1
 }
 
 // 核心：处理自定义页码跳转
 function jumpToPage() {
   handleUserOperation()
-  
+
   let targetPage = inputPageValue.value
-  
-  // 兜底验证：非数字或小于1，回弹到第1页
+
+  // 非数字或小于1，回弹到第1页
   if (!targetPage || targetPage < 1) {
     targetPage = 1
-  } 
-  // 兜底验证：大于总页数，直接跳到最后一页
+  }
+  //大于总页数，直接跳到最后一页
   else if (targetPage > totalPages.value) {
     targetPage = totalPages.value
   }
-  
+
   currentPage.value = targetPage
   inputPageValue.value = targetPage // 把修正后的页码同步回输入框
-  
+
   // 滚动回容器顶部
   const outerFrame = document.querySelector('.outer-frame')
   if (outerFrame) outerFrame.scrollTop = 0
@@ -508,6 +505,7 @@ function handleSearch() {
 function handleReset() {
   handleUserOperation()
   currentPage.value = 1
+  pageSize.value=10
   filters.value = {
     borrowerName: '',
     toolName: '',
@@ -887,6 +885,7 @@ onUnmounted(() => {
   -webkit-appearance: none;
   margin: 0;
 }
+
 .jump-page-input[type=number] {
   -moz-appearance: textfield;
 }
@@ -989,9 +988,16 @@ onUnmounted(() => {
 }
 
 .empty-row {
-  text-align: center;
-  padding: 40px !important;
+  padding: 0 !important;
+}
+
+.empty-content {
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #5b6e8c;
+  font-size: 14px;
 }
 
 /* ---------- 加载 / 错误 ---------- */
@@ -1016,7 +1022,9 @@ onUnmounted(() => {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .retry-btn {
@@ -1252,14 +1260,28 @@ onUnmounted(() => {
     gap: 12px;
     align-items: start;
   }
-  .filter-item:nth-child(1) { grid-column: 1 / 2; grid-row: 1; }
-  .filter-item:nth-child(2) { grid-column: 2 / 3; grid-row: 1; }
-  .filter-item:nth-child(3) { grid-column: 3 / 4; grid-row: 1; }
+
+  .filter-item:nth-child(1) {
+    grid-column: 1 / 2;
+    grid-row: 1;
+  }
+
+  .filter-item:nth-child(2) {
+    grid-column: 2 / 3;
+    grid-row: 1;
+  }
+
+  .filter-item:nth-child(3) {
+    grid-column: 3 / 4;
+    grid-row: 1;
+  }
+
   .filter-item.date-filter {
     grid-column: 1 / 3;
     grid-row: 2;
     margin: 0;
   }
+
   .filter-actions {
     grid-column: 3 / 4;
     grid-row: 2;
@@ -1269,9 +1291,24 @@ onUnmounted(() => {
     gap: 8px;
     margin: 0;
   }
-  .filter-item { min-width: auto; }
-  .date-range { flex-wrap: nowrap; }
-  .date-range input { min-width: 0; width: auto; }
-  .search-btn, .reset-btn { padding: 8px 12px; font-size: 12px; }
+
+  .filter-item {
+    min-width: auto;
+  }
+
+  .date-range {
+    flex-wrap: nowrap;
+  }
+
+  .date-range input {
+    min-width: 0;
+    width: auto;
+  }
+
+  .search-btn,
+  .reset-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
 }
 </style>
