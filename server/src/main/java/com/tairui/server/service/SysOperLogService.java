@@ -21,9 +21,9 @@ import java.util.List;
 public interface SysOperLogService extends IService<SysOperLog> {
 
 
-    void saveBorrowRecordsWithPhoto(BorrowRecordSubmitDTO dto, MultipartFile photoFile);
+    void saveBorrowRecordsWithPhoto(BorrowRecordSubmitDTO dto);
 
-    void saveReturnRecordsWithPhoto(ReturnRecordSubmitDTO dto, MultipartFile photoFile);
+    void saveReturnRecordsWithPhoto(ReturnRecordSubmitDTO dto);
     LogOverviewDTO getLogOverview();
 
     List<LogListDTO> getAllLogList(String borrowerName, String toolName, Integer status, String startTime, String endTime);

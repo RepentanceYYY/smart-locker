@@ -148,12 +148,12 @@ public class InventoryWebSocketHandler extends TextWebSocketHandler {
         if (!borrowItems.isEmpty()) {
             BorrowRecordSubmitDTO borrowRecordSubmitDTO = new BorrowRecordSubmitDTO();
             borrowRecordSubmitDTO.setBorrowItems(borrowItems);
-            sysOperLogService.saveBorrowRecordsWithPhoto(borrowRecordSubmitDTO, null);
+            sysOperLogService.saveBorrowRecordsWithPhoto(borrowRecordSubmitDTO);
         }
         if (!returnItems.isEmpty()) {
             ReturnRecordSubmitDTO returnRecordSubmitDTO = new ReturnRecordSubmitDTO();
             returnRecordSubmitDTO.setReturnItems(returnItems);
-            sysOperLogService.saveReturnRecordsWithPhoto(returnRecordSubmitDTO, null);
+            sysOperLogService.saveReturnRecordsWithPhoto(returnRecordSubmitDTO);
         }
 
         Map<String, Object> result = Map.of(

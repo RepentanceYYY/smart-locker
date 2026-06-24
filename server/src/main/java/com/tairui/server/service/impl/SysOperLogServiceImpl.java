@@ -42,12 +42,10 @@ public class SysOperLogServiceImpl extends ServiceImpl<SysOperLogMapper, SysOper
     @Autowired
     private CellConfigService cellConfigService;
 
-    @Autowired
-    private WebConfig webConfig;
-
 
     @Autowired
     private SysOperLogMapper sysOperLogMapper;
+
     private LocalDateTime parseDateTime(String dateTimeStr) {
         if (!StringUtils.hasText(dateTimeStr)) {
             return null;
@@ -65,12 +63,7 @@ public class SysOperLogServiceImpl extends ServiceImpl<SysOperLogMapper, SysOper
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void saveBorrowRecordsWithPhoto(BorrowRecordSubmitDTO dto, MultipartFile photoFile) {
-        // 1. 处理照片文件，获取存储路径
-        String photoPath = null;
-        if (photoFile != null && !photoFile.isEmpty()) {
-            photoPath = webConfig.savePhotoFile(photoFile);
-        }
+    public void saveBorrowRecordsWithPhoto(BorrowRecordSubmitDTO dto) {
 
         // 2. 校验借用列表
         if (dto.getBorrowItems() == null || dto.getBorrowItems().isEmpty()) {
@@ -96,7 +89,7 @@ public class SysOperLogServiceImpl extends ServiceImpl<SysOperLogMapper, SysOper
                 }
             }
             log.setToolName(item.getToolName());
-            log.setBorrowerPhoto(photoPath);
+            log.setBorrowerPhoto(dto.getBorrowerPhoto());
             log.setBorrowerName(borrowerName);
             log.setBorrowerNumber(borrowerNumber);
             log.setBorrowRemark(borrowRemark);
@@ -116,7 +109,7 @@ public class SysOperLogServiceImpl extends ServiceImpl<SysOperLogMapper, SysOper
             Long cellId = Long.valueOf(item.getCellId());
             if (cellId != null) {
                 try {
-                    cellConfigService.updateCellEmpty(cellId,"true");
+                    cellConfigService.updateCellEmpty(cellId, "true");
                 } catch (Exception e) {
                     throw new RuntimeException("更新格口状态失败", e);
                 }
@@ -127,12 +120,7 @@ public class SysOperLogServiceImpl extends ServiceImpl<SysOperLogMapper, SysOper
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void saveReturnRecordsWithPhoto(ReturnRecordSubmitDTO dto, MultipartFile photoFile) {
-        // 1. 处理照片文件
-        String photoPath = null;
-        if (photoFile != null && !photoFile.isEmpty()) {
-            photoPath = webConfig.savePhotoFile(photoFile);
-        }
+    public void saveReturnRecordsWithPhoto(ReturnRecordSubmitDTO dto) {
 
         // 2. 校验归还列表
         if (dto.getReturnItems() == null || dto.getReturnItems().isEmpty()) {
@@ -163,7 +151,7 @@ public class SysOperLogServiceImpl extends ServiceImpl<SysOperLogMapper, SysOper
                 existLog.setReturnNumber(returnerNumber);
                 existLog.setReturnTime(parseDateTime(item.getReturnTime()));
                 existLog.setReturnRemark(returnRemark);
-                existLog.setReturnPhoto(photoPath);
+                existLog.setReturnPhoto(dto.getReturnPhoto());
                 logsToUpdate.add(existLog);
             } else {
                 // 不存在领用记录 → 新增一条仅包含归还信息的记录
@@ -183,7 +171,7 @@ public class SysOperLogServiceImpl extends ServiceImpl<SysOperLogMapper, SysOper
                 newLog.setReturnNumber(returnerNumber);
                 newLog.setReturnTime(parseDateTime(item.getReturnTime()));
                 newLog.setReturnRemark(returnRemark);
-                newLog.setReturnPhoto(photoPath);
+                newLog.setReturnPhoto(dto.getReturnPhoto());
                 logsToInsert.add(newLog);
             }
         }
@@ -304,11 +292,6 @@ public class SysOperLogServiceImpl extends ServiceImpl<SysOperLogMapper, SysOper
                 })
                 .collect(Collectors.toList());
     }
-
-
-
-
-
 
     @Override
     public void truncateLogTable() {

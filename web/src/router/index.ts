@@ -46,8 +46,8 @@ const routes: Array<RouteRecordRaw> = [
 
 // 创建 router 实例
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
-  // history: createWebHashHistory(), //打包成eletron程序使用这个
+  // history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHashHistory(), //打包成eletron程序使用这个
   routes
 })
 

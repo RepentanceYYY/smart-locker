@@ -52,26 +52,26 @@
             <div class="carousel-cylinder">
               <div class="carousel-3d" :style="{ minHeight: carouselHeight + 'px' }">
                 <div v-for="(cab, idx) in cabinets" :key="cab.id" class="cabinet-item"
-                     :class="{ 'center-highlight': idx === currentIndex }"
-                     :style="{ ...getCabinetStyle(idx), width: cab.width || '280px', height: cab.height || 'auto' }">
+                  :class="{ 'center-highlight': idx === currentIndex }"
+                  :style="{ ...getCabinetStyle(idx), width: cab.width || '280px', height: cab.height || 'auto' }">
                   <div class="cabinet-header">{{ cab.title }}</div>
                   <div class="cabinet-body">
                     <div class="cabinet-grid" :style="getGridStyle(cab)">
                       <template v-for="(cell, cellIdx) in cab.flatCells" :key="cellIdx">
                         <!-- 普通格口 -->
                         <div v-if="cell.type === 'cell'" class="cell-container"
-                             :style="[getCellPosition(cell), cell.cellStyle]" :class="{ 'empty-door': cell.isEmpty }"
-                             @click="handleCellClick(cell, cab.id, cab.title)">
+                          :style="[getCellPosition(cell), cell.cellStyle]" :class="{ 'empty-door': cell.isEmpty }"
+                          @click="handleCellClick(cell, cab.id, cab.title)">
                           <div class="cell-inner"></div>
                           <div class="cabinet-cell"
-                               :class="{ 'empty-door': cell.isEmpty, 'door-open': cell.isDoorOpen }">
+                            :class="{ 'empty-door': cell.isEmpty, 'door-open': cell.isDoorOpen }">
                             <span class="cell-number">{{ cell.number }}</span>
                             <span class="tool-name">{{ truncateText(cell.toolName, 8) }}</span>
                           </div>
                         </div>
                         <!-- 图片格口 -->
                         <div v-else-if="cell.type === 'image'" class="custom-image-cell"
-                             :style="[getCellPosition(cell), cell.cellStyle]">
+                          :style="[getCellPosition(cell), cell.cellStyle]">
                           <img :src="formatImageUrl(cell.imageUrl)" :alt="cell.label || '图标'" />
                           <span v-if="cell.label" class="image-label">{{ truncateText(cell.label, 10) }}</span>
                         </div>
@@ -141,7 +141,7 @@
 
     <!-- 借用数据汇总模态框 -->
     <BorrowSummaryModal v-model:visible="showBorrowSummary" :borrow-items="borrowItems" :photo-data="photoData"
-                        :default-expected-return-time="defaultExpectedReturnTime" @submit="onBorrowSubmit" />
+      :default-expected-return-time="defaultExpectedReturnTime" @submit="onBorrowSubmit" />
 
     <!-- 未关闭格口警告模态框 -->
     <Teleport to="body">
@@ -232,10 +232,9 @@ import { fetchCabinetList } from '@/api/cabinet'
 import BorrowSummaryModal from './BorrowSummaryModal.vue'
 import { submitBorrowRecords } from '@/api/borrow'
 import type { CSSProperties } from 'vue'
-import {formatImageUrl} from '@/utils/fileUtils'
+import { formatImageUrl } from '@/utils/fileUtils'
 
-const photoFile = ref<File | null>(null)      // 暂存照片文件
-const photoPreviewUrl = ref<string>('')       // 用于预览的 blob URL
+const photoPreviewUrl = ref<string>('')       // 人脸 URL
 const systemStore = useSystemConfigStore()
 const dehumidifierStore = useDehumidifierStore()
 // ================== 类型定义 ==================
@@ -308,7 +307,7 @@ function loadPhotoData() {
     photoPreviewUrl.value = faceImage
     return
   }
-  
+
 }
 // 辅助函数：base64 转 File
 function base64ToFile(base64: string, filename: string): File {
@@ -484,7 +483,7 @@ function addBorrowRecord(cabinetId: number, cabinetName: string, cellId: number,
  */
 const handleCellClick = async (cell: any, cabinetId: number, cabinetTitle: string) => {
   const anyOpen = cabinets.value.some(cab =>
-      cab.flatCells.some(cell => cell.type === 'cell' && cell.isDoorOpen === true)
+    cab.flatCells.some(cell => cell.type === 'cell' && cell.isDoorOpen === true)
   )
   if (anyOpen) {
     addNotification('请先关闭当前开启的柜门', 'warning')
@@ -740,14 +739,13 @@ function closeUnclosedModal() {
 }
 
 // 处理领用提交（调用后端接口）
-async function onBorrowSubmit(data: {
+const onBorrowSubmit = async (data: {
   borrowItems: BorrowItem[]
   borrowerName: string
   borrowerNumber: string
   expectedReturnTime: string
   remark: string
-  // 移除 photoData，改为使用本地的 photoFile
-}) {
+}) => {
   try {
     // 组装提交参数，包含照片文件
     await submitBorrowRecords({
@@ -756,11 +754,10 @@ async function onBorrowSubmit(data: {
       borrowerNumber: data.borrowerNumber,
       expectedReturnTime: data.expectedReturnTime,
       remark: data.remark,
-      photoFile: photoFile.value || undefined   // 传递 File 对象或 undefined
+      borrowerPhoto: photoPreviewUrl.value
     })
     // 成功后的处理...
     borrowItems.value = []
-    photoFile.value = null
     if (photoPreviewUrl.value) URL.revokeObjectURL(photoPreviewUrl.value)
     photoPreviewUrl.value = ''
     sessionStorage.removeItem('toolOperationData')
@@ -831,7 +828,7 @@ const stopCloseAndCheckPolling = () => {
   }
 }
 
-const wsUrl  = `${import.meta.env.VITE_WS_BASE_URL}/borrow`
+const wsUrl = `${import.meta.env.VITE_WS_BASE_URL}/borrow`
 let socket: WebSocket | null = null
 const wsConnected = ref(false)
 
@@ -1015,7 +1012,7 @@ const sendMessage = (action: string, data: any) => {
     addNotification('网络连接异常，请稍后重试', 'warning')
     return false
   }
-  socket.send(JSON.stringify({ action, data,requestId:Date.now().toString(),timestamp:Date.now().toString() }))
+  socket.send(JSON.stringify({ action, data, requestId: Date.now().toString(), timestamp: Date.now().toString() }))
   return true
 }
 
@@ -1739,7 +1736,9 @@ body,
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .empty-state {
@@ -1988,47 +1987,197 @@ body,
 
 /* 响应式 – 无动画 */
 @media (max-width: 680px) {
-  .page-header { height: 50px; gap: 8px; }
-  .title-icon { width: 26px; height: 26px; }
-  .page-header h1 { font-size: 20px; }
-  .upper-area { height: calc(100vh - 350px - 50px); }
-  .notification-container { top: 70px; right: 10px; max-width: 260px; }
-  .notification { font-size: 12px; padding: 8px 16px; }
-  .nav-btn-left, .nav-btn-right { padding: 8px 16px; }
-  .nav-btn-left .btn-text, .nav-btn-right .btn-text { display: none; }
-  .nav-btn-left .arrow, .nav-btn-right .arrow { font-size: 1.4rem; }
-  .bottom-container { gap: 10px; }
-  .info-header, .info-row { grid-template-columns: 1fr 0.7fr 1fr 1.3fr; gap: 8px; }
-  .header-item, .row-item { font-size: 10px; }
-  .complete-btn .btn-icon { width: 32px; height: 32px; }
-  .complete-btn .btn-label { font-size: 14px; }
-  .complete-btn { padding: 16px 12px; min-height: 80px; gap: 8px; }
-  .temp-card, .humidity-card { padding: 3px 10px; top: 4px; }
-  .card-icon { width: 18px; height: 18px; }
-  .card-value { font-size: 14px; min-width: 35px; }
-  .card-label { font-size: 9px; padding: 1px 4px; }
-  .modal-icon { width: 24px; height: 24px; }
-  .empty-icon { width: 26px; height: 26px; }
+  .page-header {
+    height: 50px;
+    gap: 8px;
+  }
+
+  .title-icon {
+    width: 26px;
+    height: 26px;
+  }
+
+  .page-header h1 {
+    font-size: 20px;
+  }
+
+  .upper-area {
+    height: calc(100vh - 350px - 50px);
+  }
+
+  .notification-container {
+    top: 70px;
+    right: 10px;
+    max-width: 260px;
+  }
+
+  .notification {
+    font-size: 12px;
+    padding: 8px 16px;
+  }
+
+  .nav-btn-left,
+  .nav-btn-right {
+    padding: 8px 16px;
+  }
+
+  .nav-btn-left .btn-text,
+  .nav-btn-right .btn-text {
+    display: none;
+  }
+
+  .nav-btn-left .arrow,
+  .nav-btn-right .arrow {
+    font-size: 1.4rem;
+  }
+
+  .bottom-container {
+    gap: 10px;
+  }
+
+  .info-header,
+  .info-row {
+    grid-template-columns: 1fr 0.7fr 1fr 1.3fr;
+    gap: 8px;
+  }
+
+  .header-item,
+  .row-item {
+    font-size: 10px;
+  }
+
+  .complete-btn .btn-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .complete-btn .btn-label {
+    font-size: 14px;
+  }
+
+  .complete-btn {
+    padding: 16px 12px;
+    min-height: 80px;
+    gap: 8px;
+  }
+
+  .temp-card,
+  .humidity-card {
+    padding: 3px 10px;
+    top: 4px;
+  }
+
+  .card-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .card-value {
+    font-size: 14px;
+    min-width: 35px;
+  }
+
+  .card-label {
+    font-size: 9px;
+    padding: 1px 4px;
+  }
+
+  .modal-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .empty-icon {
+    width: 26px;
+    height: 26px;
+  }
 }
 
 @media (max-width: 480px) {
-  .page-header h1 { font-size: 18px; }
-  .title-icon { width: 22px; height: 22px; }
-  .cabinet-item { width: 260px !important; }
-  .bottom-container { gap: 8px; }
-  .info-header, .info-row { grid-template-columns: 1fr 0.6fr 0.9fr 1.2fr; gap: 6px; }
-  .header-item, .row-item { font-size: 9px; }
-  .info-row { padding: 6px 4px; }
-  .complete-btn .btn-icon { width: 28px; height: 28px; }
-  .complete-btn .btn-label { font-size: 12px; }
-  .complete-btn { padding: 12px 8px; min-height: 70px; gap: 6px; }
-  .placeholder-icon { width: 24px; height: 24px; }
-  .photo-placeholder span { font-size: 9px; }
-  .temp-card, .humidity-card { padding: 2px 8px; gap: 4px; }
-  .card-icon { width: 16px; height: 16px; }
-  .card-value { font-size: 12px; min-width: 30px; }
-  .card-label { font-size: 8px; }
-  .modal-icon { width: 20px; height: 20px; }
-  .empty-icon { width: 22px; height: 22px; }
+  .page-header h1 {
+    font-size: 18px;
+  }
+
+  .title-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .cabinet-item {
+    width: 260px !important;
+  }
+
+  .bottom-container {
+    gap: 8px;
+  }
+
+  .info-header,
+  .info-row {
+    grid-template-columns: 1fr 0.6fr 0.9fr 1.2fr;
+    gap: 6px;
+  }
+
+  .header-item,
+  .row-item {
+    font-size: 9px;
+  }
+
+  .info-row {
+    padding: 6px 4px;
+  }
+
+  .complete-btn .btn-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .complete-btn .btn-label {
+    font-size: 12px;
+  }
+
+  .complete-btn {
+    padding: 12px 8px;
+    min-height: 70px;
+    gap: 6px;
+  }
+
+  .placeholder-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .photo-placeholder span {
+    font-size: 9px;
+  }
+
+  .temp-card,
+  .humidity-card {
+    padding: 2px 8px;
+    gap: 4px;
+  }
+
+  .card-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .card-value {
+    font-size: 12px;
+    min-width: 30px;
+  }
+
+  .card-label {
+    font-size: 8px;
+  }
+
+  .modal-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .empty-icon {
+    width: 22px;
+    height: 22px;
+  }
 }
 </style>

@@ -25,24 +25,17 @@ public class SysOperLogController {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @PostMapping(value = "/borrow/records", consumes = "multipart/form-data")
-    public Result submitBorrowRecords(
-            @RequestPart("data") String dataJson,
-            @RequestPart(value = "photo", required = false) MultipartFile photoFile) throws Exception {
+    @PostMapping(value = "/borrow/records")
+    public Result submitBorrowRecords(@RequestBody BorrowRecordSubmitDTO dto) throws Exception {
 
-        BorrowRecordSubmitDTO dto = objectMapper.readValue(dataJson, BorrowRecordSubmitDTO.class);
-        sysOperLogService.saveBorrowRecordsWithPhoto(dto, photoFile);
+        sysOperLogService.saveBorrowRecordsWithPhoto(dto);
         return Result.success();
     }
 
-    @PostMapping(value = "/return/records", consumes = "multipart/form-data")
-    public Result submitReturnRecords(
-            @RequestPart("data") String dataJson,
-            @RequestPart(value = "photo", required = false) MultipartFile photoFile) throws Exception {
+    @PostMapping(value = "/return/records")
+    public Result submitReturnRecords(@RequestBody ReturnRecordSubmitDTO dto) throws Exception {
 
-        ReturnRecordSubmitDTO dto = objectMapper.readValue(dataJson, ReturnRecordSubmitDTO.class);
-        sysOperLogService.saveReturnRecordsWithPhoto(dto, photoFile);
-
+        sysOperLogService.saveReturnRecordsWithPhoto(dto);
         return Result.success();
     }
 

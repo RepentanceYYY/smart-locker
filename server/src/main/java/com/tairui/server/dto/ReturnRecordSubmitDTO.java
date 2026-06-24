@@ -14,6 +14,7 @@ public class ReturnRecordSubmitDTO {
     private String returnerName;
     private String returnerNumber;
     private String remark;
+    private String returnPhoto;
 
     @Data
     public static class ReturnItemDTO {

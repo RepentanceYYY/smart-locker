@@ -124,8 +124,8 @@
           <div class="bottom-container">
             <!-- 左侧：照片显示区域 -->
             <div class="photo-area">
-              <div v-if="photoData" class="photo-card">
-                <img :src="formatImageUrl(photoData)" alt="拍摄照片" class="preview-image" />
+              <div v-if="photoUrl" class="photo-card">
+                <img :src="formatImageUrl(photoUrl)" alt="拍摄照片" class="preview-image" />
                 <div class="photo-badge">归还照片</div>
               </div>
               <div v-else class="photo-placeholder">
@@ -174,7 +174,7 @@
     </div>
 
     <!-- 归还汇总模态框 -->
-    <ReturnSummaryModal v-model:visible="showReturnSummary" :return-items="returnRecords" :photo-data="photoData"
+    <ReturnSummaryModal v-model:visible="showReturnSummary" :return-items="returnRecords" :photo-data="photoUrl"
       @submit="onReturnSubmit" />
 
     <!-- 无归还记录提示模态框 -->
@@ -463,7 +463,7 @@ const radius = ref(320)
 const carouselHeight = ref(600)
 const maxScale = ref(1.4)
 
-const photoData = ref('')
+const photoUrl = ref('')
 const scannerBuffer = ref('')
 const scannerTimer = ref<ReturnType<typeof setTimeout> | null>(null)
 // 手动二维码
@@ -1055,18 +1055,13 @@ function base64ToFile(base64: string, filename: string): File {
   return new File([u8arr], filename, { type: mime })
 }
 
-async function onReturnSubmit(data: {
+const onReturnSubmit = async (data: {
   returnItems: ReturnRecord[]
   returnerName: string
   returnerNumber: string
   remark: string
-  photoData: string
-}) {
+}) => {
   try {
-    let photoFile: File | undefined
-    if (data.photoData) {
-      photoFile = base64ToFile(data.photoData, 'return_photo.jpg')
-    }
 
     // 映射为后端需要的格式
     const mappedReturnItems = data.returnItems.map(item => ({
@@ -1083,12 +1078,12 @@ async function onReturnSubmit(data: {
       returnerName: data.returnerName,
       returnerNumber: data.returnerNumber,
       remark: data.remark,
-      photoFile: photoFile
+      borrowerPhoto:photoUrl.value
     })
 
     // 清空归还记录和照片
     returnRecords.value = []
-    photoData.value = ''
+    photoUrl.value = ''
     sessionStorage.removeItem('toolOperationData')
 
     startReturnSuccessCountdown(data.returnItems.length)
@@ -1102,7 +1097,7 @@ function loadPhotoData() {
   const faceImage = router.currentRoute.value.query.faceImage as string
   if (faceImage) {
     console.log('从路由参数加载人脸图片URL:', faceImage)
-    photoData.value = faceImage
+    photoUrl.value = faceImage
     return
   }
 }
