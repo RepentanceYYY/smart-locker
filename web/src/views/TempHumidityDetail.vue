@@ -64,7 +64,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="item in logList" :key="item.recordTime + item.cabinetTitle">
+                <tr v-for="item in paginatedList" :key="item.recordTime + item.cabinetTitle">
                   <td>{{ item.cabinetTitle || '-' }}</td>
                   <td>{{ formatTemperature(item.temperature) }}</td>
                   <td>{{ formatHumidity(item.humidity) }}</td>
@@ -73,13 +73,46 @@
                     <button class="detail-row-btn" @click.stop="viewDetail(item)">查看详情</button>
                   </td>
                 </tr>
-                <tr v-if="logList.length === 0">
+                <tr v-if="filteredTotal === 0">
                   <td colspan="5" class="empty-row">暂无温湿度记录</td>
                 </tr>
               </tbody>
             </table>
           </div>
-          <div class="record-count">共 {{ logList.length }} 条记录</div>
+          
+          <div class="table-footer">
+            <div class="footer-left">
+              <div class="record-count">共 {{ filteredTotal }} 条记录</div>
+              
+              <div class="page-size-selector" v-if="filteredTotal > 0">
+                <span class="size-label">每页显示:</span>
+                <select v-model="pageSize" class="size-select" @change="handlePageSizeChange">
+                  <option :value="10">10 条</option>
+                  <option :value="20">20 条</option>
+                  <option :value="50">50 条</option>
+                </select>
+              </div>
+              <div class="page-jump-selector" v-if="filteredTotal > 0">
+                <span class="jump-label">跳至</span>
+                <input 
+                  type="number" 
+                  v-model.number="inputPageValue" 
+                  class="jump-page-input"
+                  min="1"
+                  :max="totalPages"
+                  @blur="jumpToPage"
+                  @keyup.enter="jumpToPage"
+                />
+                <span class="jump-unit">页</span>
+              </div>
+            </div>
+
+            <div class="pagination-controls" v-if="filteredTotal > 0">
+              <button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">上一页</button>
+              <span class="page-info">{{ currentPage }} / {{ totalPages }}</span>
+              <button class="page-btn" :disabled="currentPage === totalPages" @click="changePage(currentPage + 1)">下一页</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -160,7 +193,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted ,computed} from 'vue'
 import { useRouter } from 'vue-router'
 import { useCountdown } from '@/composables/useCountdown'
 import { searchTempHumidityLogs } from '@/api/tempHumidity'
@@ -175,6 +208,7 @@ interface TempHumidityLog {
 
 const router = useRouter()
 
+// 倒计时管理
 const countdown = useCountdown({
   onTimeout: () => {
     console.log('倒计时结束，返回设置页面')
@@ -195,9 +229,87 @@ function formatCountdownTime(seconds: number): string {
   return `${seconds}秒`
 }
 
+// 基础状态
 const loading = ref(false)
 const error = ref('')
 const logList = ref<TempHumidityLog[]>([])
+
+// ==================== 动态分页核心逻辑逻辑 ====================
+const currentPage = ref(1)
+const pageSize = ref(10)          // 默认每页展示10条
+const inputPageValue = ref(1)     // 跳转目标页码
+
+// 针对你 CSS 中预留的 custom-size-input 扩展变量（若以后开放自定义行数输入）
+const customPageSize = ref(-1)    // 标记自定义行数的特殊 value，若不用可保持默认
+const customInputValue = ref(10)  // 自定义每页行数的输入值
+
+// 经过过滤后的总条数
+const filteredTotal = computed(() => logList.value.length)
+
+// 获取当前生效的真实每页显示行数
+const getRealPageSize = () => {
+  return pageSize.value === customPageSize.value ? (customInputValue.value || 10) : pageSize.value
+}
+
+// 总页数计算
+const totalPages = computed(() => {
+  return Math.ceil(filteredTotal.value / getRealPageSize()) || 1
+})
+
+// 根据当前页码与动态行数截取数据
+const paginatedList = computed(() => {
+  const size = getRealPageSize()
+  const start = (currentPage.value - 1) * size
+  const end = start + size
+  return logList.value.slice(start, end)
+})
+
+// 改变下拉选择配置
+function handlePageSizeChange() {
+  handleUserOperation()
+  currentPage.value = 1 // 切换行数配置时，必须切回第1页
+  inputPageValue.value = 1
+}
+
+// 失去焦点或回车应用自定义输入的行数 (对应 CSS 中的扩展需求)
+function applyCustomPageSize() {
+  handleUserOperation()
+  if (!customInputValue.value || customInputValue.value < 10) {
+    customInputValue.value = 10
+    showMessage('每页最少展示 10 条记录')
+  }
+  currentPage.value = 1
+  inputPageValue.value = 1
+}
+
+// 切换页码事件
+function changePage(page: number) {
+  handleUserOperation()
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page
+    inputPageValue.value = page // 同步跳转输入框的值
+    
+    // 换页时令外层容器滚动回顶部
+    const outerFrame = document.querySelector('.outer-frame')
+    if (outerFrame) outerFrame.scrollTop = 0
+  }
+}
+
+// 对应模板中的跳页逻辑（解决原代码未定义函数报错）
+function jumpToPage() {
+  handleUserOperation()
+  let targetPage = Math.floor(inputPageValue.value)
+  
+  if (isNaN(targetPage) || targetPage < 1) {
+    targetPage = 1
+  } else if (targetPage > totalPages.value) {
+    targetPage = totalPages.value
+  }
+  
+  inputPageValue.value = targetPage
+  changePage(targetPage)
+}
+// ============================================================
 
 const getOffsetDateString = (offsetDays: number): string => {
   const date = new Date()
@@ -309,6 +421,10 @@ async function fetchData() {
     const rawData = await searchTempHumidityLogs(params)
     const filtered = normalizeAndFilter(rawData)
     logList.value = filtered
+    
+    // 获取数据后充实重置一下页码显示
+    currentPage.value = 1
+    inputPageValue.value = 1
   } catch (err: any) {
     console.error('获取温湿度日志失败:', err)
     error.value = err.message || '加载失败，请稍后重试'
@@ -319,11 +435,15 @@ async function fetchData() {
 }
 
 function handleSearch() {
+  currentPage.value = 1 
+  inputPageValue.value = 1
   handleUserOperation()
   fetchData()
 }
 
 function handleReset() {
+  currentPage.value = 1 
+  inputPageValue.value = 1
   handleUserOperation()
   filters.value = {
     cabinetTitle: '',
@@ -357,7 +477,7 @@ onUnmounted(() => {
 </script>
 
 <style lang="css" scoped>
-/* 新增通用图标样式 */
+/* 图标基础样式 */
 .icon {
   width: 1.2em;
   height: 1.2em;
@@ -383,7 +503,6 @@ onUnmounted(() => {
   height: 1.4em;
 }
 
-/* 原有样式完全保留 */
 .temp-detail-container {
   position: fixed;
   top: 0;
@@ -424,7 +543,7 @@ onUnmounted(() => {
   border-radius: 4px;
 }
 
-/* ---------- 头部 ---------- */
+/* 头部 */
 .temp-detail-header {
   display: flex;
   align-items: center;
@@ -462,7 +581,7 @@ onUnmounted(() => {
   gap: 10px;
 }
 
-/* ---------- 倒计时 – 无动画 ---------- */
+/* ---------- 倒计时 ---------- */
 .countdown-display {
   display: flex;
   align-items: center;
@@ -495,7 +614,7 @@ onUnmounted(() => {
   margin: 0 auto;
 }
 
-/* ---------- 过滤栏 – 无模糊 ---------- */
+/* ---------- 过滤栏 ---------- */
 .filter-bar {
   background: rgba(15, 25, 35, 0.7);
   border-radius: 20px;
@@ -524,8 +643,7 @@ onUnmounted(() => {
   color: #94a3b8;
 }
 
-.filter-item input,
-.filter-item select {
+.filter-item input {
   background: rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(34, 211, 238, 0.3);
   border-radius: 8px;
@@ -536,28 +654,24 @@ onUnmounted(() => {
   width: 100%;
 }
 
-.filter-item input:focus,
-.filter-item select:focus {
+.filter-item input:focus {
   border-color: #22d3ee;
   box-shadow: 0 0 4px rgba(34, 211, 238, 0.2);
 }
 
-.date-range,
-.range-inputs {
+.date-range {
   display: flex;
   align-items: center;
   gap: 8px;
   width: 100%;
 }
 
-.date-range input,
-.range-inputs input {
+.date-range input {
   flex: 1;
   min-width: 0;
 }
 
-.date-range span,
-.range-inputs span {
+.date-range span {
   color: #94a3b8;
   font-size: 12px;
   flex-shrink: 0;
@@ -602,46 +716,7 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.2);
 }
 
-/* 过滤栏响应式 */
-@media (max-width: 900px) {
-  .filter-row {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-  }
-
-  .filter-item.date-filter {
-    grid-column: 1 / 2;
-  }
-
-  .filter-actions {
-    grid-column: 2 / 3;
-    justify-content: flex-end;
-  }
-}
-
-@media (max-width: 600px) {
-  .filter-row {
-    grid-template-columns: 1fr;
-  }
-
-  .filter-item.date-filter,
-  .filter-actions {
-    grid-column: 1 / 2;
-  }
-
-  .filter-actions {
-    justify-content: stretch;
-  }
-
-  .search-btn,
-  .reset-btn {
-    flex: 1;
-    text-align: center;
-  }
-}
-
-/* ---------- 表格 – 无模糊、无过渡 ---------- */
+/* 表格及底部控制栏 */
 .table-wrapper {
   background: rgba(15, 25, 35, 0.7);
   border-radius: 20px;
@@ -697,360 +772,138 @@ onUnmounted(() => {
 
 .empty-row {
   text-align: center;
-  padding: 40px !important;
+  vertical-align: middle;
+  padding: 60px !important;
   color: #5b6e8c;
+  font-size: 14px;
 }
 
-.record-count {
-  text-align: right;
-  padding: 12px 20px;
-  color: #94a3b8;
-  font-size: 13px;
-  border-top: 1px solid rgba(34, 211, 238, 0.1);
-}
+/* ==================== 分页控制区 ==================== */
 
-/* ---------- 加载 / 错误 – 保留 spin 动画 ---------- */
-.loading-wrapper,
-.error-wrapper {
+/* 分页控制外层 */
+.table-footer {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
+  padding: 14px 20px;
+  border-top: 1px solid rgba(34, 211, 238, 0.1);
+  flex-wrap: wrap;
   gap: 16px;
-  color: #94a3b8;
 }
 
-.error-wrapper {
-  flex-direction: row;
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 24px;
   flex-wrap: wrap;
 }
 
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(34, 211, 238, 0.2);
-  border-top-color: #22d3ee;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.retry-btn {
-  background: rgba(34, 211, 238, 0.2);
-  border: 1px solid #22d3ee;
-  border-radius: 40px;
-  padding: 6px 20px;
-  color: #22d3ee;
-  cursor: pointer;
+.record-count {
+  color: #94a3b8;
   font-size: 13px;
 }
 
-.retry-btn:hover {
-  background: rgba(34, 211, 238, 0.3);
-}
-
-/* ---------- 详情模态框 – 无模糊、无动画 ---------- */
-.detail-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.85);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-}
-
-.detail-card {
-  position: relative;
-  background: linear-gradient(135deg, rgba(18, 28, 35, 0.98) 0%, rgba(10, 18, 24, 0.98) 100%);
-  border-radius: 28px;
-  border: 1px solid rgba(34, 211, 238, 0.3);
-  width: 520px;
-  max-width: 92vw;
-  max-height: 88vh;
-  overflow: hidden;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(34, 211, 238, 0.1);
-}
-
-.card-glow {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, #22d3ee, #06b6d4, #22d3ee, transparent);
-}
-
-.detail-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px;
-  border-bottom: 1px solid rgba(34, 211, 238, 0.15);
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.detail-header h3 {
-  color: #22d3ee;
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  letter-spacing: 1px;
-}
-
-.close-btn {
-  background: rgba(255, 255, 255, 0.05);
-  border: none;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #94a3b8;
-  cursor: pointer;
-}
-
-.close-btn:hover {
-  background: rgba(239, 68, 68, 0.2);
-  color: #f87171;
-}
-
-.detail-body {
-  padding: 24px;
-  overflow-y: auto;
-  max-height: calc(88vh - 140px);
-}
-
-/* ---------- 详情卡片 ---------- */
-.info-card {
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 20px;
-  padding: 20px;
-  margin-bottom: 20px;
-  border: 1px solid rgba(34, 211, 238, 0.12);
-}
-
-.info-card:hover {
-  border-color: rgba(34, 211, 238, 0.25);
-  background: rgba(0, 0, 0, 0.35);
-}
-
-.card-title {
+/* 每页显示选择器 */
+.page-size-selector {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(34, 211, 238, 0.2);
 }
 
-.card-title .title-icon {
-  font-size: 18px;
-  width: 1.4em;
-  height: 1.4em;
-}
-
-.card-title span:last-child {
-  color: #c2f0e0;
-  font-weight: 600;
-  font-size: 15px;
-  letter-spacing: 0.5px;
-}
-
-.info-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.field-label {
-  font-size: 11px;
-  color: #7e8b9f;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.field-value {
-  font-size: 14px;
-  color: #e2e8f0;
-  font-weight: 500;
-  word-break: break-word;
-}
-
-.info-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.info-list .info-field {
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: baseline;
-  padding: 8px 0;
-  border-bottom: 1px dashed rgba(34, 211, 238, 0.08);
-}
-
-.info-list .field-label {
-  font-size: 13px;
-  text-transform: none;
+.size-label {
   color: #94a3b8;
-  min-width: 80px;
-}
-
-.info-list .field-value {
-  text-align: right;
   font-size: 13px;
 }
 
-/* ---------- 传感器卡片 ---------- */
-.sensor-card {
+.size-select {
   background: rgba(0, 0, 0, 0.4);
-  border-radius: 24px;
-  padding: 20px;
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  border: 1px solid rgba(34, 211, 238, 0.2);
-}
-
-.sensor-item {
-  text-align: center;
-  flex: 1;
-}
-
-.sensor-label {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-size: 14px;
-  color: #94a3b8;
-  margin-bottom: 12px;
-}
-
-.sensor-value {
-  font-size: 36px;
-  font-weight: 700;
-  margin-bottom: 8px;
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  border-radius: 6px;
+  padding: 4px 8px;
   color: #e2e8f0;
-}
-
-.sensor-unit {
-  font-size: 14px;
-  font-weight: 400;
-  color: #7e8b9f;
-}
-
-.sensor-divider {
-  width: 1px;
-  height: 60px;
-  background: rgba(34, 211, 238, 0.2);
-}
-
-/* ---------- 底部 ---------- */
-.detail-footer {
-  padding: 16px 24px;
-  border-top: 1px solid rgba(34, 211, 238, 0.12);
-  display: flex;
-  justify-content: flex-end;
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.footer-btn {
-  background: linear-gradient(135deg, #22d3ee, #06b6d4);
-  border: none;
-  padding: 8px 28px;
-  border-radius: 40px;
-  color: #051016;
-  font-weight: 600;
-  font-size: 13px;
+  font-size: 12px;
+  outline: none;
   cursor: pointer;
 }
 
-.footer-btn:hover {
-  box-shadow: 0 4px 12px rgba(34, 211, 238, 0.3);
+.size-select:focus {
+  border-color: #22d3ee;
 }
 
-/* ---------- Toast – 无动画 ---------- */
-.toast-message {
-  position: fixed;
-  bottom: 30px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.9);
+/* ==================== 跳转至（与操作日志页 完全一致） ==================== */
+.page-jump-selector {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-left: 1px solid rgba(34, 211, 238, 0.2);
+  padding-left: 16px;
+}
+
+.jump-label,
+.jump-unit {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.jump-page-input {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(34, 211, 238, 0.4);
+  border-radius: 6px;
+  padding: 4px 6px;
   color: #22d3ee;
-  padding: 12px 24px;
-  border-radius: 60px;
-  font-size: 14px;
-  font-weight: 500;
-  border: 1px solid #22d3ee;
-  z-index: 4000;
-  white-space: nowrap;
+  font-size: 12px;
+  width: 48px;
+  text-align: center;
+  outline: none;
 }
 
-/* ---------- 响应式 ---------- */
-@media (max-width: 768px) {
-  .outer-frame {
-    padding: 12px 16px;
-  }
+.jump-page-input:focus {
+  border-color: #22d3ee;
+}
 
-  .page-title {
-    font-size: 18px;
-  }
+/* 移除输入框上下箭头 */
+.jump-page-input::-webkit-outer-spin-button,
+.jump-page-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.jump-page-input[type=number] {
+  -moz-appearance: textfield;
+}
 
-  .back-btn span:last-child {
-    display: none;
-  }
+/* 分页按钮 */
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
-  .back-btn {
-    padding: 10px 12px;
-  }
+.page-info {
+  color: #cbd5e1;
+  font-size: 13px;
+  font-family: monospace;
+}
 
-  .toast-message {
-    white-space: normal;
-    text-align: center;
-    max-width: 80vw;
-  }
+.page-btn {
+  background: rgba(34, 211, 238, 0.1);
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  color: #22d3ee;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
 
-  .sensor-card {
-    flex-direction: column;
-    gap: 16px;
-  }
+.page-btn:hover:not(:disabled) {
+  background: rgba(34, 211, 238, 0.25);
+  border-color: #22d3ee;
+}
 
-  .sensor-divider {
-    width: 80%;
-    height: 1px;
-  }
-
-  .countdown-display {
-    padding: 6px 12px;
-    font-size: 12px;
-  }
-
-  .countdown-time {
-    font-size: 14px;
-  }
-
-  .countdown-text {
-    display: none;
-  }
+.page-btn:disabled {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #475569;
+  cursor: not-allowed;
 }
 </style>

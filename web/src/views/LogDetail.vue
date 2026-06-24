@@ -1,6 +1,5 @@
 <template>
   <div class="log-detail-container">
-    <!-- 新增外框，与页面一样大，内部滚动 -->
     <div class="outer-frame">
       <div class="log-detail-header">
         <button class="back-btn" @click="goBack">
@@ -84,7 +83,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="item in logList" :key="item.id">
+                <tr v-for="item in currentPageData" :key="item.id">
                   <td>{{ item.cabinetTitle || '-' }}</td>
                   <td>{{ item.cellNumber || '-' }}</td>
                   <td>{{ item.toolName || '-' }}</td>
@@ -107,18 +106,51 @@
                     <button class="detail-row-btn" @click.stop="viewDetail(item)">查看详情</button>
                   </td>
                 </tr>
-                <tr v-if="logList.length === 0">
+                <tr v-if="filteredTotal === 0">
                   <td colspan="11" class="empty-row">暂无数据</td>
                 </tr>
               </tbody>
             </table>
           </div>
-          <div class="record-count">共 {{ logList.length }} 条记录</div>
+          
+          <div class="table-footer">
+            <div class="footer-left">
+              <div class="record-count">共 {{ filteredTotal }} 条记录</div>
+              
+              <div class="page-size-selector" v-if="filteredTotal > 0">
+                <span class="size-label">每页显示:</span>
+                <select v-model="pageSize" class="size-select" @change="handlePageSizeChange">
+                  <option :value="10">10 条</option>
+                  <option :value="20">20 条</option>
+                  <option :value="50">50 条</option>
+                </select>
+              </div>
+
+              <div class="page-jump-selector" v-if="filteredTotal > 0">
+                <span class="jump-label">跳至</span>
+                <input 
+                  type="number" 
+                  v-model.number="inputPageValue" 
+                  class="jump-page-input"
+                  min="1"
+                  :max="totalPages"
+                  @blur="jumpToPage"
+                  @keyup.enter="jumpToPage"
+                />
+                <span class="jump-unit">页</span>
+              </div>
+            </div>
+
+            <div class="pagination-container" v-if="filteredTotal > 0">
+              <button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">上一页</button>
+              <span class="page-info">{{ currentPage }} / {{ totalPages }}</span>
+              <button class="page-btn" :disabled="currentPage === totalPages" @click="changePage(currentPage + 1)">下一页</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- 详情模态框 -->
     <div v-if="detailVisible" class="detail-modal" @click="detailVisible = false">
       <div class="detail-card" @click.stop>
         <div class="card-glow"></div>
@@ -130,9 +162,7 @@
               {{ getStatusText(currentDetail) }}
             </span>
           </div>
-          <button class="close-btn" @click="detailVisible = false">
-            ✕
-          </button>
+          <button class="close-btn" @click="detailVisible = false">✕</button>
         </div>
         <div class="detail-body">
           <div class="info-card tool-info">
@@ -168,33 +198,23 @@
               </div>
               <div class="info-list">
                 <div class="info-field">
-                  <span class="field-label">
-                    <img src="/顾客.svg" alt="借用人" class="icon" /> 借用人
-                  </span>
+                  <span class="field-label"><img src="/顾客.svg" alt="借用人" class="icon" /> 借用人</span>
                   <span class="field-value">{{ currentDetail?.borrowerName || '-' }}</span>
                 </div>
                 <div class="info-field">
-                  <span class="field-label">
-                    <img src="/卡号.svg" alt="工号" class="icon" /> 工号/卡号
-                  </span>
+                  <span class="field-label"><img src="/卡号.svg" alt="工号" class="icon" /> 工号/卡号</span>
                   <span class="field-value">{{ currentDetail?.borrowerNumber || '-' }}</span>
                 </div>
                 <div class="info-field">
-                  <span class="field-label">
-                    <img src="/借用时间.svg" alt="借用时间" class="icon" /> 借用时间
-                  </span>
+                  <span class="field-label"><img src="/借用时间.svg" alt="借用时间" class="icon" /> 借用时间</span>
                   <span class="field-value">{{ formatDateTime(currentDetail?.borrowTime) }}</span>
                 </div>
                 <div class="info-field">
-                  <span class="field-label">
-                    <img src="/说明.svg" alt="借用说明" class="icon" /> 借用说明
-                  </span>
+                  <span class="field-label"><img src="/说明.svg" alt="借用说明" class="icon" /> 借用说明</span>
                   <span class="field-value">{{ currentDetail?.borrowRemark || '无' }}</span>
                 </div>
                 <div class="info-field photo-field">
-                  <span class="field-label">
-                    <img src="/图片.svg" alt="借用照片" class="icon" /> 借用照片
-                  </span>
+                  <span class="field-label"><img src="/图片.svg" alt="借用照片" class="icon" /> 借用照片</span>
                   <div class="photo-wrapper">
                     <img v-if="currentDetail?.borrowerPhoto" :src="formatImageUrl(currentDetail.borrowerPhoto)"
                       class="detail-photo" @click.stop="previewImage(currentDetail.borrowerPhoto)"
@@ -212,33 +232,23 @@
               </div>
               <div v-if="currentDetail?.returnTime" class="info-list">
                 <div class="info-field">
-                  <span class="field-label">
-                    <img src="/顾客.svg" alt="归还人" class="icon" /> 归还人
-                  </span>
+                  <span class="field-label"><img src="/顾客.svg" alt="归还人" class="icon" /> 归还人</span>
                   <span class="field-value">{{ currentDetail?.returnName || '-' }}</span>
                 </div>
                 <div class="info-field">
-                  <span class="field-label">
-                    <img src="/卡号.svg" alt="工号" class="icon" /> 工号/卡号
-                  </span>
+                  <span class="field-label"><img src="/卡号.svg" alt="工号" class="icon" /> 工号/卡号</span>
                   <span class="field-value">{{ currentDetail?.returnNumber || '-' }}</span>
                 </div>
                 <div class="info-field">
-                  <span class="field-label">
-                    <img src="/借用时间.svg" alt="归还时间" class="icon" /> 归还时间
-                  </span>
+                  <span class="field-label"><img src="/借用时间.svg" alt="归还时间" class="icon" /> 归还时间</span>
                   <span class="field-value">{{ formatDateTime(currentDetail?.returnTime) }}</span>
                 </div>
                 <div class="info-field">
-                  <span class="field-label">
-                    <img src="/说明.svg" alt="归还说明" class="icon" /> 归还说明
-                  </span>
+                  <span class="field-label"><img src="/说明.svg" alt="归还说明" class="icon" /> 归还说明</span>
                   <span class="field-value">{{ currentDetail?.returnRemark || '无' }}</span>
                 </div>
                 <div class="info-field photo-field">
-                  <span class="field-label">
-                    <img src="/图片.svg" alt="归还照片" class="icon" /> 归还照片
-                  </span>
+                  <span class="field-label"><img src="/图片.svg" alt="归还照片" class="icon" /> 归还照片</span>
                   <div class="photo-wrapper">
                     <img v-if="currentDetail?.returnPhoto" :src="formatImageUrl(currentDetail.returnPhoto)"
                       class="detail-photo" @click.stop="previewImage(currentDetail.returnPhoto)"
@@ -247,7 +257,7 @@
                   </div>
                 </div>
               </div>
-              <div v-else class="unreturned-state">
+              <div class="unreturned-state" v-else>
                 <img src="/等待.svg" alt="等待" class="icon unreturned-icon" />
                 <div class="unreturned-text">尚未归还</div>
                 <div class="unreturned-desc">该工具仍在借用中</div>
@@ -261,23 +271,19 @@
       </div>
     </div>
 
-    <!-- 图片预览模态框 -->
     <div v-if="previewVisible" class="preview-modal" @click="previewVisible = false">
       <div class="preview-container" @click.stop>
         <img :src="formatImageUrl(previewUrl)" class="preview-image" />
-        <button class="preview-close" @click="previewVisible = false">
-          ✕
-        </button>
+        <button class="preview-close" @click="previewVisible = false">✕</button>
       </div>
     </div>
 
-    <!-- Toast -->
     <div v-if="showToast" class="toast-message">{{ toastText }}</div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchAllLogList, type LogListDTO } from '@/api/log'
 import { useCountdown } from '@/composables/useCountdown'
@@ -287,7 +293,6 @@ const router = useRouter()
 
 const countdown = useCountdown({
   onTimeout: () => {
-    console.log('倒计时结束，返回设置页面')
     router.push('/')
   }
 })
@@ -308,6 +313,71 @@ function formatCountdownTime(seconds: number): string {
 const loading = ref(false)
 const error = ref('')
 const logList = ref<LogListDTO[]>([])
+
+// --- 分页与自定义页码跳转核心逻辑 ---
+const currentPage = ref(1)
+const pageSize = ref(10)          // 固定每页行数 (10、20、50)
+const inputPageValue = ref(1)      // 快捷跳转页码输入框绑定的值
+
+// 数据总数
+const filteredTotal = computed(() => logList.value.length)
+
+// 计算总页数
+const totalPages = computed(() => {
+  return Math.ceil(filteredTotal.value / pageSize.value) || 1
+})
+
+// 当页码发生变化时，自动同步输入框里的数字
+watch(currentPage, (newPage) => {
+  inputPageValue.value = newPage
+}, { immediate: true })
+
+// 分页切片计算数据
+const currentPageData = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return logList.value.slice(start, end)
+})
+
+// 改变下拉每页展示数量
+function handlePageSizeChange() {
+  handleUserOperation()
+  currentPage.value = 1 
+}
+
+// 核心：处理自定义页码跳转
+function jumpToPage() {
+  handleUserOperation()
+  
+  let targetPage = inputPageValue.value
+  
+  // 兜底验证：非数字或小于1，回弹到第1页
+  if (!targetPage || targetPage < 1) {
+    targetPage = 1
+  } 
+  // 兜底验证：大于总页数，直接跳到最后一页
+  else if (targetPage > totalPages.value) {
+    targetPage = totalPages.value
+  }
+  
+  currentPage.value = targetPage
+  inputPageValue.value = targetPage // 把修正后的页码同步回输入框
+  
+  // 滚动回容器顶部
+  const outerFrame = document.querySelector('.outer-frame')
+  if (outerFrame) outerFrame.scrollTop = 0
+}
+
+// 按钮切页处理
+function changePage(page: number) {
+  handleUserOperation()
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page
+    const outerFrame = document.querySelector('.outer-frame')
+    if (outerFrame) outerFrame.scrollTop = 0
+  }
+}
+// ----------------------------------
 
 const getOffsetDateString = (offsetDays: number): string => {
   const date = new Date()
@@ -410,7 +480,6 @@ function getStatusClass(item: LogListDTO | null): string {
 async function fetchData() {
   loading.value = true
   error.value = ''
-
   try {
     const params = {
       borrowerName: filters.value.borrowerName || undefined,
@@ -432,11 +501,13 @@ async function fetchData() {
 
 function handleSearch() {
   handleUserOperation()
+  currentPage.value = 1
   fetchData()
 }
 
 function handleReset() {
   handleUserOperation()
+  currentPage.value = 1
   filters.value = {
     borrowerName: '',
     toolName: '',
@@ -461,7 +532,7 @@ onUnmounted(() => {
 </script>
 
 <style lang="css" scoped>
-/* 新增通用图标样式 */
+/* 通用图标样式 */
 .icon {
   width: 1.2em;
   height: 1.2em;
@@ -476,7 +547,6 @@ onUnmounted(() => {
   height: 1.6em;
 }
 
-/* 原有样式完全保留，仅微调一些与图标有关的尺寸 */
 .log-detail-container {
   position: fixed;
   top: 0;
@@ -488,7 +558,7 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-/* ---------- 外框 – 无模糊 ---------- */
+/* ---------- 外框 ---------- */
 .outer-frame {
   width: 100%;
   height: 100%;
@@ -546,10 +616,6 @@ onUnmounted(() => {
   border-color: #22d3ee;
 }
 
-.back-btn:active {
-  /* 无 scale */
-}
-
 .page-title {
   color: #c2f0e0;
   font-size: 24px;
@@ -559,7 +625,7 @@ onUnmounted(() => {
   gap: 10px;
 }
 
-/* ---------- 倒计时 – 无动画 ---------- */
+/* ---------- 倒计时 ---------- */
 .countdown-display {
   display: flex;
   align-items: center;
@@ -592,7 +658,7 @@ onUnmounted(() => {
   margin: 0 auto;
 }
 
-/* ---------- 过滤栏 – 无模糊 ---------- */
+/* ---------- 过滤栏 ---------- */
 .filter-bar {
   background: rgba(15, 25, 35, 0.7);
   border-radius: 20px;
@@ -696,86 +762,7 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.2);
 }
 
-/* ---------- 响应式过滤栏 ---------- */
-@media (max-width: 700px) {
-  .filter-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    align-items: start;
-  }
-
-  .filter-item:nth-child(1) {
-    grid-column: 1 / 2;
-    grid-row: 1;
-  }
-
-  .filter-item:nth-child(2) {
-    grid-column: 2 / 3;
-    grid-row: 1;
-  }
-
-  .filter-item:nth-child(3) {
-    grid-column: 3 / 4;
-    grid-row: 1;
-  }
-
-  .filter-item.date-filter {
-    grid-column: 1 / 3;
-    grid-row: 2;
-    margin: 0;
-  }
-
-  .filter-actions {
-    grid-column: 3 / 4;
-    grid-row: 2;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 8px;
-    margin: 0;
-  }
-
-  .filter-item {
-    min-width: auto;
-  }
-
-  .date-range {
-    flex-wrap: nowrap;
-  }
-
-  .date-range input {
-    min-width: 0;
-    width: auto;
-  }
-
-  .search-btn,
-  .reset-btn {
-    padding: 8px 12px;
-    font-size: 12px;
-  }
-}
-
-@media (max-width: 560px) {
-  .filter-row {
-    gap: 10px;
-  }
-
-  .date-range span {
-    padding: 0 2px;
-  }
-
-  .filter-actions {
-    gap: 6px;
-  }
-
-  .search-btn,
-  .reset-btn {
-    padding: 6px 10px;
-  }
-}
-
-/* ---------- 表格 – 无模糊、无过渡 ---------- */
+/* ---------- 表格 ---------- */
 .table-wrapper {
   background: rgba(15, 25, 35, 0.7);
   border-radius: 20px;
@@ -813,6 +800,131 @@ onUnmounted(() => {
 
 .log-table tr:hover td {
   background: rgba(34, 211, 238, 0.05);
+}
+
+/* ---------- 底部与分页控制区扩展 ---------- */
+.table-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  border-top: 1px solid rgba(34, 211, 238, 0.1);
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.record-count {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.page-size-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.size-label {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.size-select {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  border-radius: 6px;
+  padding: 4px 8px;
+  color: #e2e8f0;
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+}
+
+.size-select:focus {
+  border-color: #22d3ee;
+}
+
+/* 新增：自定义页码输入框样式 */
+.page-jump-selector {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-left: 1px solid rgba(34, 211, 238, 0.2);
+  padding-left: 16px;
+}
+
+.jump-label,
+.jump-unit {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.jump-page-input {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(34, 211, 238, 0.4);
+  border-radius: 6px;
+  padding: 4px 6px;
+  color: #22d3ee;
+  font-size: 12px;
+  width: 48px;
+  text-align: center;
+  outline: none;
+}
+
+.jump-page-input:focus {
+  border-color: #22d3ee;
+}
+
+.jump-page-input::-webkit-outer-spin-button,
+.jump-page-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.jump-page-input[type=number] {
+  -moz-appearance: textfield;
+}
+
+.pagination-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.page-btn {
+  background: rgba(34, 211, 238, 0.1);
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  color: #22d3ee;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: rgba(34, 211, 238, 0.25);
+  border-color: #22d3ee;
+}
+
+.page-btn:disabled {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.05);
+  color: #5b6e8c;
+  cursor: not-allowed;
+}
+
+.page-info {
+  color: #cbd5e1;
+  font-size: 13px;
+  font-family: monospace;
+  min-width: 45px;
+  text-align: center;
 }
 
 /* ---------- 状态徽章 ---------- */
@@ -882,15 +994,7 @@ onUnmounted(() => {
   color: #5b6e8c;
 }
 
-.record-count {
-  text-align: right;
-  padding: 12px 20px;
-  color: #94a3b8;
-  font-size: 13px;
-  border-top: 1px solid rgba(34, 211, 238, 0.1);
-}
-
-/* ---------- 加载 / 错误 – 保留 spin 动画（仅初始化） ---------- */
+/* ---------- 加载 / 错误 ---------- */
 .loading-wrapper,
 .error-wrapper {
   display: flex;
@@ -912,9 +1016,7 @@ onUnmounted(() => {
 }
 
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
 .retry-btn {
@@ -931,7 +1033,7 @@ onUnmounted(() => {
   background: rgba(34, 211, 238, 0.3);
 }
 
-/* ---------- 详情模态框 – 无模糊、无动画 ---------- */
+/* ---------- 详情模态框 ---------- */
 .detail-modal {
   position: fixed;
   top: 0;
@@ -983,7 +1085,6 @@ onUnmounted(() => {
 
 .header-icon {
   font-size: 24px;
-  /* 覆盖 .icon 默认大小 */
   width: 1.6em;
   height: 1.6em;
   filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.5));
@@ -1133,245 +1234,44 @@ onUnmounted(() => {
 
 .borrow-return-wrapper {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, 1fr);
   gap: 20px;
 }
 
-.borrow-card,
-.return-card {
-  margin-bottom: 0;
-}
-
-.photo-field {
-  flex-direction: column !important;
-  align-items: flex-start !important;
-  border-bottom: none !important;
-  padding-top: 4px !important;
-}
-
-.photo-wrapper {
-  margin-top: 8px;
-  width: 100%;
-}
-
-.detail-photo {
-  max-width: 100%;
-  max-height: 160px;
-  border-radius: 12px;
-  cursor: pointer;
-  border: 1px solid rgba(34, 211, 238, 0.3);
-  object-fit: cover;
-}
-
-.detail-photo:hover {
-  border-color: #22d3ee;
-  box-shadow: 0 4px 12px rgba(34, 211, 238, 0.2);
-}
-
-.unreturned-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 32px 20px;
-  text-align: center;
-}
-
-.unreturned-icon {
-  font-size: 48px;
-  width: 48px;
-  height: 48px;
-  margin-bottom: 12px;
-  opacity: 0.6;
-}
-
-.unreturned-text {
-  color: #f87171;
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-
-.unreturned-desc {
-  color: #7e8b9f;
-  font-size: 12px;
-}
-
-.detail-footer {
-  padding: 16px 24px;
-  border-top: 1px solid rgba(34, 211, 238, 0.12);
-  display: flex;
-  justify-content: flex-end;
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.footer-btn {
-  background: linear-gradient(135deg, #22d3ee, #06b6d4);
-  border: none;
-  padding: 8px 28px;
-  border-radius: 40px;
-  color: #051016;
-  font-weight: 600;
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.footer-btn:hover {
-  box-shadow: 0 4px 12px rgba(34, 211, 238, 0.3);
-}
-
-.footer-btn:active {
-  /* 无 translateY */
-}
-
-/* ---------- 图片预览 – 无模糊、无动画 ---------- */
-.preview-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.95);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 3000;
-  cursor: pointer;
-}
-
-.preview-container {
-  position: relative;
-  max-width: 90vw;
-  max-height: 90vh;
-}
-
-.preview-image {
-  max-width: 90vw;
-  max-height: 90vh;
-  object-fit: contain;
-  border-radius: 16px;
-  box-shadow: 0 0 30px rgba(34, 211, 238, 0.25);
-}
-
-.preview-close {
-  position: absolute;
-  top: -50px;
-  right: 0;
-  background: rgba(0, 0, 0, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.preview-close:hover {
-  background: rgba(239, 68, 68, 0.8);
-}
-
-/* ---------- Toast – 无动画 ---------- */
-.toast-message {
-  position: fixed;
-  bottom: 30px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.9);
-  color: #22d3ee;
-  padding: 12px 24px;
-  border-radius: 60px;
-  font-size: 14px;
-  font-weight: 500;
-  border: 1px solid #22d3ee;
-  z-index: 4000;
-  white-space: nowrap;
-}
-
-/* ---------- 响应式 ---------- */
-@media (max-width: 1200px) {
-
-  .log-table th,
-  .log-table td {
-    padding: 10px 8px;
-    font-size: 12px;
-  }
-}
-
 @media (max-width: 768px) {
-  .outer-frame {
-    padding: 12px 16px;
-  }
-
-  .page-title {
-    font-size: 18px;
-  }
-
-  .back-btn span:last-child {
-    display: none;
-  }
-
-  .back-btn {
-    padding: 10px 12px;
-  }
-
-  .back-btn .icon {
-    font-size: 18px;
-    margin: 0;
-  }
-
-  .toast-message {
-    white-space: normal;
-    text-align: center;
-    max-width: 80vw;
-  }
-
   .borrow-return-wrapper {
     grid-template-columns: 1fr;
-    gap: 16px;
   }
+}
 
-  .detail-card {
-    max-height: 90vh;
+/* ---------- 响应式过滤栏 ---------- */
+@media (max-width: 700px) {
+  .filter-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    align-items: start;
   }
-
-  .info-list .info-field {
-    flex-direction: column;
-    gap: 4px;
+  .filter-item:nth-child(1) { grid-column: 1 / 2; grid-row: 1; }
+  .filter-item:nth-child(2) { grid-column: 2 / 3; grid-row: 1; }
+  .filter-item:nth-child(3) { grid-column: 3 / 4; grid-row: 1; }
+  .filter-item.date-filter {
+    grid-column: 1 / 3;
+    grid-row: 2;
+    margin: 0;
   }
-
-  .info-list .field-label {
-    min-width: auto;
+  .filter-actions {
+    grid-column: 3 / 4;
+    grid-row: 2;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
   }
-
-  .info-list .field-value {
-    text-align: left;
-  }
-
-  .detail-header {
-    padding: 16px 20px;
-  }
-
-  .detail-body {
-    padding: 16px;
-  }
-
-  .header-status {
-    display: none;
-  }
-
-  .countdown-display {
-    padding: 6px 12px;
-    font-size: 12px;
-  }
-
-  .countdown-time {
-    font-size: 14px;
-  }
-
-  .countdown-text {
-    display: none;
-  }
+  .filter-item { min-width: auto; }
+  .date-range { flex-wrap: nowrap; }
+  .date-range input { min-width: 0; width: auto; }
+  .search-btn, .reset-btn { padding: 8px 12px; font-size: 12px; }
 }
 </style>
