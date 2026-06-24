@@ -69,53 +69,47 @@
           <div class="table-container">
             <table class="log-table">
               <thead>
-              <tr>
-                <th>柜子名称</th>
-                <th>格口号</th>
-                <th>工具名称</th>
-                <th>借用人</th>
-                <th>工号/卡号</th>
-                <th>借用时间</th>
-                <th>预计归还</th>
-                <th>归还时间</th>
-                <th>状态</th>
-                <th>借用照片</th>
-                <th>操作</th>
-              </tr>
+                <tr>
+                  <th>柜子名称</th>
+                  <th>格口号</th>
+                  <th>工具名称</th>
+                  <th>借用人</th>
+                  <th>工号/卡号</th>
+                  <th>借用时间</th>
+                  <th>预计归还</th>
+                  <th>归还时间</th>
+                  <th>状态</th>
+                  <th>借用照片</th>
+                  <th>操作</th>
+                </tr>
               </thead>
               <tbody>
-              <tr v-for="item in logList" :key="item.id">
-                <td>{{ item.cabinetTitle || '-' }}</td>
-                <td>{{ item.cellNumber || '-' }}</td>
-                <td>{{ item.toolName || '-' }}</td>
-                <td>{{ item.borrowerName || '-' }}</td>
-                <td>{{ item.borrowerNumber || '-' }}</td>
-                <td>{{ formatDateTime(item.borrowTime) }}</td>
-                <td>{{ formatDateTime(item.expectedReturnTime) }}</td>
-                <td>{{ formatDateTime(item.returnTime) }}</td>
-                <td>
+                <tr v-for="item in logList" :key="item.id">
+                  <td>{{ item.cabinetTitle || '-' }}</td>
+                  <td>{{ item.cellNumber || '-' }}</td>
+                  <td>{{ item.toolName || '-' }}</td>
+                  <td>{{ item.borrowerName || '-' }}</td>
+                  <td>{{ item.borrowerNumber || '-' }}</td>
+                  <td>{{ formatDateTime(item.borrowTime) }}</td>
+                  <td>{{ formatDateTime(item.expectedReturnTime) }}</td>
+                  <td>{{ formatDateTime(item.returnTime) }}</td>
+                  <td>
                     <span :class="getStatusClass(item)">
                       {{ getStatusText(item) }}
                     </span>
-                </td>
-                <td>
-                  <img
-                      v-if="item.borrowerPhoto"
-                      :src="formatImageUrl(item.borrowerPhoto)"
-                      class="table-photo"
-                      @click.stop="previewImage(item.borrowerPhoto)"
-                      @error="handleImageError"
-                      alt="借用照片"
-                  />
-                  <span v-else class="no-photo">无照片</span>
-                </td>
-                <td>
-                  <button class="detail-row-btn" @click.stop="viewDetail(item)">查看详情</button>
-                </td>
-              </tr>
-              <tr v-if="logList.length === 0">
-                <td colspan="11" class="empty-row">暂无数据</td>
-              </tr>
+                  </td>
+                  <td>
+                    <img v-if="item.borrowerPhoto" :src="formatImageUrl(item.borrowerPhoto)" class="table-photo"
+                      @click.stop="previewImage(item.borrowerPhoto)" @error="handleImageError" alt="借用照片" />
+                    <span v-else class="no-photo">无照片</span>
+                  </td>
+                  <td>
+                    <button class="detail-row-btn" @click.stop="viewDetail(item)">查看详情</button>
+                  </td>
+                </tr>
+                <tr v-if="logList.length === 0">
+                  <td colspan="11" class="empty-row">暂无数据</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -202,13 +196,9 @@
                     <img src="/图片.svg" alt="借用照片" class="icon" /> 借用照片
                   </span>
                   <div class="photo-wrapper">
-                    <img
-                        v-if="currentDetail?.borrowerPhoto"
-                        :src="formatImageUrl(currentDetail.borrowerPhoto)"
-                        class="detail-photo"
-                        @click.stop="previewImage(currentDetail.borrowerPhoto)"
-                        @error="handleImageError"
-                    />
+                    <img v-if="currentDetail?.borrowerPhoto" :src="formatImageUrl(currentDetail.borrowerPhoto)"
+                      class="detail-photo" @click.stop="previewImage(currentDetail.borrowerPhoto)"
+                      @error="handleImageError" />
                     <span v-else class="no-photo">无照片</span>
                   </div>
                 </div>
@@ -250,13 +240,9 @@
                     <img src="/图片.svg" alt="归还照片" class="icon" /> 归还照片
                   </span>
                   <div class="photo-wrapper">
-                    <img
-                        v-if="currentDetail?.returnPhoto"
-                        :src="formatImageUrl(currentDetail.returnPhoto)"
-                        class="detail-photo"
-                        @click.stop="previewImage(currentDetail.returnPhoto)"
-                        @error="handleImageError"
-                    />
+                    <img v-if="currentDetail?.returnPhoto" :src="formatImageUrl(currentDetail.returnPhoto)"
+                      class="detail-photo" @click.stop="previewImage(currentDetail.returnPhoto)"
+                      @error="handleImageError" />
                     <span v-else class="no-photo">无照片</span>
                   </div>
                 </div>
@@ -295,7 +281,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchAllLogList, type LogListDTO } from '@/api/log'
 import { useCountdown } from '@/composables/useCountdown'
-import {formatImageUrl} from '@/utils/fileUtils'
+import { formatImageUrl } from '@/utils/fileUtils'
 
 const router = useRouter()
 
@@ -323,12 +309,24 @@ const loading = ref(false)
 const error = ref('')
 const logList = ref<LogListDTO[]>([])
 
+const getOffsetDateString = (offsetDays: number): string => {
+  const date = new Date()
+  date.setDate(date.getDate() + offsetDays)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const defaultStartTime = getOffsetDateString(-2)
+const defaultEndTime = getOffsetDateString(0)
+
 const filters = ref({
   borrowerName: '',
   toolName: '',
   status: undefined as number | undefined,
-  startTime: '',
-  endTime: ''
+  startTime: defaultStartTime,
+  endTime: defaultEndTime
 })
 
 const detailVisible = ref(false)
@@ -443,8 +441,8 @@ function handleReset() {
     borrowerName: '',
     toolName: '',
     status: undefined,
-    startTime: '',
-    endTime: ''
+    startTime: defaultStartTime,
+    endTime: defaultEndTime
   }
   fetchData()
 }
@@ -508,10 +506,12 @@ onUnmounted(() => {
 .outer-frame::-webkit-scrollbar {
   width: 6px;
 }
+
 .outer-frame::-webkit-scrollbar-track {
   background: rgba(0, 0, 0, 0.3);
   border-radius: 4px;
 }
+
 .outer-frame::-webkit-scrollbar-thumb {
   background: #22d3ee;
   border-radius: 4px;
@@ -540,10 +540,12 @@ onUnmounted(() => {
   font-weight: 600;
   cursor: pointer;
 }
+
 .back-btn:hover {
   background: rgba(34, 211, 238, 0.2);
   border-color: #22d3ee;
 }
+
 .back-btn:active {
   /* 无 scale */
 }
@@ -571,12 +573,14 @@ onUnmounted(() => {
   font-weight: 500;
   white-space: nowrap;
 }
+
 .countdown-time {
   font-size: 18px;
   font-weight: 700;
   font-family: monospace;
   letter-spacing: 1px;
 }
+
 .countdown-text {
   font-size: 12px;
   opacity: 0.8;
@@ -611,10 +615,12 @@ onUnmounted(() => {
   flex: 1 0 auto;
   min-width: 140px;
 }
+
 .filter-item label {
   font-size: 12px;
   color: #94a3b8;
 }
+
 .filter-item input,
 .filter-item select {
   background: rgba(0, 0, 0, 0.4);
@@ -626,6 +632,7 @@ onUnmounted(() => {
   outline: none;
   width: 100%;
 }
+
 .filter-item input:focus,
 .filter-item select:focus {
   border-color: #22d3ee;
@@ -638,10 +645,12 @@ onUnmounted(() => {
   gap: 8px;
   width: 100%;
 }
+
 .date-range input {
   flex: 1;
   min-width: 0;
 }
+
 .date-range span {
   color: #94a3b8;
   font-size: 12px;
@@ -667,18 +676,22 @@ onUnmounted(() => {
   align-items: center;
   gap: 6px;
 }
+
 .search-btn {
   background: #22d3ee;
   color: #051016;
 }
+
 .search-btn:hover {
   background: #1cb5cc;
 }
+
 .reset-btn {
   background: rgba(255, 255, 255, 0.1);
   color: #cbd5e1;
   border: 1px solid rgba(34, 211, 238, 0.3);
 }
+
 .reset-btn:hover {
   background: rgba(255, 255, 255, 0.2);
 }
@@ -691,22 +704,75 @@ onUnmounted(() => {
     gap: 12px;
     align-items: start;
   }
-  .filter-item:nth-child(1) { grid-column: 1 / 2; grid-row: 1; }
-  .filter-item:nth-child(2) { grid-column: 2 / 3; grid-row: 1; }
-  .filter-item:nth-child(3) { grid-column: 3 / 4; grid-row: 1; }
-  .filter-item.date-filter { grid-column: 1 / 3; grid-row: 2; margin: 0; }
-  .filter-actions { grid-column: 3 / 4; grid-row: 2; display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin: 0; }
-  .filter-item { min-width: auto; }
-  .date-range { flex-wrap: nowrap; }
-  .date-range input { min-width: 0; width: auto; }
-  .search-btn, .reset-btn { padding: 8px 12px; font-size: 12px; }
+
+  .filter-item:nth-child(1) {
+    grid-column: 1 / 2;
+    grid-row: 1;
+  }
+
+  .filter-item:nth-child(2) {
+    grid-column: 2 / 3;
+    grid-row: 1;
+  }
+
+  .filter-item:nth-child(3) {
+    grid-column: 3 / 4;
+    grid-row: 1;
+  }
+
+  .filter-item.date-filter {
+    grid-column: 1 / 3;
+    grid-row: 2;
+    margin: 0;
+  }
+
+  .filter-actions {
+    grid-column: 3 / 4;
+    grid-row: 2;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+  }
+
+  .filter-item {
+    min-width: auto;
+  }
+
+  .date-range {
+    flex-wrap: nowrap;
+  }
+
+  .date-range input {
+    min-width: 0;
+    width: auto;
+  }
+
+  .search-btn,
+  .reset-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
 }
 
 @media (max-width: 560px) {
-  .filter-row { gap: 10px; }
-  .date-range span { padding: 0 2px; }
-  .filter-actions { gap: 6px; }
-  .search-btn, .reset-btn { padding: 6px 10px; }
+  .filter-row {
+    gap: 10px;
+  }
+
+  .date-range span {
+    padding: 0 2px;
+  }
+
+  .filter-actions {
+    gap: 6px;
+  }
+
+  .search-btn,
+  .reset-btn {
+    padding: 6px 10px;
+  }
 }
 
 /* ---------- 表格 – 无模糊、无过渡 ---------- */
@@ -726,21 +792,25 @@ onUnmounted(() => {
   border-collapse: collapse;
   font-size: 13px;
 }
+
 .log-table th,
 .log-table td {
   padding: 14px 12px;
   text-align: left;
   border-bottom: 1px solid rgba(34, 211, 238, 0.1);
 }
+
 .log-table th {
   background: rgba(34, 211, 238, 0.1);
   color: #22d3ee;
   font-weight: 600;
   font-size: 13px;
 }
+
 .log-table td {
   color: #cbd5e1;
 }
+
 .log-table tr:hover td {
   background: rgba(34, 211, 238, 0.05);
 }
@@ -753,16 +823,19 @@ onUnmounted(() => {
   font-size: 11px;
   font-weight: 600;
 }
+
 .status-badge.returned {
   background: rgba(34, 197, 94, 0.2);
   color: #4ade80;
   border: 1px solid rgba(74, 222, 128, 0.3);
 }
+
 .status-badge.unreturned {
   background: rgba(239, 68, 68, 0.2);
   color: #f87171;
   border: 1px solid rgba(248, 113, 113, 0.3);
 }
+
 .status-badge.overdue {
   background: rgba(249, 115, 22, 0.2);
   color: #fb923c;
@@ -778,6 +851,7 @@ onUnmounted(() => {
   cursor: pointer;
   border: 1px solid rgba(34, 211, 238, 0.3);
 }
+
 .table-photo:hover {
   border-color: #22d3ee;
 }
@@ -797,6 +871,7 @@ onUnmounted(() => {
   font-size: 12px;
   cursor: pointer;
 }
+
 .detail-row-btn:hover {
   background: rgba(34, 211, 238, 0.3);
 }
@@ -835,8 +910,11 @@ onUnmounted(() => {
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
+
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .retry-btn {
@@ -848,6 +926,7 @@ onUnmounted(() => {
   cursor: pointer;
   font-size: 13px;
 }
+
 .retry-btn:hover {
   background: rgba(34, 211, 238, 0.3);
 }
@@ -901,12 +980,15 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
 }
+
 .header-icon {
-  font-size: 24px; /* 覆盖 .icon 默认大小 */
+  font-size: 24px;
+  /* 覆盖 .icon 默认大小 */
   width: 1.6em;
   height: 1.6em;
   filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.5));
 }
+
 .detail-header h3 {
   color: #22d3ee;
   margin: 0;
@@ -914,6 +996,7 @@ onUnmounted(() => {
   font-weight: 600;
   letter-spacing: 1px;
 }
+
 .header-status {
   margin-left: 8px;
   font-size: 11px;
@@ -932,6 +1015,7 @@ onUnmounted(() => {
   color: #94a3b8;
   cursor: pointer;
 }
+
 .close-btn:hover {
   background: rgba(239, 68, 68, 0.2);
   color: #f87171;
@@ -951,6 +1035,7 @@ onUnmounted(() => {
   margin-bottom: 20px;
   border: 1px solid rgba(34, 211, 238, 0.12);
 }
+
 .info-card:hover {
   border-color: rgba(34, 211, 238, 0.25);
   background: rgba(0, 0, 0, 0.35);
@@ -964,11 +1049,13 @@ onUnmounted(() => {
   padding-bottom: 12px;
   border-bottom: 1px solid rgba(34, 211, 238, 0.2);
 }
+
 .card-title .title-icon {
   font-size: 18px;
   width: 1.4em;
   height: 1.4em;
 }
+
 .card-title span:last-child {
   color: #c2f0e0;
   font-weight: 600;
@@ -980,6 +1067,7 @@ onUnmounted(() => {
   display: grid;
   gap: 16px;
 }
+
 .grid-2col {
   grid-template-columns: repeat(2, 1fr);
 }
@@ -989,6 +1077,7 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 6px;
 }
+
 .field-label {
   font-size: 11px;
   color: #7e8b9f;
@@ -998,16 +1087,19 @@ onUnmounted(() => {
   align-items: center;
   gap: 6px;
 }
+
 .field-label .icon {
   width: 1em;
   height: 1em;
 }
+
 .field-value {
   font-size: 14px;
   color: #e2e8f0;
   font-weight: 500;
   word-break: break-word;
 }
+
 .field-value.highlight {
   color: #22d3ee;
   font-weight: 600;
@@ -1018,6 +1110,7 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 16px;
 }
+
 .info-list .info-field {
   flex-direction: row;
   justify-content: space-between;
@@ -1025,12 +1118,14 @@ onUnmounted(() => {
   padding: 8px 0;
   border-bottom: 1px dashed rgba(34, 211, 238, 0.08);
 }
+
 .info-list .field-label {
   font-size: 13px;
   text-transform: none;
   color: #94a3b8;
   min-width: 100px;
 }
+
 .info-list .field-value {
   text-align: right;
   font-size: 13px;
@@ -1041,6 +1136,7 @@ onUnmounted(() => {
   grid-template-columns: 1fr 1fr;
   gap: 20px;
 }
+
 .borrow-card,
 .return-card {
   margin-bottom: 0;
@@ -1052,6 +1148,7 @@ onUnmounted(() => {
   border-bottom: none !important;
   padding-top: 4px !important;
 }
+
 .photo-wrapper {
   margin-top: 8px;
   width: 100%;
@@ -1065,6 +1162,7 @@ onUnmounted(() => {
   border: 1px solid rgba(34, 211, 238, 0.3);
   object-fit: cover;
 }
+
 .detail-photo:hover {
   border-color: #22d3ee;
   box-shadow: 0 4px 12px rgba(34, 211, 238, 0.2);
@@ -1078,6 +1176,7 @@ onUnmounted(() => {
   padding: 32px 20px;
   text-align: center;
 }
+
 .unreturned-icon {
   font-size: 48px;
   width: 48px;
@@ -1085,12 +1184,14 @@ onUnmounted(() => {
   margin-bottom: 12px;
   opacity: 0.6;
 }
+
 .unreturned-text {
   color: #f87171;
   font-size: 16px;
   font-weight: 600;
   margin-bottom: 6px;
 }
+
 .unreturned-desc {
   color: #7e8b9f;
   font-size: 12px;
@@ -1114,9 +1215,11 @@ onUnmounted(() => {
   font-size: 13px;
   cursor: pointer;
 }
+
 .footer-btn:hover {
   box-shadow: 0 4px 12px rgba(34, 211, 238, 0.3);
 }
+
 .footer-btn:active {
   /* 无 translateY */
 }
@@ -1141,6 +1244,7 @@ onUnmounted(() => {
   max-width: 90vw;
   max-height: 90vh;
 }
+
 .preview-image {
   max-width: 90vw;
   max-height: 90vh;
@@ -1163,6 +1267,7 @@ onUnmounted(() => {
   justify-content: center;
   cursor: pointer;
 }
+
 .preview-close:hover {
   background: rgba(239, 68, 68, 0.8);
 }
@@ -1186,6 +1291,7 @@ onUnmounted(() => {
 
 /* ---------- 响应式 ---------- */
 @media (max-width: 1200px) {
+
   .log-table th,
   .log-table td {
     padding: 10px 8px;
@@ -1197,57 +1303,73 @@ onUnmounted(() => {
   .outer-frame {
     padding: 12px 16px;
   }
+
   .page-title {
     font-size: 18px;
   }
+
   .back-btn span:last-child {
     display: none;
   }
+
   .back-btn {
     padding: 10px 12px;
   }
+
   .back-btn .icon {
     font-size: 18px;
     margin: 0;
   }
+
   .toast-message {
     white-space: normal;
     text-align: center;
     max-width: 80vw;
   }
+
   .borrow-return-wrapper {
     grid-template-columns: 1fr;
     gap: 16px;
   }
+
   .detail-card {
     max-height: 90vh;
   }
+
   .info-list .info-field {
     flex-direction: column;
     gap: 4px;
   }
+
   .info-list .field-label {
     min-width: auto;
   }
+
   .info-list .field-value {
     text-align: left;
   }
+
   .detail-header {
     padding: 16px 20px;
   }
+
   .detail-body {
     padding: 16px;
   }
+
   .header-status {
     display: none;
   }
+
   .countdown-display {
     padding: 6px 12px;
     font-size: 12px;
   }
+
   .countdown-time {
     font-size: 14px;
   }
+
   .countdown-text {
     display: none;
   }

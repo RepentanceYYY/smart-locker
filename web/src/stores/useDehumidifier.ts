@@ -76,9 +76,9 @@ export const useDehumidifierStore = defineStore('dehumidifier', () => {
      * 处理除湿机推送的消息
      */
     const handleDehumidifierMessage = (msg: any) => {
-        const { type, code, data } = msg || {}
+        const { action, code, data } = msg || {}
 
-        if (type === 'pushRealtimeTemperatureHumidity' && code === 200) {
+        if (action === 'pushRealtimeTemperatureHumidity' && code === 200) {
             const realtimeData = data?.realtimeTemperatureHumidity
 
             if (realtimeData && typeof realtimeData === 'object') {

@@ -87,7 +87,7 @@ const emit = defineEmits<{
   (e: 'close'): void
   (e: 'notify', text: string, type: 'info' | 'success' | 'warning'): void
   (e: 'faceRecognized', imageUrl: string): void
-}>()
+}>()  
 
 // --- DOM 引用 ---
 const videoRef = ref<HTMLVideoElement | null>(null)

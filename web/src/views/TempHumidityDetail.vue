@@ -55,27 +55,27 @@
           <div class="table-container">
             <table class="temp-table">
               <thead>
-              <tr>
-                <th>柜子名称</th>
-                <th>温度 (°C)</th>
-                <th>湿度 (%)</th>
-                <th>记录时间</th>
-                <th>操作</th>
-              </tr>
+                <tr>
+                  <th>柜子名称</th>
+                  <th>温度 (°C)</th>
+                  <th>湿度 (%)</th>
+                  <th>记录时间</th>
+                  <th>操作</th>
+                </tr>
               </thead>
               <tbody>
-              <tr v-for="item in logList" :key="item.recordTime + item.cabinetTitle">
-                <td>{{ item.cabinetTitle || '-' }}</td>
-                <td>{{ formatTemperature(item.temperature) }}</td>
-                <td>{{ formatHumidity(item.humidity) }}</td>
-                <td>{{ formatDateTime(item.recordTime) }}</td>
-                <td>
-                  <button class="detail-row-btn" @click.stop="viewDetail(item)">查看详情</button>
-                </td>
-              </tr>
-              <tr v-if="logList.length === 0">
-                <td colspan="5" class="empty-row">暂无温湿度记录</td>
-              </tr>
+                <tr v-for="item in logList" :key="item.recordTime + item.cabinetTitle">
+                  <td>{{ item.cabinetTitle || '-' }}</td>
+                  <td>{{ formatTemperature(item.temperature) }}</td>
+                  <td>{{ formatHumidity(item.humidity) }}</td>
+                  <td>{{ formatDateTime(item.recordTime) }}</td>
+                  <td>
+                    <button class="detail-row-btn" @click.stop="viewDetail(item)">查看详情</button>
+                  </td>
+                </tr>
+                <tr v-if="logList.length === 0">
+                  <td colspan="5" class="empty-row">暂无温湿度记录</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -199,10 +199,22 @@ const loading = ref(false)
 const error = ref('')
 const logList = ref<TempHumidityLog[]>([])
 
+const getOffsetDateString = (offsetDays: number): string => {
+  const date = new Date()
+  date.setDate(date.getDate() + offsetDays)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const defaultStartTime = getOffsetDateString(-2)
+const defaultEndTime = getOffsetDateString(0)
+
 const filters = ref({
   cabinetTitle: '',
-  startTime: '',
-  endTime: '',
+  startTime: defaultStartTime,
+  endTime: defaultEndTime,
   minTemperature: undefined as number | undefined,
   maxTemperature: undefined as number | undefined,
   minHumidity: undefined as number | undefined,
@@ -253,35 +265,35 @@ function formatHumidity(humidity: number | undefined): string {
 
 function normalizeAndFilter(rawList: any[]): TempHumidityLog[] {
   return rawList
-      .map(item => {
-        let temp: number | undefined = undefined
-        if (item.temperature !== undefined && item.temperature !== null) {
-          const num = parseFloat(item.temperature)
-          if (!isNaN(num)) temp = num
-        }
-        let humidity: number | undefined = undefined
-        if (item.humidity !== undefined && item.humidity !== null) {
-          const num = parseFloat(item.humidity)
-          if (!isNaN(num)) humidity = num
-        }
-        return {
-          cabinetTitle: item.cabinetTitle || '',
-          temperature: temp,
-          humidity: humidity,
-          recordTime: item.recordTime || '',
-          cabinetId: item.cabinetId
-        } as TempHumidityLog
-      })
-      .filter(item => {
-        const { minTemperature, maxTemperature, minHumidity, maxHumidity } = filters.value
-        if (item.temperature === undefined) return false
-        if (minTemperature !== undefined && item.temperature < minTemperature) return false
-        if (maxTemperature !== undefined && item.temperature > maxTemperature) return false
-        if (item.humidity === undefined) return false
-        if (minHumidity !== undefined && item.humidity < minHumidity) return false
-        if (maxHumidity !== undefined && item.humidity > maxHumidity) return false
-        return true
-      })
+    .map(item => {
+      let temp: number | undefined = undefined
+      if (item.temperature !== undefined && item.temperature !== null) {
+        const num = parseFloat(item.temperature)
+        if (!isNaN(num)) temp = num
+      }
+      let humidity: number | undefined = undefined
+      if (item.humidity !== undefined && item.humidity !== null) {
+        const num = parseFloat(item.humidity)
+        if (!isNaN(num)) humidity = num
+      }
+      return {
+        cabinetTitle: item.cabinetTitle || '',
+        temperature: temp,
+        humidity: humidity,
+        recordTime: item.recordTime || '',
+        cabinetId: item.cabinetId
+      } as TempHumidityLog
+    })
+    .filter(item => {
+      const { minTemperature, maxTemperature, minHumidity, maxHumidity } = filters.value
+      if (item.temperature === undefined) return false
+      if (minTemperature !== undefined && item.temperature < minTemperature) return false
+      if (maxTemperature !== undefined && item.temperature > maxTemperature) return false
+      if (item.humidity === undefined) return false
+      if (minHumidity !== undefined && item.humidity < minHumidity) return false
+      if (maxHumidity !== undefined && item.humidity > maxHumidity) return false
+      return true
+    })
 }
 
 async function fetchData() {
@@ -315,8 +327,8 @@ function handleReset() {
   handleUserOperation()
   filters.value = {
     cabinetTitle: '',
-    startTime: '',
-    endTime: '',
+    startTime: defaultStartTime,
+    endTime: defaultEndTime,
     minTemperature: undefined,
     maxTemperature: undefined,
     minHumidity: undefined,
@@ -397,13 +409,16 @@ onUnmounted(() => {
   box-sizing: border-box;
   scrollbar-width: thin;
 }
+
 .outer-frame::-webkit-scrollbar {
   width: 6px;
 }
+
 .outer-frame::-webkit-scrollbar-track {
   background: rgba(0, 0, 0, 0.3);
   border-radius: 4px;
 }
+
 .outer-frame::-webkit-scrollbar-thumb {
   background: #22d3ee;
   border-radius: 4px;
@@ -432,6 +447,7 @@ onUnmounted(() => {
   font-weight: 600;
   cursor: pointer;
 }
+
 .back-btn:hover {
   background: rgba(34, 211, 238, 0.2);
   border-color: #22d3ee;
@@ -460,13 +476,18 @@ onUnmounted(() => {
   font-weight: 500;
   white-space: nowrap;
 }
+
 .countdown-time {
   font-size: 18px;
   font-weight: 700;
   font-family: monospace;
   letter-spacing: 1px;
 }
-.countdown-text { font-size: 12px; opacity: 0.8; }
+
+.countdown-text {
+  font-size: 12px;
+  opacity: 0.8;
+}
 
 /* ---------- 内容区 ---------- */
 .temp-content {
@@ -482,12 +503,14 @@ onUnmounted(() => {
   padding: 20px;
   margin-bottom: 24px;
 }
+
 .filter-row {
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
   align-items: flex-end;
 }
+
 .filter-item {
   display: flex;
   flex-direction: column;
@@ -495,10 +518,12 @@ onUnmounted(() => {
   flex: 1 0 auto;
   min-width: 140px;
 }
+
 .filter-item label {
   font-size: 12px;
   color: #94a3b8;
 }
+
 .filter-item input,
 .filter-item select {
   background: rgba(0, 0, 0, 0.4);
@@ -510,11 +535,13 @@ onUnmounted(() => {
   outline: none;
   width: 100%;
 }
+
 .filter-item input:focus,
 .filter-item select:focus {
   border-color: #22d3ee;
   box-shadow: 0 0 4px rgba(34, 211, 238, 0.2);
 }
+
 .date-range,
 .range-inputs {
   display: flex;
@@ -522,17 +549,20 @@ onUnmounted(() => {
   gap: 8px;
   width: 100%;
 }
+
 .date-range input,
 .range-inputs input {
   flex: 1;
   min-width: 0;
 }
+
 .date-range span,
 .range-inputs span {
   color: #94a3b8;
   font-size: 12px;
   flex-shrink: 0;
 }
+
 .filter-actions {
   display: flex;
   gap: 12px;
@@ -552,18 +582,22 @@ onUnmounted(() => {
   align-items: center;
   gap: 6px;
 }
+
 .search-btn {
   background: #22d3ee;
   color: #051016;
 }
+
 .search-btn:hover {
   background: #1cb5cc;
 }
+
 .reset-btn {
   background: rgba(255, 255, 255, 0.1);
   color: #cbd5e1;
   border: 1px solid rgba(34, 211, 238, 0.3);
 }
+
 .reset-btn:hover {
   background: rgba(255, 255, 255, 0.2);
 }
@@ -575,14 +609,36 @@ onUnmounted(() => {
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
   }
-  .filter-item.date-filter { grid-column: 1 / 2; }
-  .filter-actions { grid-column: 2 / 3; justify-content: flex-end; }
+
+  .filter-item.date-filter {
+    grid-column: 1 / 2;
+  }
+
+  .filter-actions {
+    grid-column: 2 / 3;
+    justify-content: flex-end;
+  }
 }
+
 @media (max-width: 600px) {
-  .filter-row { grid-template-columns: 1fr; }
-  .filter-item.date-filter, .filter-actions { grid-column: 1 / 2; }
-  .filter-actions { justify-content: stretch; }
-  .search-btn, .reset-btn { flex: 1; text-align: center; }
+  .filter-row {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-item.date-filter,
+  .filter-actions {
+    grid-column: 1 / 2;
+  }
+
+  .filter-actions {
+    justify-content: stretch;
+  }
+
+  .search-btn,
+  .reset-btn {
+    flex: 1;
+    text-align: center;
+  }
 }
 
 /* ---------- 表格 – 无模糊、无过渡 ---------- */
@@ -592,28 +648,35 @@ onUnmounted(() => {
   border: 1px solid rgba(34, 211, 238, 0.2);
   overflow: hidden;
 }
-.table-container { overflow-x: auto; }
+
+.table-container {
+  overflow-x: auto;
+}
 
 .temp-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
 }
+
 .temp-table th,
 .temp-table td {
   padding: 14px 12px;
   text-align: left;
   border-bottom: 1px solid rgba(34, 211, 238, 0.1);
 }
+
 .temp-table th {
   background: rgba(34, 211, 238, 0.1);
   color: #22d3ee;
   font-weight: 600;
   font-size: 13px;
 }
+
 .temp-table td {
   color: #cbd5e1;
 }
+
 .temp-table tr:hover td {
   background: rgba(34, 211, 238, 0.05);
 }
@@ -627,6 +690,7 @@ onUnmounted(() => {
   font-size: 12px;
   cursor: pointer;
 }
+
 .detail-row-btn:hover {
   background: rgba(34, 211, 238, 0.3);
 }
@@ -636,6 +700,7 @@ onUnmounted(() => {
   padding: 40px !important;
   color: #5b6e8c;
 }
+
 .record-count {
   text-align: right;
   padding: 12px 20px;
@@ -655,10 +720,12 @@ onUnmounted(() => {
   gap: 16px;
   color: #94a3b8;
 }
+
 .error-wrapper {
   flex-direction: row;
   flex-wrap: wrap;
 }
+
 .loading-spinner {
   width: 40px;
   height: 40px;
@@ -667,9 +734,13 @@ onUnmounted(() => {
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
+
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
+
 .retry-btn {
   background: rgba(34, 211, 238, 0.2);
   border: 1px solid #22d3ee;
@@ -679,6 +750,7 @@ onUnmounted(() => {
   cursor: pointer;
   font-size: 13px;
 }
+
 .retry-btn:hover {
   background: rgba(34, 211, 238, 0.3);
 }
@@ -696,6 +768,7 @@ onUnmounted(() => {
   justify-content: center;
   z-index: 2000;
 }
+
 .detail-card {
   position: relative;
   background: linear-gradient(135deg, rgba(18, 28, 35, 0.98) 0%, rgba(10, 18, 24, 0.98) 100%);
@@ -707,6 +780,7 @@ onUnmounted(() => {
   overflow: hidden;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(34, 211, 238, 0.1);
 }
+
 .card-glow {
   position: absolute;
   top: 0;
@@ -724,11 +798,13 @@ onUnmounted(() => {
   border-bottom: 1px solid rgba(34, 211, 238, 0.15);
   background: rgba(0, 0, 0, 0.2);
 }
+
 .header-left {
   display: flex;
   align-items: center;
   gap: 12px;
 }
+
 .detail-header h3 {
   color: #22d3ee;
   margin: 0;
@@ -736,6 +812,7 @@ onUnmounted(() => {
   font-weight: 600;
   letter-spacing: 1px;
 }
+
 .close-btn {
   background: rgba(255, 255, 255, 0.05);
   border: none;
@@ -748,6 +825,7 @@ onUnmounted(() => {
   color: #94a3b8;
   cursor: pointer;
 }
+
 .close-btn:hover {
   background: rgba(239, 68, 68, 0.2);
   color: #f87171;
@@ -767,6 +845,7 @@ onUnmounted(() => {
   margin-bottom: 20px;
   border: 1px solid rgba(34, 211, 238, 0.12);
 }
+
 .info-card:hover {
   border-color: rgba(34, 211, 238, 0.25);
   background: rgba(0, 0, 0, 0.35);
@@ -780,11 +859,13 @@ onUnmounted(() => {
   padding-bottom: 12px;
   border-bottom: 1px solid rgba(34, 211, 238, 0.2);
 }
+
 .card-title .title-icon {
   font-size: 18px;
   width: 1.4em;
   height: 1.4em;
 }
+
 .card-title span:last-child {
   color: #c2f0e0;
   font-weight: 600;
@@ -797,12 +878,14 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 6px;
 }
+
 .field-label {
   font-size: 11px;
   color: #7e8b9f;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
+
 .field-value {
   font-size: 14px;
   color: #e2e8f0;
@@ -815,6 +898,7 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 12px;
 }
+
 .info-list .info-field {
   flex-direction: row;
   justify-content: space-between;
@@ -822,12 +906,14 @@ onUnmounted(() => {
   padding: 8px 0;
   border-bottom: 1px dashed rgba(34, 211, 238, 0.08);
 }
+
 .info-list .field-label {
   font-size: 13px;
   text-transform: none;
   color: #94a3b8;
   min-width: 80px;
 }
+
 .info-list .field-value {
   text-align: right;
   font-size: 13px;
@@ -844,10 +930,12 @@ onUnmounted(() => {
   justify-content: space-around;
   border: 1px solid rgba(34, 211, 238, 0.2);
 }
+
 .sensor-item {
   text-align: center;
   flex: 1;
 }
+
 .sensor-label {
   display: flex;
   align-items: center;
@@ -857,17 +945,20 @@ onUnmounted(() => {
   color: #94a3b8;
   margin-bottom: 12px;
 }
+
 .sensor-value {
   font-size: 36px;
   font-weight: 700;
   margin-bottom: 8px;
   color: #e2e8f0;
 }
+
 .sensor-unit {
   font-size: 14px;
   font-weight: 400;
   color: #7e8b9f;
 }
+
 .sensor-divider {
   width: 1px;
   height: 60px;
@@ -882,6 +973,7 @@ onUnmounted(() => {
   justify-content: flex-end;
   background: rgba(0, 0, 0, 0.2);
 }
+
 .footer-btn {
   background: linear-gradient(135deg, #22d3ee, #06b6d4);
   border: none;
@@ -892,6 +984,7 @@ onUnmounted(() => {
   font-size: 13px;
   cursor: pointer;
 }
+
 .footer-btn:hover {
   box-shadow: 0 4px 12px rgba(34, 211, 238, 0.3);
 }
@@ -918,35 +1011,44 @@ onUnmounted(() => {
   .outer-frame {
     padding: 12px 16px;
   }
+
   .page-title {
     font-size: 18px;
   }
+
   .back-btn span:last-child {
     display: none;
   }
+
   .back-btn {
     padding: 10px 12px;
   }
+
   .toast-message {
     white-space: normal;
     text-align: center;
     max-width: 80vw;
   }
+
   .sensor-card {
     flex-direction: column;
     gap: 16px;
   }
+
   .sensor-divider {
     width: 80%;
     height: 1px;
   }
+
   .countdown-display {
     padding: 6px 12px;
     font-size: 12px;
   }
+
   .countdown-time {
     font-size: 14px;
   }
+
   .countdown-text {
     display: none;
   }

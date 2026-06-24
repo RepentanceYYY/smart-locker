@@ -7,6 +7,8 @@ import com.tairui.server.dto.CabinetFullDTO;
 import com.tairui.server.dto.ReturnRecordSubmitDTO;
 import com.tairui.server.service.CabinetConfigService;
 import com.tairui.server.service.SysOperLogService;
+import com.tairui.server.webSocket.dto.WsRequest;
+import com.tairui.server.webSocket.dto.WsResponse;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -47,10 +49,17 @@ public class InventoryWebSocketHandler extends TextWebSocketHandler {
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
 
         String payload = message.getPayload();
-        Map<String, Object> msg = objectMapper.readValue(payload, Map.class);
 
-        String type = (String) msg.get("type");
-        Map<String, Object> data = (Map<String, Object>) msg.get("data");
+        WsRequest wsRequest;
+        WsResponse wsResponse;
+
+        try {
+            wsRequest = objectMapper.readValue(payload, WsRequest.class);
+        } catch (Exception e) {
+            wsResponse = WsResponse.fail("invalid", 400, "不支持的JSON格式");
+            session.sendMessage(new TextMessage(objectMapper.writeValueAsString(wsResponse)));
+            return;
+        }
 
         List<CabinetFullDTO> cabinets = cabinetConfigService.getFullConfigList();
 
@@ -148,7 +157,9 @@ public class InventoryWebSocketHandler extends TextWebSocketHandler {
                 "borrowItems", borrowItems,
                 "returnItems", returnItems
         );
-        sendResponse(session, type, 200, "盘点完成", result);
+
+        wsResponse=WsResponse.success(wsRequest.getAction(), "盘点完成", result);
+        session.sendMessage(new TextMessage(objectMapper.writeValueAsString(wsResponse)));
     }
 
     private void sendResponse(WebSocketSession session, String type, int code, String message, Map<String, Object> data) throws IOException {

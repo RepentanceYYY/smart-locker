@@ -600,7 +600,7 @@ function handleDialogAction() {
 // 3. 处理手动拍照成功后的回调 (对应 ManualCameraModal 的 @confirm)
 function handleManualPhotoConfirm(uploadImageUrl: string) {
   console.log('手动拍照成功并后端验证通过，获取到图片路径:', uploadImageUrl)
-  
+
   // 跳转到对应领用/归还页面
   const targetPath = isBorrowMode.value ? '/borrow' : '/return'
   router.push({
@@ -613,6 +613,10 @@ function handleManualPhotoConfirm(uploadImageUrl: string) {
 }
 // ================== 三大按钮 ==================
 function handleBorrow() {
+  if(!cabinets.value || cabinets.value.length === 0){
+    addNotification('暂无可用柜子，请稍后重试','info')
+    return
+  }
   if (isAllowClickButton.value) {
     addNotification('盘点中，稍后再试', 'warning')
     return
@@ -622,6 +626,10 @@ function handleBorrow() {
 }
 
 function handleReturn() {
+  if(!cabinets.value || cabinets.value.length === 0){
+    addNotification('暂无可用柜子，请稍后重试','info')
+    return
+  }
   if (isAllowClickButton.value) {
     addNotification('盘点中，稍后再试', 'warning')
     return
@@ -631,6 +639,10 @@ function handleReturn() {
 }
 
 function handleInventory() {
+  if(!cabinets.value || cabinets.value.length === 0){
+    addNotification('暂无可用柜子，请稍后重试','info')
+    return
+  }
   if (isAllowClickButton.value) {
     addNotification('盘点中，稍后再试', 'warning')
     return
@@ -702,22 +714,28 @@ function connectWebSocket() {
   }
 }
 
-function sendMessage(type: string, data: any) {
+function sendMessage(action: string, data: any) {
   if (!socket || socket.readyState !== WebSocket.OPEN) {
-    if (type === 'inventory') {
+    if (action === 'inventory') {
       addNotification('相机服务未连接，请检查相机设备是否正常', 'warning')
     } else {
       addNotification('网络连接异常，请稍后重试', 'warning')
     }
     return false
   }
-  socket.send(JSON.stringify({ type, data }))
+  const message = {
+    action,
+    requestId: Date.now().toString(),
+    timestamp: Date.now(),
+    data
+  }
+  socket.send(JSON.stringify(message))
   return true
 }
 
 async function handleWebSocketMessage(msg: any) {
-  const { type } = msg || {}
-  if (type === 'inventory') {
+  const { action } = msg || {}
+  if (action === 'inventory') {
     handleInventoryReply(msg)
   }
 }
