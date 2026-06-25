@@ -206,6 +206,11 @@ public class FaceWebSocketHandler extends TextWebSocketHandler {
         String userId = UUID.randomUUID().toString().replace("-", "");
         String fileName = "face_" + userId + ".jpg";
         Path path = Paths.get(uploadPath, fileName);
+        // 确保目录存在
+        Path parentDir = path.getParent();
+        if (parentDir != null && !Files.exists(parentDir)) {
+            Files.createDirectories(parentDir);
+        }
         Files.write(path, imageBytes);
         String url = accessPath + fileName;
         session.sendMessage(new TextMessage(objectMapper.writeValueAsString(WsResponse.success(wsRequest.getAction(), url))));

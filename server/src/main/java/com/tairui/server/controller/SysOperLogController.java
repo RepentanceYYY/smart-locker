@@ -1,6 +1,7 @@
 // com/tairui/server/controller/BorrowRecordController.java
 package com.tairui.server.controller;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tairui.server.common.Result;
 import com.tairui.server.dto.BorrowRecordSubmitDTO;
@@ -55,6 +56,20 @@ public class SysOperLogController {
     ) {
         List<LogListDTO> data = sysOperLogService.getAllLogList(borrowerName, toolName, status, startTime, endTime);
         return Result.success(data);
+    }
+
+    @GetMapping("/logs/{page}/{size}")
+    public Result getLogList(
+            @PathVariable Integer page,
+            @PathVariable Integer size,
+            @RequestParam(required = false) String borrowerName,
+            @RequestParam(required = false) String toolName,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) String startTime,
+            @RequestParam(required = false) String endTime
+    ) {
+        Page<LogListDTO> logList = sysOperLogService.getLogList(page, size, borrowerName, toolName, status, startTime, endTime);
+        return Result.success(logList);
     }
 
 }

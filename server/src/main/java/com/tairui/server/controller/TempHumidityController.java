@@ -1,6 +1,8 @@
 package com.tairui.server.controller;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.tairui.server.common.Result;
+import com.tairui.server.dto.LogListDTO;
 import com.tairui.server.dto.TempHumidityLogDTO;
 import com.tairui.server.service.TempHumidityService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,5 +47,16 @@ public class TempHumidityController {
         List<TempHumidityLogDTO> logs = tempHumidityService.searchLogsByCondition(
                 cabinetTitle, startTime, endTime);
         return Result.success(logs);
+    }
+    @GetMapping("/logs/{page}/{size}")
+    public Result getLogList(
+            @PathVariable Integer page,
+            @PathVariable Integer size,
+            @RequestParam(required = false) String cabinetTitle,
+            @RequestParam(required = false) String startTime,
+            @RequestParam(required = false) String endTime
+    ) {
+        Page<TempHumidityLogDTO> logList = tempHumidityService.getLogList(page, size, cabinetTitle, startTime, endTime);
+        return Result.success(logList);
     }
 }

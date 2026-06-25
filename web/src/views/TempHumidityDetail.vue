@@ -64,7 +64,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="item in paginatedList" :key="item.recordTime + item.cabinetTitle">
+                <tr v-for="item in logList" :key="item.recordTime + item.cabinetTitle">
                   <td>{{ item.cabinetTitle || '-' }}</td>
                   <td>{{ formatTemperature(item.temperature) }}</td>
                   <td>{{ formatHumidity(item.humidity) }}</td>
@@ -74,7 +74,7 @@
                   </td>
                 </tr>
                 <tr v-if="filteredTotal === 0">
-                  <td colspan="11" class="empty-row">
+                  <td colspan="5" class="empty-row">
                     <div class="empty-content">
                       暂无温湿度记录
                     </div>
@@ -83,12 +83,12 @@
               </tbody>
             </table>
           </div>
-          
-          <div class="table-footer">
+
+          <div class="table-footer" v-if="filteredTotal > 0">
             <div class="footer-left">
-              <div class="record-count" v-if="filteredTotal>0">共 {{ filteredTotal }} 条记录</div>
-              
-              <div class="page-size-selector" v-if="filteredTotal > 0">
+              <div class="record-count">共 {{ filteredTotal }} 条记录</div>
+
+              <div class="page-size-selector">
                 <span class="size-label">每页显示:</span>
                 <select v-model="pageSize" class="size-select" @change="handlePageSizeChange">
                   <option :value="10">10 条</option>
@@ -96,25 +96,19 @@
                   <option :value="50">50 条</option>
                 </select>
               </div>
-              <div class="page-jump-selector" v-if="filteredTotal > 0">
+              <div class="page-jump-selector">
                 <span class="jump-label">跳至</span>
-                <input 
-                  type="number" 
-                  v-model.number="inputPageValue" 
-                  class="jump-page-input"
-                  min="1"
-                  :max="totalPages"
-                  @blur="jumpToPage"
-                  @keyup.enter="jumpToPage"
-                />
+                <input type="number" v-model.number="inputPageValue" class="jump-page-input" min="1" :max="totalPages"
+                  @blur="jumpToPage" @keyup.enter="jumpToPage" />
                 <span class="jump-unit">页</span>
               </div>
             </div>
 
-            <div class="pagination-controls" v-if="filteredTotal > 0">
+            <div class="pagination-controls">
               <button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">上一页</button>
               <span class="page-info">{{ currentPage }} / {{ totalPages }}</span>
-              <button class="page-btn" :disabled="currentPage === totalPages" @click="changePage(currentPage + 1)">下一页</button>
+              <button class="page-btn" :disabled="currentPage === totalPages"
+                @click="changePage(currentPage + 1)">下一页</button>
             </div>
           </div>
         </div>
@@ -197,10 +191,10 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, onUnmounted ,computed} from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCountdown } from '@/composables/useCountdown'
-import { searchTempHumidityLogs } from '@/api/tempHumidity'
+import { searchTempHumidityLogsByPage } from '@/api/tempHumidity'
 
 interface TempHumidityLog {
   cabinetTitle: string
@@ -238,69 +232,47 @@ const loading = ref(false)
 const error = ref('')
 const logList = ref<TempHumidityLog[]>([])
 
-// ==================== 动态分页核心逻辑逻辑 ====================
+// ==================== 后端分页核心逻辑 ====================
 const currentPage = ref(1)
 const pageSize = ref(10)          // 默认每页展示10条
 const inputPageValue = ref(1)     // 跳转目标页码
+const filteredTotal = ref(0)      // 总条数
+const totalPages = ref(1)         // 总页数
 
-
-const customPageSize = ref(-1)    // 标记自定义行数的特殊 value，若不用可保持默认
-const customInputValue = ref(10)  // 自定义每页行数的输入值
-
-// 经过过滤后的总条数
-const filteredTotal = computed(() => logList.value.length)
-
-// 获取当前生效的真实每页显示行数
-const getRealPageSize = () => {
-  return pageSize.value === customPageSize.value ? (customInputValue.value || 10) : pageSize.value
-}
-
-// 总页数计算
-const totalPages = computed(() => {
-  return Math.ceil(filteredTotal.value / getRealPageSize()) || 1
-})
-
-// 根据当前页码与动态行数截取数据
-const paginatedList = computed(() => {
-  const size = getRealPageSize()
-  const start = (currentPage.value - 1) * size
-  const end = start + size
-  return logList.value.slice(start, end)
-})
-
-// 改变下拉选择配置
+// 改变每页显示条数选择
 function handlePageSizeChange() {
   handleUserOperation()
-  currentPage.value = 1 // 切换行数配置时，必须切回第1页
+  currentPage.value = 1
   inputPageValue.value = 1
+  fetchData() 
 }
-
-
 
 // 切换页码事件
 function changePage(page: number) {
   handleUserOperation()
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page
-    inputPageValue.value = page // 同步跳转输入框的值
-    
+    inputPageValue.value = page 
+
     // 换页时令外层容器滚动回顶部
     const outerFrame = document.querySelector('.outer-frame')
     if (outerFrame) outerFrame.scrollTop = 0
+
+    fetchData()
   }
 }
 
-// 对应模板中的跳页逻辑
+// 跳转页码逻辑
 function jumpToPage() {
   handleUserOperation()
   let targetPage = Math.floor(inputPageValue.value)
-  
+
   if (isNaN(targetPage) || targetPage < 1) {
     targetPage = 1
   } else if (targetPage > totalPages.value) {
     targetPage = totalPages.value
   }
-  
+
   inputPageValue.value = targetPage
   changePage(targetPage)
 }
@@ -321,11 +293,7 @@ const defaultEndTime = getOffsetDateString(0)
 const filters = ref({
   cabinetTitle: '',
   startTime: defaultStartTime,
-  endTime: defaultEndTime,
-  minTemperature: undefined as number | undefined,
-  maxTemperature: undefined as number | undefined,
-  minHumidity: undefined as number | undefined,
-  maxHumidity: undefined as number | undefined
+  endTime: defaultEndTime
 })
 
 const detailVisible = ref(false)
@@ -370,37 +338,27 @@ function formatHumidity(humidity: number | undefined): string {
   return Math.round(humidity).toString()
 }
 
-function normalizeAndFilter(rawList: any[]): TempHumidityLog[] {
-  return rawList
-    .map(item => {
-      let temp: number | undefined = undefined
-      if (item.temperature !== undefined && item.temperature !== null) {
-        const num = parseFloat(item.temperature)
-        if (!isNaN(num)) temp = num
-      }
-      let humidity: number | undefined = undefined
-      if (item.humidity !== undefined && item.humidity !== null) {
-        const num = parseFloat(item.humidity)
-        if (!isNaN(num)) humidity = num
-      }
-      return {
-        cabinetTitle: item.cabinetTitle || '',
-        temperature: temp,
-        humidity: humidity,
-        recordTime: item.recordTime || '',
-        cabinetId: item.cabinetId
-      } as TempHumidityLog
-    })
-    .filter(item => {
-      const { minTemperature, maxTemperature, minHumidity, maxHumidity } = filters.value
-      if (item.temperature === undefined) return false
-      if (minTemperature !== undefined && item.temperature < minTemperature) return false
-      if (maxTemperature !== undefined && item.temperature > maxTemperature) return false
-      if (item.humidity === undefined) return false
-      if (minHumidity !== undefined && item.humidity < minHumidity) return false
-      if (maxHumidity !== undefined && item.humidity > maxHumidity) return false
-      return true
-    })
+// 数据结构归一化
+function normalizeData(rawList: any[]): TempHumidityLog[] {
+  return rawList.map(item => {
+    let temp: number | undefined = undefined
+    if (item.temperature !== undefined && item.temperature !== null) {
+      const num = parseFloat(item.temperature)
+      if (!isNaN(num)) temp = num
+    }
+    let humidity: number | undefined = undefined
+    if (item.humidity !== undefined && item.humidity !== null) {
+      const num = parseFloat(item.humidity)
+      if (!isNaN(num)) humidity = num
+    }
+    return {
+      cabinetTitle: item.cabinetTitle || '',
+      temperature: temp,
+      humidity: humidity,
+      recordTime: item.recordTime || '',
+      cabinetId: item.cabinetId
+    }
+  })
 }
 
 async function fetchData() {
@@ -408,18 +366,25 @@ async function fetchData() {
   error.value = ''
 
   try {
+    // 组装搜索参数，只将存在的值传给后端
     const params: Record<string, any> = {}
     if (filters.value.cabinetTitle) params.cabinetTitle = filters.value.cabinetTitle
     if (filters.value.startTime) params.startTime = filters.value.startTime
     if (filters.value.endTime) params.endTime = filters.value.endTime
 
-    const rawData = await searchTempHumidityLogs(params)
-    const filtered = normalizeAndFilter(rawData)
-    logList.value = filtered
-    
-    // 获取数据后充实重置一下页码显示
-    currentPage.value = 1
-    inputPageValue.value = 1
+
+    const res = await searchTempHumidityLogsByPage(
+      currentPage.value,
+      pageSize.value,
+      params
+    )
+
+    // 同步分页总条数与总页数
+    filteredTotal.value = res.total || 0
+    totalPages.value = res.pages || 1
+
+    // 归一化并渲染
+    logList.value = normalizeData(res.records || [])
   } catch (err: any) {
     console.error('获取温湿度日志失败:', err)
     error.value = err.message || '加载失败，请稍后重试'
@@ -430,25 +395,21 @@ async function fetchData() {
 }
 
 function handleSearch() {
-  currentPage.value = 1 
+  currentPage.value = 1
   inputPageValue.value = 1
   handleUserOperation()
   fetchData()
 }
 
 function handleReset() {
-  currentPage.value = 1 
+  currentPage.value = 1
   inputPageValue.value = 1
-  pageSize.value=10
+  pageSize.value = 10
   handleUserOperation()
   filters.value = {
     cabinetTitle: '',
     startTime: defaultStartTime,
-    endTime: defaultEndTime,
-    minTemperature: undefined,
-    maxTemperature: undefined,
-    minHumidity: undefined,
-    maxHumidity: undefined
+    endTime: defaultEndTime
   }
   fetchData()
 }
@@ -473,7 +434,7 @@ onUnmounted(() => {
 </script>
 
 <style lang="css" scoped>
-/* 图标基础样式 */
+/* 保持你原本的所有 CSS 样式不变 */
 .icon {
   width: 1.2em;
   height: 1.2em;
@@ -510,7 +471,6 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-/* ---------- 外框 ---------- */
 .outer-frame {
   width: 100%;
   height: 100%;
@@ -539,7 +499,6 @@ onUnmounted(() => {
   border-radius: 4px;
 }
 
-/* 头部 */
 .temp-detail-header {
   display: flex;
   align-items: center;
@@ -577,7 +536,6 @@ onUnmounted(() => {
   gap: 10px;
 }
 
-/* ---------- 倒计时 ---------- */
 .countdown-display {
   display: flex;
   align-items: center;
@@ -604,13 +562,11 @@ onUnmounted(() => {
   opacity: 0.8;
 }
 
-/* ---------- 内容区 ---------- */
 .temp-content {
   max-width: 1400px;
   margin: 0 auto;
 }
 
-/* ---------- 过滤栏 ---------- */
 .filter-bar {
   background: rgba(15, 25, 35, 0.7);
   border-radius: 20px;
@@ -712,7 +668,6 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.2);
 }
 
-/* 表格及底部控制栏 */
 .table-wrapper {
   background: rgba(15, 25, 35, 0.7);
   border-radius: 20px;
@@ -779,9 +734,6 @@ onUnmounted(() => {
   font-size: 14px;
 }
 
-/* ==================== 分页控制区 ==================== */
-
-/* 分页控制外层 */
 .table-footer {
   display: flex;
   justify-content: space-between;
@@ -804,7 +756,6 @@ onUnmounted(() => {
   font-size: 13px;
 }
 
-/* 每页显示选择器 */
 .page-size-selector {
   display: flex;
   align-items: center;
@@ -831,7 +782,6 @@ onUnmounted(() => {
   border-color: #22d3ee;
 }
 
-/* ==================== 跳转至（与操作日志页 完全一致） ==================== */
 .page-jump-selector {
   display: flex;
   align-items: center;
@@ -862,17 +812,16 @@ onUnmounted(() => {
   border-color: #22d3ee;
 }
 
-/* 移除输入框上下箭头 */
 .jump-page-input::-webkit-outer-spin-button,
 .jump-page-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
+
 .jump-page-input[type=number] {
   -moz-appearance: textfield;
 }
 
-/* 分页按钮 */
 .pagination-controls {
   display: flex;
   align-items: center;

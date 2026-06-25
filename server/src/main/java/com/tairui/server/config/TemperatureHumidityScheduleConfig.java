@@ -1,7 +1,7 @@
 package com.tairui.server.config;
 
 import com.tairui.server.mapper.SystemConfigMapper;
-import com.tairui.server.service.ThHistoryService;
+import com.tairui.server.service.TempHumidityService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 public class TemperatureHumidityScheduleConfig implements SchedulingConfigurer {
 
     @Autowired
-    private ThHistoryService thHistoryService;
+    private TempHumidityService tempHumidityService;
 
     @Autowired
     private SystemConfigMapper systemConfigMapper;
@@ -27,7 +27,7 @@ public class TemperatureHumidityScheduleConfig implements SchedulingConfigurer {
     public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
 
         taskRegistrar.addTriggerTask(
-                () -> thHistoryService.saveTemperatureHumidityHistory(),
+                () -> tempHumidityService.saveTemperatureHumidityHistory(),
 
                 // 动态调整间隔时间
                 triggerContext -> {

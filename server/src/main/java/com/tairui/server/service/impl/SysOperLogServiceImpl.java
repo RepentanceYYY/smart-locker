@@ -2,6 +2,9 @@ package com.tairui.server.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.tairui.server.config.WebConfig;
 import com.tairui.server.dto.BorrowRecordSubmitDTO;
@@ -19,6 +22,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -296,5 +300,57 @@ public class SysOperLogServiceImpl extends ServiceImpl<SysOperLogMapper, SysOper
     @Override
     public void truncateLogTable() {
         sysOperLogMapper.truncateTable();
+    }
+
+    @Override
+    public Page<LogListDTO> getLogList(Integer page, Integer size, String borrowerName, String toolName, Integer status, String startTime, String endTime) {
+
+        Page<SysOperLog> pageParam = new Page<>(page, size);
+        LambdaQueryWrapper<SysOperLog> queryWrapper = new LambdaQueryWrapper<>();
+
+        queryWrapper.like(StringUtils.hasText(borrowerName), SysOperLog::getBorrowerName, borrowerName)
+                .like(StringUtils.hasText(toolName), SysOperLog::getToolName, toolName);
+
+        queryWrapper.between(SysOperLog::getBorrowTime, startTime, endTime + " 23:59:59");
+
+        // 3. 状态过滤
+        if (status != null) {
+            queryWrapper.and(statusWrapper -> {
+                if (status == 0) {
+                    // 未归还：归还时间字段为空
+                    statusWrapper.isNull(SysOperLog::getReturnTime);
+                } else if (status == 1) {
+                    // 已归还：归还时间 <= 预计归还时间
+                    statusWrapper.isNotNull(SysOperLog::getReturnTime)
+                            .apply("return_time <= expected_return_time");
+                } else if (status == 2) {
+                    // 逾期归还：归还时间不为空，且 归还时间 > 预计归还时间
+                    statusWrapper.isNotNull(SysOperLog::getReturnTime)
+                            .apply("return_time > expected_return_time");
+                }
+            });
+        }
+
+
+        sysOperLogMapper.selectPage(pageParam, queryWrapper);
+
+
+        List<LogListDTO> dtoList = pageParam.getRecords()
+                .stream()
+                .map(entity -> {
+                    LogListDTO dto = new LogListDTO();
+                    BeanUtils.copyProperties(entity, dto);
+                    return dto;
+                })
+                .collect(Collectors.toList());
+
+        Page<LogListDTO> resultPage = new Page<>();
+        resultPage.setCurrent(pageParam.getCurrent());
+        resultPage.setSize(pageParam.getSize());
+        resultPage.setTotal(pageParam.getTotal());
+        resultPage.setPages(pageParam.getPages());
+        resultPage.setRecords(dtoList);
+
+        return resultPage;
     }
 }

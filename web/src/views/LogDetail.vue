@@ -83,7 +83,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="item in currentPageData" :key="item.id">
+                <tr v-for="item in logList" :key="item.id">
                   <td>{{ item.cabinetTitle || '-' }}</td>
                   <td>{{ item.cellNumber || '-' }}</td>
                   <td>{{ item.toolName || '-' }}</td>
@@ -106,11 +106,9 @@
                     <button class="detail-row-btn" @click.stop="viewDetail(item)">查看详情</button>
                   </td>
                 </tr>
-                <tr v-if="filteredTotal === 0">
+                <tr v-if="logList.length === 0">
                   <td colspan="11" class="empty-row">
-                    <div class="empty-content">
-                      暂无日志记录
-                    </div>
+                    <div class="empty-content">暂无日志记录</div>
                   </td>
                 </tr>
               </tbody>
@@ -119,8 +117,8 @@
 
           <div class="table-footer">
             <div class="footer-left">
-              <div class="record-count" v-if="filteredTotal>0">共 {{ filteredTotal }} 条记录</div>
-              <div class="page-size-selector" v-if="filteredTotal > 0">
+              <div class="record-count" v-if="totalRecords > 0">共 {{ totalRecords }} 条记录</div>
+              <div class="page-size-selector" v-if="totalRecords > 0">
                 <span class="size-label">每页显示:</span>
                 <select v-model="pageSize" class="size-select" @change="handlePageSizeChange">
                   <option :value="10">10 条</option>
@@ -129,7 +127,7 @@
                 </select>
               </div>
 
-              <div class="page-jump-selector" v-if="filteredTotal > 0">
+              <div class="page-jump-selector" v-if="totalRecords > 0">
                 <span class="jump-label">跳至</span>
                 <input type="number" v-model.number="inputPageValue" class="jump-page-input" min="1" :max="totalPages"
                   @blur="jumpToPage" @keyup.enter="jumpToPage" />
@@ -137,11 +135,10 @@
               </div>
             </div>
 
-            <div class="pagination-container" v-if="filteredTotal > 0">
+            <div class="pagination-container" v-if="totalRecords > 0">
               <button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">上一页</button>
               <span class="page-info">{{ currentPage }} / {{ totalPages }}</span>
-              <button class="page-btn" :disabled="currentPage === totalPages"
-                @click="changePage(currentPage + 1)">下一页</button>
+              <button class="page-btn" :disabled="currentPage === totalPages" @click="changePage(currentPage + 1)">下一页</button>
             </div>
           </div>
         </div>
@@ -214,8 +211,7 @@
                   <span class="field-label"><img src="/图片.svg" alt="借用照片" class="icon" /> 借用照片</span>
                   <div class="photo-wrapper">
                     <img v-if="currentDetail?.borrowerPhoto" :src="formatImageUrl(currentDetail.borrowerPhoto)"
-                      class="detail-photo" @click.stop="previewImage(currentDetail.borrowerPhoto)"
-                      @error="handleImageError" />
+                      class="detail-photo" @click.stop="previewImage(currentDetail.borrowerPhoto)" @error="handleImageError" />
                     <span v-else class="no-photo">无照片</span>
                   </div>
                 </div>
@@ -248,8 +244,7 @@
                   <span class="field-label"><img src="/图片.svg" alt="归还照片" class="icon" /> 归还照片</span>
                   <div class="photo-wrapper">
                     <img v-if="currentDetail?.returnPhoto" :src="formatImageUrl(currentDetail.returnPhoto)"
-                      class="detail-photo" @click.stop="previewImage(currentDetail.returnPhoto)"
-                      @error="handleImageError" />
+                      class="detail-photo" @click.stop="previewImage(currentDetail.returnPhoto)" @error="handleImageError" />
                     <span v-else class="no-photo">无照片</span>
                   </div>
                 </div>
@@ -282,7 +277,7 @@
 <script lang="ts" setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { fetchAllLogList, type LogListDTO } from '@/api/log'
+import { fetchLogList, type LogListDTO } from '@/api/log' 
 import { useCountdown } from '@/composables/useCountdown'
 import { formatImageUrl } from '@/utils/fileUtils'
 
@@ -311,17 +306,15 @@ const loading = ref(false)
 const error = ref('')
 const logList = ref<LogListDTO[]>([])
 
-// --- 分页与自定义页码跳转核心逻辑 ---
+// --- 后端分页控制核心逻辑 ---
 const currentPage = ref(1)
-const pageSize = ref(10)          // 固定每页行数 (10、20、50)
-const inputPageValue = ref(1)      // 快捷跳转页码输入框绑定的值
-
-// 数据总数
-const filteredTotal = computed(() => logList.value.length)
+const pageSize = ref(10)
+const inputPageValue = ref(1)
+const totalRecords = ref(0) // 新增：保存后端传过来的数据总条数，如若后端直接返回数组，请参考下方 fetchData 的注记
 
 // 计算总页数
 const totalPages = computed(() => {
-  return Math.ceil(filteredTotal.value / pageSize.value) || 1
+  return Math.ceil(totalRecords.value / pageSize.value) || 1
 })
 
 // 当页码发生变化时，自动同步输入框里的数字
@@ -329,40 +322,28 @@ watch(currentPage, (newPage) => {
   inputPageValue.value = newPage
 }, { immediate: true })
 
-// 分页切片计算数据
-const currentPageData = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return logList.value.slice(start, end)
-})
-
 // 改变下拉每页展示数量
 function handlePageSizeChange() {
   handleUserOperation()
   currentPage.value = 1
+  fetchData()
 }
 
-// 核心：处理自定义页码跳转
+// 处理自定义页码跳转
 function jumpToPage() {
   handleUserOperation()
-
   let targetPage = inputPageValue.value
 
-  // 非数字或小于1，回弹到第1页
   if (!targetPage || targetPage < 1) {
     targetPage = 1
-  }
-  //大于总页数，直接跳到最后一页
-  else if (targetPage > totalPages.value) {
+  } else if (targetPage > totalPages.value) {
     targetPage = totalPages.value
   }
 
   currentPage.value = targetPage
-  inputPageValue.value = targetPage // 把修正后的页码同步回输入框
-
-  // 滚动回容器顶部
-  const outerFrame = document.querySelector('.outer-frame')
-  if (outerFrame) outerFrame.scrollTop = 0
+  inputPageValue.value = targetPage
+  fetchData()
+  scrollToTop()
 }
 
 // 按钮切页处理
@@ -370,9 +351,14 @@ function changePage(page: number) {
   handleUserOperation()
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page
-    const outerFrame = document.querySelector('.outer-frame')
-    if (outerFrame) outerFrame.scrollTop = 0
+    fetchData()
+    scrollToTop()
   }
+}
+
+function scrollToTop() {
+  const outerFrame = document.querySelector('.outer-frame')
+  if (outerFrame) outerFrame.scrollTop = 0
 }
 // ----------------------------------
 
@@ -398,10 +384,8 @@ const filters = ref({
 
 const detailVisible = ref(false)
 const currentDetail = ref<LogListDTO | null>(null)
-
 const previewVisible = ref(false)
 const previewUrl = ref('')
-
 const showToast = ref(false)
 const toastText = ref('')
 let toastTimer: ReturnType<typeof setTimeout> | null = null
@@ -474,10 +458,12 @@ function getStatusClass(item: LogListDTO | null): string {
   return 'status-badge returned'
 }
 
+// 
 async function fetchData() {
   loading.value = true
   error.value = ''
   try {
+
     const params = {
       borrowerName: filters.value.borrowerName || undefined,
       toolName: filters.value.toolName || undefined,
@@ -485,8 +471,14 @@ async function fetchData() {
       startTime: filters.value.startTime || undefined,
       endTime: filters.value.endTime || undefined
     }
-    const data = await fetchAllLogList(params)
-    logList.value = data
+     console.log(params)
+    // 调用更新后的 API：传入当前页码和每页行数
+    const data = await fetchLogList(currentPage.value, pageSize.value,params)
+    
+
+    logList.value = data.records
+
+    totalRecords.value = data.total
   } catch (err: any) {
     console.error('获取日志列表失败:', err)
     error.value = err.message || '加载失败，请稍后重试'
@@ -505,7 +497,7 @@ function handleSearch() {
 function handleReset() {
   handleUserOperation()
   currentPage.value = 1
-  pageSize.value=10
+  pageSize.value = 10
   filters.value = {
     borrowerName: '',
     toolName: '',

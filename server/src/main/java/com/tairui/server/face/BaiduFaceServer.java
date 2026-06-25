@@ -247,6 +247,11 @@ public class BaiduFaceServer implements IFaceServer {
                 if (!file.exists()) {
                     log.info("本地图片丢失，正在恢复：{}", file.getAbsolutePath());
                     try {
+                        // 确保目录存在
+                        File parentDir = file.getParentFile();
+                        if (parentDir != null && !parentDir.exists()) {
+                            parentDir.mkdirs();
+                        }
                         Files.write(file.toPath(), rgbBytes);
                     } catch (IOException e) {
                         return WsResponse.fail(wsRequest.getAction(), 500, "本地图片丢失后恢复失败，原因:" + e.getMessage());
@@ -337,6 +342,11 @@ public class BaiduFaceServer implements IFaceServer {
             String userId = UUID.randomUUID().toString().replace("-", "");
             String fileName = "face_" + userId + ".jpg";
             Path path = Paths.get(uploadPath, fileName);
+            // 确保目录存在
+            Path parentDir = path.getParent();
+            if (parentDir != null && !Files.exists(parentDir)) {
+                Files.createDirectories(parentDir);
+            }
             Files.write(path, frame);
             String url = accessPath + fileName;
 

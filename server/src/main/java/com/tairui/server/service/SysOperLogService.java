@@ -1,5 +1,6 @@
 package com.tairui.server.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.tairui.server.dto.BorrowRecordSubmitDTO;
 import com.tairui.server.dto.LogListDTO;
 import com.tairui.server.dto.LogOverviewDTO;
@@ -30,4 +31,5 @@ public interface SysOperLogService extends IService<SysOperLog> {
 
     void truncateLogTable();
 
+    Page<LogListDTO> getLogList(Integer page, Integer size, String borrowerName, String toolName, Integer status, String startTime, String endTime);
 }
