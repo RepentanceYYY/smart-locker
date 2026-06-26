@@ -130,8 +130,10 @@ public class DehumidifierDeviceServiceManager extends BaseDeviceServiceManager<D
 
         for (CabinetConfig cabinetConfig : cabinetConfigs) {
             try {
+                Thread.sleep(50L);
                 DehumidifierDeviceService dehumidifierDeviceService = deviceServiceMap.computeIfAbsent(cabinetConfig.getDehumidifierCommPort(), key -> createDeviceServiceByCabinetConfig(cabinetConfig, "dehumidifierCommType", "dehumidifierCommPort"));
-                dehumidifierDeviceService.setAddress(Integer.parseInt(cabinetConfig.getDehumidifierAddr()));
+                int address = Integer.parseInt(cabinetConfig.getDehumidifierAddr());
+                dehumidifierDeviceService.setAddress(address);
                 DehumidifierRunParam dehumidifierRunParam = dehumidifierDeviceService.queryRunParam(0, 15);
                 result.put(cabinetConfig.getId(), new ThData(dehumidifierRunParam.getAmbientTemperature(), dehumidifierRunParam.getAmbientHumidity()));
             } catch (Exception ex) {
