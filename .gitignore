@@ -35,3 +35,5 @@ build/
 node_modules
 logs
 uploads
+
+*.tsbuildinfo
