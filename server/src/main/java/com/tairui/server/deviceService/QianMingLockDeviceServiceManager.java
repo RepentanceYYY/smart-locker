@@ -193,6 +193,7 @@ public class QianMingLockDeviceServiceManager extends BaseDeviceServiceManager<Q
 
     /**
      * 查询指定格口号所在板子所有的格口号的储物状态
+     *
      * @param cellConfigId
      * @param timeout
      * @return
@@ -208,9 +209,10 @@ public class QianMingLockDeviceServiceManager extends BaseDeviceServiceManager<Q
 
     /**
      * 查询单个柜子所有有效格口的储物状态
+     *
      * @param cabinetId 柜子id
-     * @param boxNos 有效格口号列表
-     * @param timeout 超时时间
+     * @param boxNos    有效格口号列表
+     * @param timeout   超时时间
      * @return
      * @throws Exception
      */
@@ -231,8 +233,9 @@ public class QianMingLockDeviceServiceManager extends BaseDeviceServiceManager<Q
 
     /**
      * 查询单个格口储物状态
+     *
      * @param cellConfigId 格口配置id
-     * @param timeout 超时时间
+     * @param timeout      超时时间
      * @return
      */
     public boolean querySingleGoodsStatusSync(int cellConfigId, long timeout) {
@@ -258,7 +261,6 @@ public class QianMingLockDeviceServiceManager extends BaseDeviceServiceManager<Q
             return true;
         }
     }
-
 
 
     /**
@@ -413,5 +415,20 @@ public class QianMingLockDeviceServiceManager extends BaseDeviceServiceManager<Q
         public CellConfig getCellConfig() {
             return cellConfig;
         }
+    }
+
+    /**
+     * 删除所有连接
+     */
+    public void reset() {
+        Map<String, QianMingLockDeviceService> deviceServiceMap = this.getDeviceServiceMap();
+        for (QianMingLockDeviceService service : deviceServiceMap.values()) {
+            try {
+                service.close();
+            } catch (Exception ex) {
+
+            }
+        }
+        deviceServiceMap.clear();
     }
 }

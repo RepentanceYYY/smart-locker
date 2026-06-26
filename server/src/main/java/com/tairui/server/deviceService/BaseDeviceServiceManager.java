@@ -328,4 +328,8 @@ public abstract class BaseDeviceServiceManager<T> {
      * @return 设备服务对象
      */
     protected abstract T createDeviceServiceWithoutCache(CabinetConfig cabinetConfig, String commTypeField, String commPortField, CommDispatcher dispatcher);
+
+    public void reset(){
+
+    }
 }

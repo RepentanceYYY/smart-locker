@@ -1,5 +1,7 @@
 package com.tairui.server.service.impl;
 
+import com.tairui.server.deviceService.DehumidifierDeviceServiceManager;
+import com.tairui.server.deviceService.QianMingLockDeviceServiceManager;
 import com.tairui.server.dto.SystemConfigDTO;
 import com.tairui.server.entity.SystemConfig;
 import com.tairui.server.mapper.CabinetConfigMapper;
@@ -30,9 +32,14 @@ public class SystemConfigServiceImpl extends ServiceImpl<SystemConfigMapper, Sys
     private SysOperLogMapper sysOperLogMapper;
     @Autowired
     private CabinetConfigMapper cabinetConfigMapper;
+    @Autowired
+    private DehumidifierDeviceServiceManager dehumidifierDeviceServiceManager;
+    @Autowired
+    private QianMingLockDeviceServiceManager qianMingLockDeviceServiceManager;
 
     // 约定配置表中只有一条数据，id = 1
     private static final Integer CONFIG_ID = 1;
+
     @Override
     public SystemConfigDTO getConfig() {
         SystemConfig config = baseMapper.selectById(CONFIG_ID);
@@ -67,7 +74,11 @@ public class SystemConfigServiceImpl extends ServiceImpl<SystemConfigMapper, Sys
         cabinetConfigMapper.truncateTable();
         cellConfigMapper.truncateTable();
         sysOperLogMapper.truncateTable();
+        dehumidifierDeviceServiceManager.reset();
+        qianMingLockDeviceServiceManager.reset();
+
     }
+
     private SystemConfig createDefaultConfig() {
         SystemConfig config = new SystemConfig();
         config.setSystemName("智能工具柜系统");

@@ -3,6 +3,7 @@ package com.tairui.server.webSocket.handle;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tairui.server.device.dehumidifier.ThData;
 import com.tairui.server.deviceService.DehumidifierDeviceServiceManager;
+import com.tairui.server.mapper.CabinetConfigMapper;
 import com.tairui.server.webSocket.dto.WsRequest;
 import com.tairui.server.webSocket.dto.WsResponse;
 import jakarta.annotation.PostConstruct;
@@ -27,10 +28,12 @@ import java.util.concurrent.TimeUnit;
 public class DehumidifierWebSocketHandler extends TextWebSocketHandler {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
-    
+
     @Autowired
     private DehumidifierDeviceServiceManager dehumidifierDeviceServiceManager;
-    
+    @Autowired
+    private CabinetConfigMapper cabinetConfigMapper;
+
     // 定时任务执行器，用于定期推送数据给前端
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
@@ -94,18 +97,23 @@ public class DehumidifierWebSocketHandler extends TextWebSocketHandler {
             if (sessions.isEmpty()) {
                 return; // 没有客户端连接，无需推送
             }
+            Long l = cabinetConfigMapper.selectCount(null);
+            if (l <= 0) {
+                log.debug("没有数据，不推送");
+                return;
+            }
             // 直接从设备获取最新数据
             Map<Integer, ThData> latestThData = dehumidifierDeviceServiceManager.getRealtimeTemperatureHumidity();
 
-            if (latestThData.isEmpty()){
+            if (latestThData.isEmpty()) {
                 return;
             }
 
-            
+
             Map<String, Object> result = Map.of(
                     "realtimeTemperatureHumidity", latestThData
             );
-            
+
             // 向所有连接的客户端推送数据
             for (WebSocketSession session : sessions.values()) {
                 if (session.isOpen()) {
@@ -117,15 +125,12 @@ public class DehumidifierWebSocketHandler extends TextWebSocketHandler {
                     }
                 }
             }
-            
-            log.debug("已向前端 {} 个客户端推送最新温湿度数据", sessions.size());
         } catch (Exception e) {
             log.error("推送温湿度数据时发生错误: {}", e.getMessage(), e);
         }
     }
 
 
-    
     /**
      * 销毁时关闭定时任务
      */

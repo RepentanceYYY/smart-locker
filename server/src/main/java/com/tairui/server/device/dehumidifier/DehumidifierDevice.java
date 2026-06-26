@@ -3,6 +3,7 @@ package com.tairui.server.device.dehumidifier;
 import com.tairui.server.device.core.DeviceCore;
 import com.tairui.server.device.utils.ByteUtils;
 import com.tairui.server.device.utils.CheckSumUtils;
+import com.tairui.server.device.utils.HexUtils;
 
 /**
  * 除湿机设备
@@ -127,7 +128,7 @@ public class DehumidifierDevice extends DeviceCore {
         // 发送请求帧
         byte[] bytes = this.buildFullFrame(READ_RUN_STATUS, dataDomain);
 
-        return super.writeSync(bytes, 0, 200L, (receive, write) -> parseRunStatus(receive, write, startIndex, length));
+        return super.writeSync(bytes, 0, 500L, (receive, write) -> parseRunStatus(receive, write, startIndex, length));
     }
 
     /**
@@ -263,7 +264,7 @@ public class DehumidifierDevice extends DeviceCore {
 
         byte[] dataBytes = ByteUtils.merge(registerBytes, controlValueBytes);
         byte[] frame = this.buildFullFrame(WRITE_RUN_STATUS, dataBytes);
-        super.writeSync(frame, 0, 300L, (receive, write) -> {
+        super.writeSync(frame, 0, 500L, (receive, write) -> {
             this.handleExceptionCode(receive, write);
             return true;
         });
@@ -280,7 +281,7 @@ public class DehumidifierDevice extends DeviceCore {
         byte[] controlValueBytes = controlModel ? new byte[]{(byte) 0xFF, (byte) 0x00} : new byte[]{(byte) 0x00, (byte) 0x00};
         byte[] dataBytes = ByteUtils.merge(registerBytes, controlValueBytes);
         byte[] frame = this.buildFullFrame(WRITE_RUN_STATUS, dataBytes);
-        super.writeSync(frame, 0, 300L, (receive, write) -> {
+        super.writeSync(frame, 0, 500L, (receive, write) -> {
             this.handleExceptionCode(receive, write);
             return true;
         });
@@ -320,7 +321,7 @@ public class DehumidifierDevice extends DeviceCore {
         // 发送请求帧
         byte[] bytes = this.buildFullFrame(READ_RUN_PARAM, dataDomain);
 
-        return super.writeSync(bytes, 0, 200L, (receive, write) -> parseRunParam(receive, write, startIndex));
+        return super.writeSync(bytes, 0, 500L, (receive, write) -> parseRunParam(receive, write, startIndex));
     }
 
     /**
@@ -432,7 +433,7 @@ public class DehumidifierDevice extends DeviceCore {
         byte[] tempControlStartIndexBytes = ByteUtils.intToTwoBytes(REGISTER_TEMP_CONTROL_START);
         byte[] dataBytes = new byte[]{tempControlStartIndexBytes[0], tempControlStartIndexBytes[1], tempControlStartBytes[0], tempControlStartBytes[1]};
         byte[] frame = this.buildFullFrame(WRITE_RUN_PARAM, dataBytes);
-        this.writeSync(frame, 0, 300L, (receive, write) -> {
+        this.writeSync(frame, 0, 500L, (receive, write) -> {
             this.handleExceptionCode(receive, write);
             System.out.println("控温开始值设置成功");
             return true;
@@ -453,7 +454,7 @@ public class DehumidifierDevice extends DeviceCore {
         byte[] tempControlStopIndexBytes = ByteUtils.intToTwoBytes(REGISTER_TEMP_CONTROL_STOP);
         byte[] dataBytes = new byte[]{tempControlStopIndexBytes[0], tempControlStopIndexBytes[1], tempControlStopBytes[0], tempControlStopBytes[1]};
         byte[] frame = this.buildFullFrame(WRITE_RUN_PARAM, dataBytes);
-        this.writeSync(frame, 0, 300L, (receive, write) -> {
+        this.writeSync(frame, 0, 500L, (receive, write) -> {
             this.handleExceptionCode(receive, write);
             System.out.println("控温停止值设置成功");
             return true;
@@ -474,10 +475,15 @@ public class DehumidifierDevice extends DeviceCore {
         byte[] humidityControlStartIndexBytes = ByteUtils.intToTwoBytes(REGISTER_HUMIDITY_CONTROL_START);
         byte[] dataBytes = new byte[]{humidityControlStartIndexBytes[0], humidityControlStartIndexBytes[1], humidityControlStartBytes[0], humidityControlStartBytes[1]};
         byte[] frame = this.buildFullFrame(WRITE_RUN_PARAM, dataBytes);
-        this.writeSync(frame, 0, 300L, (receive, write) -> {
-            this.handleExceptionCode(receive, write);
-            return true;
-        });
+        try {
+            this.writeSync(frame, 0, 500L, (receive, write) -> {
+                this.handleExceptionCode(receive, write);
+                return true;
+            });
+        } catch (Exception e) {
+            String errorMessage = "控湿开始值设置失败，原因:" + e.getMessage() + ",写入的数据为:" + HexUtils.bytesToHexString(frame);
+            throw new RuntimeException(errorMessage);
+        }
     }
 
     /**
@@ -494,10 +500,15 @@ public class DehumidifierDevice extends DeviceCore {
         byte[] humidityControlStopIndexBytes = ByteUtils.intToTwoBytes(REGISTER_HUMIDITY_CONTROL_STOP);
         byte[] dataBytes = new byte[]{humidityControlStopIndexBytes[0], humidityControlStopIndexBytes[1], humidityControlStopBytes[0], humidityControlStopBytes[1]};
         byte[] frame = this.buildFullFrame(WRITE_RUN_PARAM, dataBytes);
-        this.writeSync(frame, 0, 300L, (receive, write) -> {
-            this.handleExceptionCode(receive, write);
-            return true;
-        });
+        try {
+            this.writeSync(frame, 0, 500L, (receive, write) -> {
+                this.handleExceptionCode(receive, write);
+                return true;
+            });
+        } catch (Exception e) {
+            String errorMessage = "控湿停止值设置失败，原因:" + e.getMessage() + ",写入的数据为:" + HexUtils.bytesToHexString(frame);
+            throw new RuntimeException(errorMessage);
+        }
     }
 
     /**
@@ -514,7 +525,7 @@ public class DehumidifierDevice extends DeviceCore {
         byte[] tempAlarmUpperIndexBytes = ByteUtils.intToTwoBytes(REGISTER_TEMP_ALARM_UPPER);
         byte[] dataBytes = new byte[]{tempAlarmUpperIndexBytes[0], tempAlarmUpperIndexBytes[1], tempAlarmUpperBytes[0], tempAlarmUpperBytes[1]};
         byte[] frame = this.buildFullFrame(WRITE_RUN_PARAM, dataBytes);
-        this.writeSync(frame, 0, 300L, (receive, write) -> {
+        this.writeSync(frame, 0, 500L, (receive, write) -> {
             this.handleExceptionCode(receive, write);
             return true;
         });
@@ -534,7 +545,7 @@ public class DehumidifierDevice extends DeviceCore {
         byte[] tempAlarmLowerIndexBytes = ByteUtils.intToTwoBytes(REGISTER_TEMP_ALARM_LOWER);
         byte[] dataBytes = new byte[]{tempAlarmLowerIndexBytes[0], tempAlarmLowerIndexBytes[1], tempAlarmLowerBytes[0], tempAlarmLowerBytes[1]};
         byte[] frame = this.buildFullFrame(WRITE_RUN_PARAM, dataBytes);
-        this.writeSync(frame, 0, 300L, (receive, write) -> {
+        this.writeSync(frame, 0, 500L, (receive, write) -> {
             this.handleExceptionCode(receive, write);
             return true;
         });

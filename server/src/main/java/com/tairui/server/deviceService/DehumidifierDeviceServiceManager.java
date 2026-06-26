@@ -142,4 +142,19 @@ public class DehumidifierDeviceServiceManager extends BaseDeviceServiceManager<D
 
         return result;
     }
+
+    /**
+     * 删除所有连接
+     */
+    public void reset() {
+        Map<String, DehumidifierDeviceService> deviceServiceMap = this.getDeviceServiceMap();
+        for (DehumidifierDeviceService service : deviceServiceMap.values()) {
+            try {
+                service.close();
+            } catch (Exception ex) {
+
+            }
+        }
+        deviceServiceMap.clear();
+    }
 }

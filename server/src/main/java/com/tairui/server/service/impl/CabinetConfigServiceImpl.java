@@ -1,4 +1,3 @@
-// 文件位置：com/tairui/server/service/impl/CabinetConfigServiceImpl.java
 package com.tairui.server.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
@@ -261,6 +260,7 @@ public class CabinetConfigServiceImpl extends ServiceImpl<CabinetConfigMapper, C
                 DehumidifierDeviceService currentService = dehumidifierDeviceServiceManager.getDeviceServiceMap().get(oldDehumidifierCommPort);
                 if (currentService != null) {
                     // 直接调用硬件接口下发指令
+                    currentService.setAddress(Integer.parseInt(fullLatestEntity.getDehumidifierAddr()));
                     currentService.setHumidityControlStart(fullLatestEntity.getHumidityMax().intValue());
                     currentService.setHumidityControlStop(fullLatestEntity.getHumidityMin().intValue());
                     log.info("{} 除湿机硬件参数动态同步成功。Start: {}, Stop: {}",
@@ -410,14 +410,16 @@ public class CabinetConfigServiceImpl extends ServiceImpl<CabinetConfigMapper, C
             }
             // 尝试设置除湿机控湿开始停止值
             try {
+                dehumidifierService.setAddress(Integer.parseInt(createDTO.getDehumidifierAddr()));
                 dehumidifierService.setHumidityControlStart(createDTO.getHumidityMax().intValue());
             } catch (Exception e) {
-                throw new RuntimeException("设置除湿机控温开始值失败:" + e.getMessage());
+                throw e;
             }
             try {
+                dehumidifierService.setAddress(Integer.parseInt(createDTO.getDehumidifierAddr()));
                 dehumidifierService.setHumidityControlStop(createDTO.getHumidityMin().intValue());
             } catch (Exception e) {
-                throw new RuntimeException("设置除湿机控温停止值失败:" + e.getMessage());
+                throw e;
             }
 
         } catch (Exception e) {
