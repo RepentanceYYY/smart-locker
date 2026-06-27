@@ -45,7 +45,6 @@
       "**/node_modules/pino/**/*"
     ],
     "extraResources": [
-      "icon.jpg",
       "icon.ico",
       "extraResources/**/*"
     ],
