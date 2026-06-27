@@ -18,6 +18,9 @@ import java.util.function.BiFunction;
 
 public class DeviceCore {
 
+    private static final DateTimeFormatter DF =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+
     /**
      * 通信调度器
      */
@@ -454,7 +457,10 @@ public class DeviceCore {
             try {
                 receiveBuffer.write(rawBytes);
                 byte[] tmpData = receiveBuffer.toByteArray();
-                System.out.println("[收到设备原始数据 | 当前缓冲区全量数据]：" + HexUtils.bytesToHexString(tmpData));
+                System.out.println("[DeviceCore] Received device raw data | time="
+                        + LocalDateTime.now().format(DF)
+                        + " | buffer data="
+                        + HexUtils.bytesToHexString(tmpData));
             } catch (IOException ignored) {
             }
 

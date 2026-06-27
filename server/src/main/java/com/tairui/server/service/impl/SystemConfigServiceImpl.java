@@ -1,15 +1,18 @@
 package com.tairui.server.service.impl;
 
+import com.tairui.server.config.TemperatureHumidityScheduleConfig;
 import com.tairui.server.deviceService.DehumidifierDeviceServiceManager;
 import com.tairui.server.deviceService.QianMingLockDeviceServiceManager;
 import com.tairui.server.dto.SystemConfigDTO;
 import com.tairui.server.entity.SystemConfig;
+import com.tairui.server.face.IFaceServer;
 import com.tairui.server.mapper.CabinetConfigMapper;
 import com.tairui.server.mapper.CellConfigMapper;
 import com.tairui.server.mapper.SysOperLogMapper;
 import com.tairui.server.mapper.SystemConfigMapper;
 import com.tairui.server.service.SystemConfigService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.tairui.server.webSocket.handle.DehumidifierWebSocketHandler;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -36,6 +39,14 @@ public class SystemConfigServiceImpl extends ServiceImpl<SystemConfigMapper, Sys
     private DehumidifierDeviceServiceManager dehumidifierDeviceServiceManager;
     @Autowired
     private QianMingLockDeviceServiceManager qianMingLockDeviceServiceManager;
+    @Autowired
+    private DehumidifierWebSocketHandler dehumidifierWebSocketHandler;
+
+    @Autowired
+    private TemperatureHumidityScheduleConfig temperatureHumidityScheduleConfig;
+
+    @Autowired
+    private IFaceServer faceServer;
 
     // 约定配置表中只有一条数据，id = 1
     private static final Integer CONFIG_ID = 1;
@@ -67,15 +78,25 @@ public class SystemConfigServiceImpl extends ServiceImpl<SystemConfigMapper, Sys
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void resetConfig() {
-        // 先重置配置（事务保护）
-        SystemConfig defaultConfig = createDefaultConfig();
-        defaultConfig.setId(CONFIG_ID);
-        baseMapper.insertOrUpdate(defaultConfig);
-        cabinetConfigMapper.truncateTable();
-        cellConfigMapper.truncateTable();
-        sysOperLogMapper.truncateTable();
-        dehumidifierDeviceServiceManager.reset();
-        qianMingLockDeviceServiceManager.reset();
+        dehumidifierWebSocketHandler.pausePush();
+        temperatureHumidityScheduleConfig.pauseSchedule();
+        try {
+            // 先重置配置（事务保护）
+            SystemConfig defaultConfig = createDefaultConfig();
+            defaultConfig.setId(CONFIG_ID);
+            baseMapper.insertOrUpdate(defaultConfig);
+            cabinetConfigMapper.truncateTable();
+            cellConfigMapper.truncateTable();
+            sysOperLogMapper.truncateTable();
+            dehumidifierDeviceServiceManager.shutdown();
+            qianMingLockDeviceServiceManager.shutdown();
+            faceServer.destroy();
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            dehumidifierWebSocketHandler.resumePush();
+            temperatureHumidityScheduleConfig.resumeSchedule();
+        }
 
     }
 

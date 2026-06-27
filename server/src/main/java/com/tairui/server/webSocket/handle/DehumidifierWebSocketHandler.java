@@ -8,6 +8,7 @@ import com.tairui.server.webSocket.dto.WsRequest;
 import com.tairui.server.webSocket.dto.WsResponse;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -26,8 +27,29 @@ import java.util.concurrent.TimeUnit;
 @Component
 @Log4j2
 public class DehumidifierWebSocketHandler extends TextWebSocketHandler {
+
+    /**
+     * 定时任务线程池的核心线程数
+     */
+    private static final int THREAD_POOL_SIZE = 1;
+    /**
+     * 定时推送任务的初始延迟时间（秒）
+     */
+    private static final long PUSH_INITIAL_DELAY = 2L;
+    /**
+     * 定时推送任务的执行周期频率（秒）
+     */
+    private static final long PUSH_PERIOD = 2L;
+    /**
+     * 推送是否已暂停
+     */
+    @Getter
+    private volatile boolean isPushPaused = false;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
+
     private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
+
 
     @Autowired
     private DehumidifierDeviceServiceManager dehumidifierDeviceServiceManager;
@@ -35,11 +57,28 @@ public class DehumidifierWebSocketHandler extends TextWebSocketHandler {
     private CabinetConfigMapper cabinetConfigMapper;
 
     // 定时任务执行器，用于定期推送数据给前端
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(THREAD_POOL_SIZE);
+
 
     @PostConstruct
     public void init() {
-        scheduler.scheduleAtFixedRate(this::pushDataToAllClients, 2, 2, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(this::pushDataToAllClients, PUSH_INITIAL_DELAY, PUSH_PERIOD, TimeUnit.SECONDS);
+    }
+
+    /**
+     * 临时暂停定时推送任务（配置前调用）
+     */
+    public void pausePush() {
+        this.isPushPaused = true;
+        log.info("[WebSocket] 除湿机温湿度定时推送已临时暂停，等待配置更新...");
+    }
+
+    /**
+     * 恢复定时推送任务（配置完整后调用）
+     */
+    public void resumePush() {
+        this.isPushPaused = false;
+        log.info("[WebSocket]除湿机温湿度定时推送已恢复正常。");
     }
 
     @Override
@@ -78,7 +117,7 @@ public class DehumidifierWebSocketHandler extends TextWebSocketHandler {
     }
 
     /**
-     * 处理获取实时温湿度请求（保留此方法以兼容前端主动请求）
+     * 处理获取实时温湿度请求
      */
     private void handleGetRealtimeTemperatureHumidity(WebSocketSession session, WsRequest wsRequest) throws IOException {
         Map<Integer, ThData> realtimeTemperatureHumidity = dehumidifierDeviceServiceManager.getRealtimeTemperatureHumidity();
@@ -99,7 +138,7 @@ public class DehumidifierWebSocketHandler extends TextWebSocketHandler {
             }
             Long l = cabinetConfigMapper.selectCount(null);
             if (l <= 0) {
-                log.debug("没有数据，不推送");
+                log.debug("柜子配置列表未空，取消此次数据推送");
                 return;
             }
             // 直接从设备获取最新数据

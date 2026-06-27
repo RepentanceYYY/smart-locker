@@ -23,15 +23,40 @@ public class TemperatureHumidityScheduleConfig implements SchedulingConfigurer {
     @Autowired
     private SystemConfigMapper systemConfigMapper;
 
+    /**
+     * 停状态开关
+     */
+    private volatile boolean isPaused = false;
+
+    /**
+     * 临时暂停
+     */
+    public void pauseSchedule() {
+        this.isPaused = true;
+        log.info("[定时记录] 除湿机温湿度历史记录定时任务已临时暂停...");
+    }
+
+    /**
+     * 恢复运行
+     */
+    public void resumeSchedule() {
+        this.isPaused = false;
+        log.info("[定时记录] 除湿机温湿度历史记录定时任务已恢复运行。");
+    }
+
     @Override
     public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
 
         taskRegistrar.addTriggerTask(
-                () -> tempHumidityService.saveTemperatureHumidityHistory(),
+                () -> {
+                    if (isPaused) {
+                        log.debug("由于系统正在调整硬件配置，本次温湿度历史记录数据写入已被跳过。");
+                        return;
+                    }
+                    tempHumidityService.saveTemperatureHumidityHistory();
+                },
 
-                // 动态调整间隔时间
                 triggerContext -> {
-                    // 默认间隔时间：5分钟
                     long minutes = 5;
                     try {
                         Integer dbMinutes = systemConfigMapper.selectOne(null).getTempHumidityLogInterval();
@@ -43,16 +68,12 @@ public class TemperatureHumidityScheduleConfig implements SchedulingConfigurer {
                         log.error("从数据库获取定时任务间隔分钟数失败，将使用默认间隔(5分钟)", e);
                     }
 
-                    // 使用 PeriodicTrigger，并指定单位为分钟（TimeUnit.MINUTES）
                     PeriodicTrigger periodicTrigger = new PeriodicTrigger(minutes, TimeUnit.MINUTES);
-                    
 
-                    // 只有在上一次实际执行时间为 null 时（代表刚启动），才设置初始延迟
                     if (triggerContext.lastActualExecutionTime() == null) {
                         periodicTrigger.setInitialDelay(minutes);
                     }
 
-                    // 计算并返回下一次执行的绝对时间戳
                     return periodicTrigger.nextExecutionTime(triggerContext).toInstant();
                 }
         );

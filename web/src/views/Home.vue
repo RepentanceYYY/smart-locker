@@ -103,19 +103,19 @@
         <!-- 下部区域：固定高度 -->
         <div class="bottom-section">
           <div class="big-buttons-container">
-            <button :disabled="isAllowClickButton" class="big-action-btn borrow-btn" @click="handleBorrow">
+            <button class="big-action-btn borrow-btn" @click="handleBorrow">
               <img src="/盒子.svg" alt="领用" class="btn-icon" />
               <span class="btn-label">领用</span>
             </button>
-            <button :disabled="isAllowClickButton" class="big-action-btn return-btn" @click="handleReturn">
+            <button class="big-action-btn return-btn" @click="handleReturn">
               <img src="/进行中.svg" alt="归还" class="btn-icon" />
               <span class="btn-label">归还</span>
             </button>
-            <button :disabled="isAllowClickButton" class="big-action-btn inventory-btn" @click="handleInventory">
+            <button class="big-action-btn inventory-btn" @click="handleInventory">
               <img src="/盘点单.svg" alt="盘点" class="btn-icon" />
               <span class="btn-label">盘点</span>
             </button>
-            <button :disabled="isAllowClickButton" class="big-action-btn settings-btn" @click="handleSettings">
+            <button class="big-action-btn settings-btn" @click="handleSettings">
               <img src="/设置.svg" alt="设置" class="btn-icon" />
               <span class="btn-label">设置</span>
             </button>
@@ -229,7 +229,8 @@ const systemConfigStore = useSystemConfigStore()
 const dehumidifierStore = useDehumidifierStore();
 
 const passwordDialogType = ref<'inventory' | 'settings'>('settings')
-const isAllowClickButton = ref(false)
+// 是否禁用点击按钮
+const isButtonDisabled = ref(false)
 const showInventoryDialog = ref(false)
 const inventoryDialogResult = ref<any>(null)
 const passwordInputRef = ref<HTMLInputElement | null>(null)
@@ -617,7 +618,7 @@ function handleBorrow() {
     addNotification('暂无可用柜子，请稍后重试', 'info')
     return
   }
-  if (isAllowClickButton.value) {
+  if (isButtonDisabled.value) {
     addNotification('盘点中，稍后再试', 'warning')
     return
   }
@@ -630,7 +631,7 @@ function handleReturn() {
     addNotification('暂无可用柜子，请稍后重试', 'info')
     return
   }
-  if (isAllowClickButton.value) {
+  if (isButtonDisabled.value) {
     addNotification('盘点中，稍后再试', 'warning')
     return
   }
@@ -643,7 +644,7 @@ function handleInventory() {
     addNotification('暂无可用柜子，请稍后重试', 'info')
     return
   }
-  if (isAllowClickButton.value) {
+  if (isButtonDisabled.value) {
     addNotification('盘点中，稍后再试', 'warning')
     return
   }
@@ -699,7 +700,7 @@ function connectWebSocket() {
   }
   socket.onerror = (error) => {
     console.error('WebSocket 错误', error)
-    addNotification('与服务器连接异常，请刷新页面重试', 'warning')
+    addNotification('与服务器连接异常，请尝试重启', 'warning')
   }
   socket.onclose = (event) => {
     console.log('WebSocket 连接关闭', event.code, event.reason)
@@ -740,41 +741,56 @@ async function handleWebSocketMessage(msg: any) {
   }
 }
 
-function handleInventoryReply(msg: any) {
-  const { code, data, message: msgText } = msg || {}
-  console.log(msgText)
-  if (code === 200) {
-    const payload = {
-      ...data,
-      inventoryTime: new Date().toISOString(),
-    }
-    inventoryDialogResult.value = payload
-    isAllowClickButton.value = true
-    showInventoryDialog.value = true
-    return
-  } else if (code === 206) {
-    const payload = {
-      ...data,
-      inventoryTime: new Date().toISOString(),
-    }
-    inventoryDialogResult.value = payload
-    isAllowClickButton.value = true
-    showInventoryDialog.value = true
-    addNotification(msgText, 'warning')
-    return
-  } else if (code === 500) {
-    isAllowClickButton.value = false
-    addNotification(msgText, 'warning')
-    return
-  }
-  isAllowClickButton.value = false
-  addNotification(msgText || '盘点失败，请重试', 'warning')
+interface InventoryResponse {
+  code: number;
+  data?: any;
+  message?: string;
 }
 
-function closeInventoryDialog() {
+const handleInventoryReply = (receive: any) => {
+  isButtonDisabled.value = false
+  const { code, data, message } = receive || {}
+
+  switch (code) {
+    case 200: {
+      const payload = {
+        ...data,
+        inventoryTime: new Date().toISOString(),
+      }
+      addNotification(message, 'info')
+      inventoryDialogResult.value = payload
+      showInventoryDialog.value = true
+      break
+    }
+
+    case 201:
+      addNotification(message, 'warning')
+      break
+
+    case 206: {
+      const payload = {
+        ...data,
+        inventoryTime: new Date().toISOString(),
+      }
+      inventoryDialogResult.value = payload
+      showInventoryDialog.value = true
+      addNotification(message, 'warning')
+      break
+    }
+
+    case 500:
+      addNotification(message, 'warning')
+      break
+
+    default:
+      addNotification(message || '盘点失败，请重试', 'warning')
+  }
+}
+
+const closeInventoryDialog = () => {
   showInventoryDialog.value = false
   inventoryDialogResult.value = null
-  isAllowClickButton.value = false
+  isButtonDisabled.value = false
 }
 
 // ================== 通知列表 ==================
@@ -800,15 +816,15 @@ function verifyPassword() {
     cleanupPasswordCountdown()
     showPasswordDialog.value = false
     if (passwordDialogType.value === 'inventory') {
-      if (isAllowClickButton.value) {
+      if (isButtonDisabled.value) {
         addNotification('盘点中，稍后再试', 'warning')
         return
       }
-      isAllowClickButton.value = true
+      isButtonDisabled.value = true
       addNotification('验证成功，正在盘点中...', 'info')
       const ok = sendMessage('inventory', {})
       if (!ok) {
-        isAllowClickButton.value = false
+        isButtonDisabled.value = false
       }
     } else if (passwordDialogType.value === 'settings') {
       router.push('/settings')
@@ -820,7 +836,7 @@ function verifyPassword() {
 }
 
 function handleSettings() {
-  if (isAllowClickButton.value) {
+  if (isButtonDisabled.value) {
     addNotification('盘点中，稍后再试', 'warning')
     return
   }

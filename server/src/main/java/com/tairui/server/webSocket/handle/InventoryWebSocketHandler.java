@@ -48,7 +48,7 @@ public class InventoryWebSocketHandler extends TextWebSocketHandler {
     @Override
     @Transactional(rollbackFor = Exception.class)
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-
+        
         String payload = message.getPayload();
 
         WsRequest wsRequest;
@@ -71,9 +71,12 @@ public class InventoryWebSocketHandler extends TextWebSocketHandler {
         String currentTime = LocalDateTime.now()
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
+        int unconfiguredLockerCount = 0;
+
         for (CabinetFullDTO cabinet : cabinets) {
 
             if (cabinet.getRows() == null || cabinet.getRows().isEmpty()) {
+                unconfiguredLockerCount += 1;
                 continue;
             }
 
@@ -168,6 +171,8 @@ public class InventoryWebSocketHandler extends TextWebSocketHandler {
                     .collect(Collectors.joining(","));
             errorMessage += "盘点失败，请检测硬件连接";
             wsResponse = WsResponse.response(wsRequest.getAction(), 206, errorMessage, result);
+        } else if (cabinets.size() == unconfiguredLockerCount) {
+            wsResponse = WsResponse.response(wsRequest.getAction(), 201, "未配置格口，盘点无效", result);
         } else {
             wsResponse = WsResponse.success(wsRequest.getAction(), "盘点完成", result);
         }

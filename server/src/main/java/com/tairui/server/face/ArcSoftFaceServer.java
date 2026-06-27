@@ -36,4 +36,9 @@ public class ArcSoftFaceServer implements IFaceServer {
     public void start() throws Exception {
 
     }
+
+    @Override
+    public void destroy() {
+
+    }
 }

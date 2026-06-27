@@ -1173,8 +1173,8 @@ const cabinetEditForm = ref({
   lockCommType: '485' as '485' | 'TCP',
   lockCommPort: '',
   lockBoardAddr: '',
-  humidityMin: 30,
-  humidityMax: 70,
+  humidityMin: 40,
+  humidityMax: 60,
   temperatureMin: 15,
   temperatureMax: 25
 })
@@ -1909,8 +1909,8 @@ function handleAddCabinet() {
     lockCommType: '485',
     lockCommPort: '',
     lockBoardAddr: '',
-    humidityMin: 30,
-    humidityMax: 70,
+    humidityMin: 40,
+    humidityMax: 60,
     temperatureMin: 15,
     temperatureMax: 25
   }

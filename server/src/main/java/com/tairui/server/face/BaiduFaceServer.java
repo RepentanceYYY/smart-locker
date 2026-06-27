@@ -436,6 +436,7 @@ public class BaiduFaceServer implements IFaceServer {
     /**
      * 卸载释放
      */
+    @Override
     public void destroy() {
         synchronized (SDK_NATIVE_LOCK) {
             if (api == null) return;

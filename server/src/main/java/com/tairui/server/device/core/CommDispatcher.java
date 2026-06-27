@@ -7,6 +7,8 @@ import com.tairui.server.device.utils.HexUtils;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.Condition;
@@ -21,6 +23,9 @@ public abstract class CommDispatcher {
         this.priorityQueue = new PriorityBlockingQueue<>();
         this.concurrentLinkedQueue = new ConcurrentLinkedQueue<>();
     }
+
+    private static final DateTimeFormatter DF =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
 
     // 使用有界队列（500），防止指令积压撑爆内存
     // DiscardOldestPolicy: 队列满时丢弃最老的任务，确保新指令能排上队
@@ -273,10 +278,22 @@ public abstract class CommDispatcher {
                     this.lastReadBytes = null;
 
                     String hexData = HexUtils.bytesToHexString(task.getWriteBytes());
+                    String time = LocalDateTime.now().format(DF);
+
                     if (retries == initialRetryCount) {
-                        System.out.println("[" + Thread.currentThread().getName() + "] [首次写入] TaskID: " + System.identityHashCode(task) + " 数据: " + hexData);
+                        System.out.println("[CommDispatcher] Initial write | taskId="
+                                + System.identityHashCode(task)
+                                + " | time="
+                                + time
+                                + " | data="
+                                + hexData);
                     } else {
-                        System.out.println("[CommDispatcher] [第 " + (initialRetryCount - retries) + " 次重试] 数据: " + hexData);
+                        System.out.println("[CommDispatcher] Retry attempt "
+                                + (initialRetryCount - retries)
+                                + " | time="
+                                + time
+                                + " | data="
+                                + hexData);
                     }
 
                     write(task);
@@ -287,7 +304,7 @@ public abstract class CommDispatcher {
                         if (hasResponse) {
                             responseData = this.lastReadBytes;
                             if (responseData == null || responseData.length == 0) {
-                                throw new RuntimeException("设备响应了空数据");
+                                throw new RuntimeException("Device returned empty data");
                             }
 
                             // 收到数据后，立刻在锁内/循环内尝试通过业务回调进行校验
@@ -300,7 +317,7 @@ public abstract class CommDispatcher {
                             success = true;
 
                         } else {
-                            throw new RuntimeException("设备响应超时");
+                            throw new RuntimeException("Device response timeout");
                         }
                     } else {
                         success = true;
@@ -310,7 +327,12 @@ public abstract class CommDispatcher {
                     // 捕获到了异常（可能是超时，也可能是业务回调里抛出的“数据非法异常”）
                     success = false;
                     lastException = ex; // 记录最后一次的异常
-                    System.err.println("[CommDispatcher] 本次执行失败原因: " + ex.getMessage() + ",写入的数据为：" + HexUtils.bytesToHexString(task.getWriteBytes()));
+                    System.err.println("[CommDispatcher] Execution failed | time="
+                            + LocalDateTime.now().format(DF)
+                            + " | failure reason="
+                            + ex.getMessage()
+                            + " | write data="
+                            + HexUtils.bytesToHexString(task.getWriteBytes()));
 
                     try {
                         close();
@@ -332,7 +354,11 @@ public abstract class CommDispatcher {
                 if (retries >= 0) {
                     try {
                         long backoffTime = 20 + (initialRetryCount - retries) * 30;
-                        System.out.println("[CommDispatcher] 重试前等待 " + backoffTime + "ms");
+                        System.out.println("[CommDispatcher] Wait before retry | time="
+                                + LocalDateTime.now().format(DF)
+                                + " | backoff time="
+                                + backoffTime
+                                + "ms");
                         TimeUnit.MILLISECONDS.sleep(backoffTime);
                     } catch (InterruptedException ignore) {
                     }
@@ -357,7 +383,8 @@ public abstract class CommDispatcher {
             try {
                 onAllTasksCompleted.run();
             } catch (Exception e) {
-                System.err.println("ActionEndEvent 执行异常: " + e.getMessage());
+                System.err.println("[CommDispatcher] ActionEndEvent execution failed | error="
+                        + e.getMessage());
             }
         }
     }

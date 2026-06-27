@@ -19,144 +19,78 @@ import java.util.Map;
 @Log4j2
 public class DehumidifierDeviceServiceManager extends BaseDeviceServiceManager<DehumidifierDeviceService> {
 
-    /**
-     * 初始化
-     */
     @PostConstruct
     public void init() {
-        super.init("dehumidifierCommType", "dehumidifierCommPort", "除湿机");
+        super.init("除湿机");
     }
 
-    /**
-     * 通过柜子配置id，获取设备对象
-     */
     public DehumidifierDeviceService getDeviceServiceByCabinetId(Integer cabinetId) {
-        return super.getDeviceServiceByCabinetId(cabinetId, "dehumidifierCommType", "dehumidifierCommPort");
+        return super.getDeviceServiceByCabinetId(cabinetId, "除湿机");
     }
 
     /**
-     * 添加/校验新柜子除湿机服务（供Service层创建/修改柜子时调用）
-     * 1. 如果存在完全相同的通信端口（TCP的IP:Port，或485的COM@Baud），直接返回已有服务
-     * 2. 如果是485，且使用了相同的物理串口名称（如COM1），但波特率不同，则拒绝通过
-     * 3. 校验通过后，仅创建并返回对象，【不打开连接】，【不存入Map】
-     *
-     * @param cabinetConfig 新增或修改后的柜子配置
-     * @return 实例化后的除湿机服务对象
+     * 如果存在则返回存在的，否则返回新的(新的不会存入Map)
+     * @param cabinetConfig
+     * @return
      */
     public DehumidifierDeviceService addDeviceServiceByNewCabinetConfig(CabinetConfig cabinetConfig) {
-        return super.addDeviceServiceByNewCabinetConfig(cabinetConfig, "dehumidifierCommType", "dehumidifierCommPort", "除湿机");
+        return super.addDeviceServiceByNewCabinetConfig(cabinetConfig, "除湿机");
     }
 
-    /**
-     * 通过柜子配置创建设备对象并建立连接
-     */
     @Override
-    protected DehumidifierDeviceService createDeviceServiceByCabinetConfig(CabinetConfig cabinetConfig, String commTypeField, String commPortField) {
-        String commType = cabinetConfig.getDehumidifierCommType();
-        String commPort = cabinetConfig.getDehumidifierCommPort();
+    protected String getCommType(CabinetConfig config) { return config.getDehumidifierCommType(); }
 
-        CommDispatcher dispatcher = createDispatcher(commType, commPort);
-        DehumidifierDeviceService dehumidifierDeviceService = createDeviceServiceWithoutCache(cabinetConfig, commTypeField, commPortField, dispatcher);
+    @Override
+    protected String getCommPort(CabinetConfig config) { return config.getDehumidifierCommPort(); }
 
-        deviceServiceMap.put(commPort, dehumidifierDeviceService);
-        openAndCacheDevice(dehumidifierDeviceService, cabinetConfig, commPort);
-
-        return dehumidifierDeviceService;
+    @Override
+    protected DehumidifierDeviceService createDeviceInstance(CabinetConfig config, CommDispatcher dispatcher) {
+        DehumidifierDeviceService service = new DehumidifierDeviceService(Integer.parseInt(config.getDehumidifierAddr()));
+        service.setWriteIntervalTime(50L);
+        service.setCommDispatcher(dispatcher);
+        dispatcher.addDevice(service);
+        return service;
     }
 
-    /**
-     * 创建设备服务对象但不缓存
-     */
     @Override
-    protected DehumidifierDeviceService createDeviceServiceWithoutCache(CabinetConfig cabinetConfig, String commTypeField, String commPortField, CommDispatcher dispatcher) {
-        DehumidifierDeviceService dehumidifierDeviceService = new DehumidifierDeviceService(Integer.parseInt(cabinetConfig.getDehumidifierAddr()));
-        dehumidifierDeviceService.setWriteIntervalTime(50L);
-        dehumidifierDeviceService.setCommDispatcher(dispatcher);
-        dispatcher.addDevice(dehumidifierDeviceService);
-
-        return dehumidifierDeviceService;
+    protected void doOpenConnection(DehumidifierDeviceService deviceService) throws Exception {
+        deviceService.open(); // 显式调用，排查时按住 Ctrl 就能直接点进去
     }
 
-    /**
-     * 关闭设备连接
-     */
     @Override
-    protected void closeDevice(DehumidifierDeviceService deviceService) throws Exception {
+    protected void doCloseConnection(DehumidifierDeviceService deviceService) throws Exception {
         deviceService.close();
     }
 
-    /**
-     * 获取通信类型
-     */
-    @Override
-    protected String getCommType(CabinetConfig config, String fieldName) {
-        return config.getDehumidifierCommType();
-    }
-
-    /**
-     * 获取通信端口
-     */
-    @Override
-    protected String getCommPort(CabinetConfig config, String fieldName) {
-        return config.getDehumidifierCommPort();
-    }
-
-    /**
-     * 从配置中获取通信类型（用于日志）
-     */
-    @Override
-    protected String getCommTypeFromConfig(CabinetConfig config) {
-        return config.getDehumidifierCommType();
-    }
-
-    /**
-     * 删除柜子配置之后
-     */
     public void afterDeleteCabinetConfigData(Integer cabinetConfigId, String commPort) {
-        super.afterDeleteCabinetConfigData(cabinetConfigId, commPort, "dehumidifierCommPort");
+        super.afterDeleteCabinetConfigData(cabinetConfigId, commPort);
     }
 
     /**
-     * 获取所有柜子最新温湿度
-     *
-     * @return
+     * 获取实时温湿度(所有柜子)
      */
     public Map<Integer, ThData> getRealtimeTemperatureHumidity() {
         List<CabinetConfig> cabinetConfigs = cabinetConfigMapper.selectList(null);
-
-        if (cabinetConfigs.isEmpty()) return new HashMap<>();
-
         Map<Integer, ThData> result = new HashMap<>();
+        if (cabinetConfigs.isEmpty()) return result;
 
-        for (CabinetConfig cabinetConfig : cabinetConfigs) {
+        for (CabinetConfig config : cabinetConfigs) {
             try {
-                Thread.sleep(50L);
-                DehumidifierDeviceService dehumidifierDeviceService = deviceServiceMap.computeIfAbsent(cabinetConfig.getDehumidifierCommPort(), key -> createDeviceServiceByCabinetConfig(cabinetConfig, "dehumidifierCommType", "dehumidifierCommPort"));
-                int address = Integer.parseInt(cabinetConfig.getDehumidifierAddr());
-                dehumidifierDeviceService.setAddress(address);
-                DehumidifierRunParam dehumidifierRunParam = dehumidifierDeviceService.queryRunParam(0, 15);
-                result.put(cabinetConfig.getId(), new ThData(dehumidifierRunParam.getAmbientTemperature(), dehumidifierRunParam.getAmbientHumidity()));
+                DehumidifierDeviceService service = this.getDeviceServiceByCabinetId(config.getId());
+
+                synchronized (service) {
+                    int address = Integer.parseInt(config.getDehumidifierAddr());
+                    service.setAddress(address);
+
+                    DehumidifierRunParam param = service.queryRunParam(0, 15);
+                    result.put(config.getId(), new ThData(param.getAmbientTemperature(), param.getAmbientHumidity()));
+                }
+
             } catch (Exception ex) {
-                result.put(cabinetConfig.getId(), new ThData(0D, 0D));
-                log.error("{}除湿机温湿度采集失败，原因：{}", cabinetConfig.getTitle(), ex.getMessage());
+                result.put(config.getId(), new ThData(0D, 0D));
+                log.error("{}除湿机温湿度采集失败，原因：{}", config.getTitle(), ex.getMessage());
             }
         }
-
         return result;
-    }
-
-    /**
-     * 删除所有连接
-     */
-    public void reset() {
-        Map<String, DehumidifierDeviceService> deviceServiceMap = this.getDeviceServiceMap();
-        for (DehumidifierDeviceService service : deviceServiceMap.values()) {
-            try {
-                service.close();
-            } catch (Exception ex) {
-
-            }
-        }
-        deviceServiceMap.clear();
     }
 }

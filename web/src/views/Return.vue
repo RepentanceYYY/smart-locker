@@ -662,7 +662,7 @@ function connectWebSocket() {
   }
   socket.onerror = (error) => {
     console.error('WebSocket 错误', error)
-    addNotification('与服务器连接异常，请刷新页面重试', 'warning')
+    addNotification('与服务器连接异常，请尝试重启', 'warning')
   }
   socket.onclose = () => {
     console.log('WebSocket 连接关闭')

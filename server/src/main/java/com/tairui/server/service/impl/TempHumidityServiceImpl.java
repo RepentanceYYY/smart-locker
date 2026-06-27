@@ -119,23 +119,20 @@ public class TempHumidityServiceImpl implements TempHumidityService {
     public void saveTemperatureHumidityHistory() {
 
         try {
-            // 1. 柜子配置
+            // 柜子配置
             List<CabinetConfig> cabinetConfigs = cabinetConfigMapper.selectList(null);
             if (cabinetConfigs == null || cabinetConfigs.isEmpty()) {
-                log.warn("暂无柜子配置，跳过温湿度历史记录");
+                log.warn("柜子配置列表为空，跳过记录温湿度");
                 return;
             }
 
-            // 2. 最新温湿度数据
+            // 最新温湿度数据
             Map<Integer, ThData> thDataMap = dehumidifierDeviceServiceManager.getRealtimeTemperatureHumidity();
 
             if (thDataMap == null || thDataMap.isEmpty()) {
                 log.warn("未获取到温湿度数据，跳过历史记录");
                 return;
             }
-
-            int successCount = 0;
-            int failCount = 0;
             LocalDateTime now = LocalDateTime.now();
 
             for (CabinetConfig cabinet : cabinetConfigs) {
@@ -155,12 +152,8 @@ public class TempHumidityServiceImpl implements TempHumidityService {
 
                     // 保存到数据库
                     thHistoryMapper.insert(history);
-                    successCount++;
-
 
                 } catch (Exception e) {
-                    failCount++;
-
                 }
             }
 

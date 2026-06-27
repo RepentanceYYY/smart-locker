@@ -227,8 +227,6 @@ public class DehumidifierDevice extends DeviceCore {
                     break;
             }
         }
-
-        System.out.println(statusObj);
         return statusObj;
     }
 
@@ -414,7 +412,6 @@ public class DehumidifierDevice extends DeviceCore {
                     break;
             }
         }
-        System.out.println(paramObj);
         return paramObj;
     }
 
@@ -466,7 +463,7 @@ public class DehumidifierDevice extends DeviceCore {
      *
      * @param humidityControlStart 控湿开始值
      */
-    public void setHumidityControlStart(int humidityControlStart) throws Exception {
+    public void setHumidityControlStart(int humidityControlStart) {
         if (humidityControlStart < 25 || humidityControlStart > 98) {
             throw new RuntimeException("控湿开始值只能是在25~98范围内");
         }
@@ -481,7 +478,7 @@ public class DehumidifierDevice extends DeviceCore {
                 return true;
             });
         } catch (Exception e) {
-            String errorMessage = "控湿开始值设置失败，原因:" + e.getMessage() + ",写入的数据为:" + HexUtils.bytesToHexString(frame);
+            String errorMessage = "控湿开始值设置失败，原因:" + e.getMessage();
             throw new RuntimeException(errorMessage);
         }
     }
@@ -491,7 +488,7 @@ public class DehumidifierDevice extends DeviceCore {
      *
      * @param humidityControlStop 控湿停止值
      */
-    public void setHumidityControlStop(int humidityControlStop) throws Exception {
+    public void setHumidityControlStop(int humidityControlStop) {
         if (humidityControlStop < 25 || humidityControlStop > 98) {
             throw new RuntimeException("控湿停止值只能是在25~98范围内");
         }
@@ -506,7 +503,7 @@ public class DehumidifierDevice extends DeviceCore {
                 return true;
             });
         } catch (Exception e) {
-            String errorMessage = "控湿停止值设置失败，原因:" + e.getMessage() + ",写入的数据为:" + HexUtils.bytesToHexString(frame);
+            String errorMessage = "控湿停止值设置失败，原因:" + e.getMessage();
             throw new RuntimeException(errorMessage);
         }
     }

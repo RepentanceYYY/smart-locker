@@ -14,4 +14,5 @@ public interface IFaceServer {
     public WsResponse getBaiDuActivationStatus(WsRequest wsRequest)throws Exception;
 
     public void start()throws Exception;
+    public void destroy();
 }

@@ -19,7 +19,8 @@ Configuration:
         onMatch: ACCEPT
         onMismatch: DENY
       PatternLayout:
-        pattern: "[%d{HH:mm:ss.SSS}] %highlight{%-5level} %class{36} %L %M - %msg%xEx%n"
+        pattern: "[%d{HH:mm:ss.SSS}] %-5level %class{36} %L %M - %msg%xEx%n"
+#        pattern: "[%d{HH:mm:ss.SSS}] %highlight{%-5level} %class{36} %L %M - %msg%xEx%n"
         disableAnsi: false
         alwaysWriteExceptions: true
 
