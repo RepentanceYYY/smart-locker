@@ -1761,16 +1761,16 @@ async function saveNewImage() {
   if (pendingImageFile.value) {
     try {
       showMessage('正在上传图片...')
-      const res = await uploadImage(pendingImageFile.value)
-      if (res.data.code === 200) {
-        finalImageUrl = res.data.data
+      const res: any = await uploadImage(pendingImageFile.value)
+      if (res.code === 200) {
+        finalImageUrl = res.data
       } else {
-        showMessage(res.data.message || '图片上传失败')
+        showMessage(res.message || '图片上传失败')
         return
       }
     } catch (err: any) {
       console.error('上传失败', err)
-      showMessage(err.response?.data?.message || '图片上传失败，请重试')
+      showMessage(err.responset?.message || '图片上传失败，请重试')
       return
     }
   }

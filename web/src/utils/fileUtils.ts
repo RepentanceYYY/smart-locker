@@ -8,6 +8,11 @@ export const formatImageUrl = (url: string | undefined | null): string => {
     return './default-icon.png' 
   }
   
+  // 本地预览
+  if (url.startsWith('blob:')) {
+    return url
+  }
+
   // 1. 💡 新增兼容：如果是 Base64 格式（以 data: 开头，如 data:image/png;base64,...），直接原样返回
   if (url.startsWith('data:')) {
     return url
